@@ -22,7 +22,7 @@
 
 # Modify Makefile, macros.mk and config.h to compile on OpenBSD
 #
-# 20020916 raf <raf@raf.org>
+# 20030901 raf <raf@raf.org>
 
 perl -pi \
 	-e 's/^(\S+ \+= xnet)$/# $1/;' \

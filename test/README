@@ -486,6 +486,18 @@ This tests the --command option. It echoes "test61 extra" to daemon.err.
 The "test61" comes from the configuration file. The "extra" comes from
 the daemon command line in the test61 shell script.
 
+test62
+~~~~~~
+This tests the --command option. It echoes "test62" to daemon.err.
+The "test62" comes from the configuration file. No extra arguments
+are passed on the command line.
+
+test63
+~~~~~~
+This tests daemon's response to the --stop option. It echoes "line 1 of 2"
+and "line 2 of 2" to daemon.err. The second line comes from the client's
+sigterm handler.
+
 clean
 ~~~~~
 The clean script deletes all temporary files created by any of the tests.

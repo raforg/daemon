@@ -106,7 +106,7 @@ INSTALL
 Currently, this is only known to work on the following systems:
 
     Linux 2.2/2.4 (Redhat 6.x/7.x, Debian 2.2r6/3.0r0)
-    Solaris 2.6/8
+    Solaris 2.6/8 (sun, x86)
     OpenBSD 2.9/3.1
     FreeBSD 4.5
 
@@ -144,13 +144,13 @@ they have some very nasty bugs.
 
 First, uninstall any previous version:
 
-    cd /usr/local/src/daemon-0.5
+    cd /usr/local/src/daemon-0.6
     make uninstall
 
 To build and test:
 
-    tar xzf daemon-0.6.tar.gz
-    cd daemon-0.6
+    tar xzf daemon-0.6.1.tar.gz
+    cd daemon-0.6.1
     conf/<your-system>   # i.e. linux, solaris[68]-[g]cc, openbsd, freebsd
     mak                  # must be gnu make
     make test            # only tests libslack. to test daemon, see test/README
@@ -194,28 +194,28 @@ BINARY PACKAGES
 ~~~~~~~~~~~~~~~
 To install from the RPM binary package (into /usr by default):
 
-    rpm -i daemon-0.6-1.i386.rpm
+    rpm -i daemon-0.6.1-1.i386.rpm
 
 To install from the RPM binary package into somewhere other than /usr:
 
-    rpm --prefix=/usr/local -i daemon-0.6-1.i386.rpm
+    rpm --prefix=/usr/local -i daemon-0.6.1-1.i386.rpm
 
 To install from the (relocatable) Debian binary package (into /usr):
 
-    dpkg -i daemon_0.6_i386.deb
+    dpkg -i daemon_0.6.1-0_i386.deb
 
 To install from the (relocatable) Solaris8 binary package (into /opt/daemon):
 
-    gunzip daemon-0.6.sun4u.pkg.gz
-    pkgadd -d daemon-0.6.sun4u.pkg
+    gunzip daemon-0.6.1.sun4u.pkg.gz
+    pkgadd -d daemon-0.6.1.sun4u.pkg
 
 Install from the OpenBSD binary package (into /usr/local):
 
-    pkg_add daemon-0.6-obsd-i386.tar.gz
+    pkg_add daemon-0.6.1-obsd-i386.tar.gz
 
 Install from the FreeBSD binary package (into /usr/local):
 
-    pkg_add daemon-0.6-fbsd-i386.tar.gz
+    pkg_add daemon-0.6.1-fbsd-i386.tar.gz
 
 REQUIREMENTS
 ~~~~~~~~~~~~
@@ -521,7 +521,7 @@ HISTORY
     - Fixed bug: -n and -u options together failed to unlink pidfiles
     - Fixed security bug: wasn't clearing supplementary groups with -u option
     - Added support for root and user pidfiles in separate directories
-    - Added make rpm rpm-daemon rpm-slack (with Edward Avis epa98@doc.ic.ac.uk)
+    - Added make rpm rpm-daemon rpm-slack (with Edward Avis ed@membled.com)
     - Added installation of manpages for each function (link to module manpage)
     - Added libslack(3) overview manpage
     - Added list_break(), map_break()
@@ -652,7 +652,7 @@ HISTORY
     - Added --delay option
     - Added --limit option
     - Removed --force option (no longer meaningful)
-    - Added --foreground option (suggested by mh@zugschlus.de)
+    - Added --foreground option (suggested by mh+daemon@zugschlus.de)
     - Added --pty option
     - Exposed daemon_pidfile()
     - Added daemon_is_running()
@@ -681,16 +681,22 @@ HISTORY
     - Added Debian source package generation
     - Stopped generating debian package (until it's a shared library)
     - Added make fbsd fbsd-daemon fbsd-slack (freebsd binary packages)
-    - Added --command option (suggested by mh@zugschlus.de)
+    - Added --command option (suggested by mh+daemon@zugschlus.de)
     - Added support for absolute path in daemon_pidfile()
-    - Added --pidfiles, --pidfile options (suggested by mh@zugschlus.de)
+    - Added --pidfiles, --pidfile options (suggested by mh+daemon@zugschlus.de)
     - Added daemon_getpid()
-    - Added --restart option (suggested by mh@zugschlus.de)
+    - Added --restart option (suggested by mh+daemon@zugschlus.de)
     - Added support for ~/.daemonrc
     - Added --noconfig option
     - Added check for dubious characters in daemon names
     - Added libslack-config --upgrade option
     - Added lame ./config script that just calls existing lame conf/* scripts
+
+0.6.1 (20030901)
+    - Fixed bug: --noconfig option broken (spotted by paolo@telmap.com)
+    - Fixed bug: --command option broken (spotted by paolo@telmap.com)
+    - Fixed bug: exit too quickly on sigterm (spotted by stodden@cs.tum.edu)
+    - Set prog name to --name argument, if any (for syslog message prefix)
 
 TODO
 ~~~~
@@ -709,5 +715,5 @@ TODO
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 URL: http://libslack.org/daemon/
-Date: 20020916
+Date: 20030901
 Author: raf <raf@raf.org>

@@ -413,7 +413,7 @@ HISTORY
     - Added strlcpy(), strlcat(), strcasecmp() and strncasecmp() to str module
     - Renamed conf/solaris to solaris-gcc and added solaris-cc for sun workshop
     - Added support for root and user pidfiles in separate directories
-    - Added make rpm rpm-daemon rpm-slack (with Edward Avis epa98@doc.ic.ac.uk)
+    - Added make rpm rpm-daemon rpm-slack (with Edward Avis ed@membled.com)
     - Added installation of manpages for each function (link to module manpage)
     - Added libslack(3) overview manpage
     - Added list_break(), map_break()

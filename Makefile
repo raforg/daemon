@@ -19,7 +19,7 @@
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
 
-# 20020916 raf <raf@raf.org>
+# 20030901 raf <raf@raf.org>
 
 CC := gcc
 # CC := cc

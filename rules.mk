@@ -19,7 +19,7 @@
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
 
-# 20020916 raf <raf@raf.org>
+# 20030901 raf <raf@raf.org>
 
 ifneq ($(DAEMON_TARGET),./$(DAEMON_NAME))
 
@@ -240,8 +240,9 @@ $(DAEMON_SRCDIR)/debian:
 		s/^Copyright:$$/Copyright (C) 1999-2002 raf <raf\@raf.org>/; \
 		s/<Must follow here>/This software is released under the terms of the GNU General Public License:\n\n    http:\/\/www.gnu.org\/copyleft\/gpl.html (on the Web)\n    file:\/usr\/share\/common-licenses\/GPL  (on Debian systems)\n/; \
 	' copyright; \
-	echo "Cleaning up debian/changelog."; \
+	echo "Completing up debian/changelog."; \
 	perl -p -i -e 'last if /^Local variables:/' changelog; \
+	perl -p -i -e 's/-1/-0/' changelog; \
 	echo "Creating debian/doc-base."; \
 	echo "Document: $(DAEMON_NAME)" > doc-base; \
 	echo "Title: $(DAEMON_NAME) manual" >> doc-base; \

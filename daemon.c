@@ -1,7 +1,7 @@
 /*
 * daemon - http://libslack.org/daemon/
 *
-* Copyright (C) 1999-2002 raf <raf@raf.org>
+* Copyright (C) 1999-2003 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20020916 raf <raf@raf.org>
+* 20030901 raf <raf@raf.org>
 */
 
 /*
@@ -29,7 +29,7 @@ I<daemon> - turns other processes into daemons
 
 =head1 SYNOPSIS
 
- usage: daemon [options] [cmd arg...]
+ usage: daemon [options] [--] [cmd arg...]
  options:
 
    -h, --help              - Print a help message then exit
@@ -613,7 +613,7 @@ L<kill(2)|kill(2)>
 
 =head1 AUTHOR
 
-20020916 raf <raf@raf.org>
+20030901 raf <raf@raf.org>
 
 =cut
 
@@ -766,6 +766,7 @@ static struct
 	struct winsize stdin_winsize; /* stdin's terminal window size */
 	int stdin_isatty;             /* is stdin a terminal? */
 	int stdin_eof;                /* has stdin received eof? */
+	int terminated;               /* have we received a term signal? */
 }
 g =
 {
@@ -810,7 +811,7 @@ g =
 	LOG_DAEMON | LOG_DEBUG, /* daemon_dbglog */
 	-1,                     /* client_outfd */
 	-1,                     /* client_errfd */
-	CONFIG_PATH,            /* config */
+	null,                   /* config */
 	0,                      /* noconfig */
 	(pid_t)0,               /* pid */
 	-1,                     /* in */
@@ -830,7 +831,8 @@ g =
 	{ 0 },                  /* stdin_termios */
 	{ 0 },                  /* stdin_winsize */
 	0,                      /* stdin_isatty */
-	0                       /* stdin_eof */
+	0,                      /* stdin_eof */
+	0                       /* terminated */
 };
 
 /*
@@ -1659,7 +1661,7 @@ static void config(void)
 	/* Load the system configuration file */
 
 	if (!g.noconfig)
-		config_load(&conf, g.config);
+		config_load(&conf, g.config ? g.config : CONFIG_PATH);
 
 	/* Load the user configuration file */
 
@@ -1717,7 +1719,7 @@ static void term(int signo)
 		debug((2, "%s%sstopped", g.name ? g.name : "", g.name ? ": " : ""))
 	}
 
-	exit(EXIT_SUCCESS);
+	g.terminated = 1;
 }
 
 /*
@@ -2152,14 +2154,14 @@ static void examine_child(void)
 
 	g.pid = (pid_t)0;
 
-	if (g.respawn)
+	if (g.respawn && !g.terminated)
 	{
 		debug((2, "about to respawn"))
 		spawn_child();
 	}
 	else
 	{
-		debug((2, "child terminated, exiting"))
+		debug((2, "%schild terminated, exiting", (g.terminated) ? "daemon and " : ""))
 		exit(EXIT_SUCCESS);
 	}
 }
@@ -2796,6 +2798,8 @@ Checks that there are no consistency errors in the options supplied.
 
 static void sanity_check(void)
 {
+	struct stat status[1];
+
 	if (g.acceptable != RESPAWN_ACCEPTABLE && !g.respawn)
 		prog_usage_msg("Missing option: --respawn (required for --acceptable)");
 
@@ -2837,6 +2841,9 @@ static void sanity_check(void)
 
 	if (g.config && g.noconfig)
 		prog_usage_msg("Incompatible options: --config and --noconfig");
+
+	if (g.config && stat(g.config, status) == -1)
+		prog_usage_msg("Invalid --config option argument %s: %s", g.config, strerror(errno));
 }
 
 /*
@@ -2879,7 +2886,7 @@ static void init(int ac, char **av)
 
 	prog_set_legal
 	(
-		"Copyright (C) 1999-2002 raf <raf@raf.org>\n"
+		"Copyright (C) 1999-2003 raf <raf@raf.org>\n"
 		"\n"
 		"This is free software released under the terms of the GPL:\n"
 		"\n"
@@ -2907,10 +2914,7 @@ static void init(int ac, char **av)
 
 	/* Parse command line options */
 
-	if ((a = prog_opt_process(g.ac = ac, g.av = av)) == ac)
-		if (!g.stop && !g.running && !g.restart && !g.command)
-			prog_usage_msg("Invalid arguments: no command supplied");
-
+	a = prog_opt_process(g.ac = ac, g.av = av);
 	g.done_name = 1;
 
 	/* Set file system root */
@@ -2945,6 +2949,11 @@ static void init(int ac, char **av)
 
 	sanity_check();
 
+	/* Set message prefix to the --name argument, if any */
+
+	if (g.name)
+		prog_set_name(g.name);
+
 	/* Prevent core file generation */
 
 	if (!g.core && daemon_prevent_core() == -1)
@@ -2960,7 +2969,7 @@ static void init(int ac, char **av)
 	else if (g.pidfiles && g.name)
 	{
 		const char *suffix = ".pid";
-		size_t size = strlen(g.pidfiles) + 1 + strlen(g.name) + strlen(suffix) + 1 ;
+		size_t size = strlen(g.pidfiles) + 1 + strlen(g.name) + strlen(suffix) + 1;
 
 		if (!(name = mem_create(size, char)))
 			fatalsys("out of memory");
@@ -3021,18 +3030,6 @@ static void init(int ac, char **av)
 		exit(EXIT_SUCCESS);
 	}
 
-	/* Check that the client executable is safe */
-
-	if (g.safe || (getuid() == 0 && !g.unsafe))
-	{
-		switch (safety_check(av[a]))
-		{
-			case 1: break;
-			case 0: fatal("refusing to execute unsafe program: %s", av[a]);
-			default: fatalsys("failed to tell if %s is safe", av[a]);
-		}
-	}
-
 	/* Enter daemon space, or just name the client, or neither */
 
 	if (g.foreground)
@@ -3042,10 +3039,8 @@ static void init(int ac, char **av)
 	}
 	else
 	{
-		int rc;
-		
-		rc = daemon_init(name);
-		prog_err_syslog(null, 0, LOG_DAEMON, LOG_ERR);
+		int rc = daemon_init(name);
+		prog_err_syslog(prog_name(), 0, LOG_DAEMON, LOG_ERR);
 
 		if (rc == -1)
 			fatalsys("failed to become a daemon");
@@ -3070,7 +3065,7 @@ static void init(int ac, char **av)
 
 	if (g.daemon_errlog)
 	{
-		if (prog_err_syslog(null, 0, g.daemon_errlog & LOG_FACMASK, g.daemon_errlog & LOG_PRIMASK) == -1)
+		if (prog_err_syslog(prog_name(), 0, g.daemon_errlog & LOG_FACMASK, g.daemon_errlog & LOG_PRIMASK) == -1)
 			fatalsys("%s%sfailed to start error delivery to %s.%s", g.name ? g.name : "", g.name ? ": " : "", syslog_facility_str(g.daemon_errlog), syslog_priority_str(g.daemon_errlog));
 	}
 	else if (g.daemon_err)
@@ -3083,7 +3078,7 @@ static void init(int ac, char **av)
 
 	if (g.daemon_dbglog)
 	{
-		if (prog_dbg_syslog(null, 0, g.daemon_dbglog & LOG_FACMASK, g.daemon_dbglog & LOG_PRIMASK) == -1)
+		if (prog_dbg_syslog(prog_name(), 0, g.daemon_dbglog & LOG_FACMASK, g.daemon_dbglog & LOG_PRIMASK) == -1)
 			fatalsys("%s%sfailed to start debug delivery to %s.%s", g.name ? g.name : "", g.name ? ": " : "", syslog_facility_str(g.daemon_dbglog), syslog_priority_str(g.daemon_dbglog));
 	}
 	else if (g.daemon_dbg)
@@ -3121,6 +3116,23 @@ static void init(int ac, char **av)
 		memmove(g.cmd + i, av + a, (ac - a) * sizeof(char *));
 
 	g.cmd[i + ac - a] = null;
+
+	/* Check that we have a command to run */
+
+	if (g.cmd[0] == null)
+		prog_usage_msg("Invalid arguments: no command supplied");
+
+	/* Check that the client executable is safe */
+
+	if (g.safe || (getuid() == 0 && !g.unsafe))
+	{
+		switch (safety_check(g.cmd[0]))
+		{
+			case 1: break;
+			case 0: fatal("refusing to execute unsafe program: %s", g.cmd[0]);
+			default: fatalsys("failed to tell if %s is safe", g.cmd[0]);
+		}
+	}
 
 	/* Build an environment variable vector for the client */
 

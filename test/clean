@@ -16,3 +16,4 @@ rm -f test17.output
 rm -f test18.err
 rm -f test18.dbg
 rm -f test58.client
+rm -f test63.client
