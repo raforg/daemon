@@ -1,0 +1,38 @@
+.\" Copyright 1999 raf (raf2@zip.com.au)
+.TH snprintf 3  "25 June 1999" "raf" "Twisted Systems Freeware"
+.SH NAME
+snprintf, vsnprintf \- safe sprintf
+.SH SYNOPSIS
+.nf
+.B #include <daemon/snprintf.h>
+.sp
+.BI "int snprintf(char *" str ", size_t " n ", const char *" fmt ", ..." );
+.sp
+.BI "int vsnprintf(char *" str ", size_t " n ", const char *" fmt ", va_list " ap );
+.fi
+.SH DESCRIPTION
+.I snprintf()
+writes output to the string str, under control of the format string that
+specifies how subsequent arguments are converted for output. It is similar
+to sprintf(3), except that n specifies the maximum number of characters to
+produce. The trailing nul character is counted towards this limit, so you
+must allocate at least n characters for the string str.
+If the output was truncated, the return value is n + 1, otherwise it is
+the return value of vsprintf(3).
+.PP
+.I vsnprintf()
+is equivalent to snprintf with th evariable argument list specified
+directly as for vsprintf(3).
+.SH RETURNS
+Returns the number of bytes written. If overflow occurred, the return value
+is n + 1.
+.SH "SEE ALSO"
+.BR daemon(3),
+.BR err(3),
+.BR fifo(3),
+.BR lim(3),
+.BR mem(3),
+.BR msg(3),
+.BR prog(3),
+.BR sig(3),
+.BR slog(3)

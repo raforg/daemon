@@ -1,0 +1,100 @@
+.\" Copyright 1999 raf (raf2@zip.com.au)
+.TH msg 3  "25 June 1999" "raf" "Twisted Systems Freeware"
+.SH NAME
+msg_create_stderr,
+msg_create_file,
+msg_create_syslog,
+msg_create_plex,
+msg_add_plex,
+msg_out,
+msg_outv,
+msg_release,
+msg_destroy_fn,
+msg_destroy
+\-
+message handling: send messages to stderr, a file, syslog or any combination
+.SH SYNOPSIS
+.nf
+.B #include <daemon/msg.h>
+.sp
+.BI "Msg *msg_create_stderr(void)"
+.sp
+.BI "Msg *msg_create_file(const char *" path )
+.sp
+.BI "Msg *msg_create_syslog(const char *" ident ", int " option ", int " facility )
+.sp
+.BI "Msg *msg_create_plex(Msg *" msg1 ", Msg *" msg2 )
+.sp
+.BI "int msg_add_plex(Msg *" msg ", Msg *" item )
+.sp
+.BI "void msg_out(Msg *" dst ", const char *" fmt ", ..." )
+.sp
+.BI "void msg_outv(Msg *" dst ", const char *" fmt ", va_list " args )
+.sp
+.BI "void msg_release(Msg *" msg )
+.sp
+.BI "void msg_destroy_fn(Msg **" msg )
+.sp
+.BI "#define msg_destroy(" msg ") " msg_destroy_fn(&(msg))
+.fi
+.SH DESCRIPTION
+.I msg_create_stderr()
+Creates a Msg object that emits messages to standard error.
+.PP
+.I msg_create_file()
+Creates a Msg object that emits messages to the file specified by
+.IR path .
+.PP
+.I msg_create_syslog()
+Creates a Msg object that emits messages to the system logger
+initialised with
+.IR ident ,
+.IR option " and " facility .
+See
+.IR syslog(3) .
+.PP
+.I msg_create_plex()
+Creates a Msg object that multiplexes messages to
+.IR msg1 " and " msg2 .
+Further Msg objects may be added to its list using
+.IR msg_add_plex() .
+.PP
+.I msg_add_plex()
+Adds
+.I item
+to the list of Msg objects multiplexed by
+.IR msg .
+.PP
+.I msg_out()
+Emits a message to
+.IR dst ". " fmt
+is a
+.IR printf -like
+format string. Any remaining arguments are processed as in
+.IR printf(3) .
+.PP
+.I msg_outv()
+Emits a message to
+.IR dst ". " fmt
+is a
+.IR printf -like
+format string. Any remaining arguments are processed as in
+.IR vprintf(3) .
+.PP
+.I msg_release()
+Deallocates msg and its internal data.
+.PP
+.I msg_destroy_fn()
+Deallocates the Msg object pointer pointed to by
+.I msg
+and assigns null to that pointer.
+.PP
+.I msg_destroy()
+This macro should be used instead of
+.I msg_release()
+when you want the variable storing the
+.I Msg*
+to be zeroed after deallocation.
+.SH "SEE ALSO"
+.BR libdaemon(3) ,
+.B prog(3)

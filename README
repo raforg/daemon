@@ -1,0 +1,74 @@
+ABOUT
+~~~~~
+This contains the unfinished source for the daemon program and the prog library.
+
+daemon is a command that invokes other commands (specified on the command line)
+after placing itself in a process context suitable for a daemon.
+this is useful for writing daemons in languages other than C, C++ or perl.
+
+the prog library contains functions for placing a C or C++ program in a
+process context suitable for daemon.
+
+description of initialising a daemon context:
+
+    Disables core files to prevent security holes.
+    If the process wasn't started by init(8) or inetd(8):
+        Backgrounds the process to lose process group leadership.
+        Becomes a process session leader.
+        When SVR4 is defined:
+           Backgrounds the process again to lose process group leadership.
+           This prevents the process from gaining a controlling terminal.
+           Under BSD, you must still include O_NOCTTY when opening terminals
+           to prevent the process from gaining a controlling terminal.
+    Changes directory to the root directory so as not to hamper umounts.
+    Clears the umask to enable explicit file modes.
+    If the process wasn't started by inetd(8):
+        Closes all files (as determined by sysconf(2)).
+        Opens stdin, stdout and stderr to /dev/null in case something needs them.
+    If the hup parameter is non-null:
+        Registers a SIGHUP handler (prog library only).
+    If the term parameter is non-null:
+        Registers a SIGTERM handler (prog library only).
+    If the name parameter is non-null:
+        Places the process id in the file system and locks it.
+
+not all of the unit tests are complete.
+
+not all of the man pages are written (but the code is copiously documented).
+
+both the unit tests and the man pages are currently being written.
+
+this is only currently known to work on Linux Redhat 6.0.
+it will be tested again on Solaris 2.6 soon.
+
+INSTALL
+~~~~~~~
+there is no autoconf script so you will no doubt encounter problems.
+an ansi C and posix.1 environment will help greatly.
+
+to start:
+
+        make
+        make test
+
+to install just the daemon program:
+
+        make install-app
+
+to install just the prog library:
+
+        make install-lib
+
+to install both:
+
+        make install
+
+for more details:
+
+        make help
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+url: http://www.zip.com.au/~raf2/lib/software/daemon
+date: 19991020
+author: raf <raf2@zip.com.au>
+
