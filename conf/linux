@@ -1,0 +1,13 @@
+#!/bin/sh
+
+#
+# Modify the macros.mk make include files to compile on linux
+#
+
+exec perl -pi \
+	-e 's/^(\S+ \+= xnet)$/# $1/;' \
+	-e 's/^(GETOPT := getopt)$/# $1/;' \
+	-e 's/^(\S+ \+= -DNEEDS_GETOPT=1)$/# $1/;' \
+	-e 's/^(\S+ \+= -DNEEDS_SNPRINTF=1)$/# $1/;' \
+	-e 's/^(\S+ \+= -DPID_DIR)=.*$/$1=\\"\/var\/run\\"/;' \
+	`find . -name macros.mk`

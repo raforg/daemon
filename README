@@ -1,74 +1,185 @@
-ABOUT
-~~~~~
-This contains the unfinished source for the daemon program and the prog library.
+README
+~~~~~~
+This contains the source for the daemon program and the prog library.
 
-daemon is a command that invokes other commands (specified on the command line)
-after placing itself in a process context suitable for a daemon.
-this is useful for writing daemons in languages other than C, C++ or perl.
+Daemon turns other processes into daemons. There are many tasks that need to
+be performed to correctly set up a daemon process. This can be tedious.
+Daemon performs these tasks for other processes. This is useful for writing
+daemons in languages other than C, C++ or Perl (e.g. /bin/sh).
 
-the prog library contains functions for placing a C or C++ program in a
-process context suitable for daemon.
+The prog library contains the functionality of the daemon program in a
+separately linkable form. This can be useful for writing daemons in
+languages that can link against C functions (e.g. C, C++). The prog library
+also contains many other general utility functions.
 
-description of initialising a daemon context:
+DESCRIPTION
+~~~~~~~~~~~
+Daemon turns other processes into daemons. There are many tasks that need to
+be performed to correctly set up a daemon process. This can be tedious.
+Daemon performs these tasks for other processes.
 
-    Disables core files to prevent security holes.
-    If the process wasn't started by init(8) or inetd(8):
-        Backgrounds the process to lose process group leadership.
-        Becomes a process session leader.
-        When SVR4 is defined:
-           Backgrounds the process again to lose process group leadership.
-           This prevents the process from gaining a controlling terminal.
-           Under BSD, you must still include O_NOCTTY when opening terminals
-           to prevent the process from gaining a controlling terminal.
-    Changes directory to the root directory so as not to hamper umounts.
-    Clears the umask to enable explicit file modes.
-    If the process wasn't started by inetd(8):
-        Closes all files (as determined by sysconf(2)).
-        Opens stdin, stdout and stderr to /dev/null in case something needs them.
-    If the hup parameter is non-null:
-        Registers a SIGHUP handler (prog library only).
-    If the term parameter is non-null:
-        Registers a SIGTERM handler (prog library only).
-    If the name parameter is non-null:
-        Places the process id in the file system and locks it.
+The preparatory tasks that daemon performs for other processes are:
 
-not all of the unit tests are complete.
+o Disable core file generation to prevent security holes in daemons run by
+  root (unless the -core option is supplied).
 
-not all of the man pages are written (but the code is copiously documented).
+o If daemon was not invoked by init(8) or inetd(8):
 
-both the unit tests and the man pages are currently being written.
+  o Background the process to lose process group leadership.
 
-this is only currently known to work on Linux Redhat 6.0.
-it will be tested again on Solaris 2.6 soon.
+  o Start a new process session.
+
+  o Under SVR4, background the process again to lose process session
+    leadership. This prevents the process from ever gaining a controlling
+    terminal. This only happens when SVR4 is defined and
+    NO_EXTRA_SVR4_FORK is not defined when libprog is compiled.
+
+o Change to the root directory so as not to hamper umounts.
+
+o Clear the umask to enable explicit file creation modes.
+
+o Close all open file descriptors. If daemon was invoked by inetd(8)
+  stdin, stdout and stderr are left open since they are open to a
+  socket.
+
+o Open stdin, stdout and stderr to /dev/null in case something
+  requires them to be open. Of course, this is not done if daemon was
+  invoked by inetd(8).
+
+o If the -name option is supplied, create and lock a file containing the
+  process id of the daemon process. The presence of this locked file
+  prevents two instances of a daemon with the same name from running at the
+  same time.
+
+Daemon then spawns the client command specified on its command line and
+waits for it to terminate. If the -syslog option is supplied, the client's
+standard output and error are captured by daemon and sent to the syslog
+destination specified in the -syslog option.
+
+When the client terminates, daemon spawns it again if the -respawn option is
+supplied and the client terminated successfully after at least 600 seconds.
+Otherwise daemon terminates.
+
+If daemon receives a SIGTERM signal, it propagates the signal to the client
+and then terminates.
 
 INSTALL
 ~~~~~~~
-there is no autoconf script so you will no doubt encounter problems.
-an ansi C and posix.1 environment will help greatly.
+Currently this is only known to work on Linux Redhat 6.0 and Solaris 2.6.
+Compiling on Solaris 2.6 requires running conf/solaris in the source
+directory. There isn't a real configure script so you will no doubt
+encounter problems. An ANSI C and POSIX.1 environment will help greatly.
 
-to start:
+If your system doesn't have snprintf(3) or GNU getopt_long_only(3),
+uncomment the relevant lines in the prog/macros.mk file to include
+them in the prog libary.
 
+Requires perl to run the scripts in the conf directory.
+Requires gcc to compile the source.
+Requires pod2man (comes with perl) to make the manpages.
+Requires pod2html (comes with perl) to make the html manpages.
+Requires perl and GNU tar to make the distribution.
+
+To build and test:
+
+        tar xzf daemon-0.2.tar.gz
+        cd daemon-0.2
+        conf/<your-system> # if applicable (i.e. solaris)
+        make depend
         make
         make test
 
-to install just the daemon program:
+To install just the daemon program:
 
-        make install-app
+        make install-daemon
 
-to install just the prog library:
+To install just the prog library:
 
-        make install-lib
+        make install-prog
 
-to install both:
+To install both:
 
         make install
 
-for more details:
+For more details:
 
         make help
 
+COPYING
+~~~~~~~
+daemon - turns other processes into daemons
+Copyright (C) 1999 raf <raf2@zip.com.au>
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+    or visit http://www.gnu.org/copyleft/gpl.html
+
+libprog - general utilities including the ability to become a daemon
+Copyright (C) 1999 raf <raf2@zip.com.au>
+
+    This library is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+    or visit http://www.gnu.org/copyleft/gpl.html
+
+HISTORY
+~~~~~~~
+0.2
+    - Decoupled core file prevention from daemon_init()
+      into its own function, daemon_prevent_core()
+    - Decoupled signal handling from daemon_init()
+    - Cached daemon_started_by_init() and daemon_started_by_inetd() results
+    - Fixed bug when formatting --help message
+    - Added some modules to libprog: conf, list, hsort, map, prop
+    - Added timestamps to msg_out_file()
+    - Included source to GNU getopt_long_only() (if neccessary)
+    - Added hdr.h to allow non-ANSI compilers to parse libprog's headers
+    - Moved libprog to a subdirectory using a "Whole Project" Makefile
+    - Converted "Whole Project" Makefile into "Scalable" Makefiles
+    - Added verbosity functions to libprog(prog)
+    - Added -core option to allow core file generation
+    - Added -respawn option to allow client respawn if death not too sudden
+    - Added -syslog option to redirect client stdout and stderr to syslog
+    - Added -log option to specify where daemon stdout and stderr are sent
+    - Fixed bug when constructing data for GNU getopt_long_only()
+    - Fixed bugs in the options table for libprog(prog)
+    - Changed help message format: separated option chunks by a blank line
+    - Fixed bug when obtaining names associated with syslog constants
+    - Added -Config option and /etc/daemon.conf handling
+    - Added pathetic conf/linux and conf/solaris scripts
+    - Revert to real uid/gid if not same as effective uid/gid for safety
+    - Added manpages
+
+0.1
+    Initial version
+
+TODO
+~~~~
+    - Add configure script
+
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-url: http://www.zip.com.au/~raf2/lib/software/daemon
-date: 19991020
-author: raf <raf2@zip.com.au>
+URL: http://www.zip.com.au/~raf2/lib/software/daemon
+Date: 19991223
+Author: raf <raf2@zip.com.au>
 

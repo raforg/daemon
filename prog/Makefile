@@ -39,10 +39,10 @@ CCFLAGS += -O2 # -Wall -pedantic
 
 CLEAN_FILES += tags core Makefile.bak .makefile.bak MANIFEST pod2html-*
 
-DAEMON_SRCDIR := .
-DAEMON_INCDIRS := prog
-DAEMON_LIBDIRS := prog
-include $(DAEMON_SRCDIR)/macros.mk
+PROG_SRCDIR := .
+PROG_INCDIRS := .
+PROG_LIBDIRS := .
+include $(PROG_SRCDIR)/macros.mk
 
 .PHONY: all ready test man html install uninstall
 
@@ -62,7 +62,7 @@ help::
 	@echo "make help                  -- shows this list of targets"
 	@echo "make help-macros           -- shows the values of all make macros"
 	@echo "make ready                 -- prepares the source directory for make"
-	@echo "make all                   -- makes $(DAEMON_TARGET) and $(DAEMON_SUBMODULES) (default)"
+	@echo "make all                   -- makes $(PROG_TARGET) (default)"
 	@echo "make test                  -- generates and performs library unit tests"
 	@echo "make man                   -- generates all manpages"
 	@echo "make html                  -- generates all manpages in html"
@@ -71,10 +71,10 @@ help::
 	@echo "make depend                -- generates source dependencies using makedepend"
 	@echo "make tags                  -- generates a tags file using ctags"
 	@echo "make clean                 -- removes object files, tags, core and Makefile.bak"
-	@echo "make clobber               -- same as clean but also removes $(DAEMON_TARGET), $(DAEMON_SUBMODULES) and tests"
+	@echo "make clobber               -- same as clean but also removes $(PROG_TARGET) and tests"
 	@echo "make distclean             -- same as clobber but also removes source dependencies"
 	@echo "make MANIFEST              -- creates the MANIFEST file"
-	@echo "make dist                  -- creates the distribution: ../$(DAEMON_DIST)"
+	@echo "make dist                  -- creates the distribution: ../$(PROG_DIST)"
 	@echo
 
 help-macros::
@@ -113,7 +113,7 @@ tags: $(TAG_FILES)
 	@ctags $(TAG_FILES)
 
 depend: ready $(DEPEND_CFILES) $(DEPEND_HFILES)
-	@makedepend $(DAEMON_CPPFLAGS) $(DEPEND_CFILES)
+	@makedepend $(PROG_CPPFLAGS) $(DEPEND_CFILES)
 
 clean::
 	@rm -rf $(CLEAN_FILES)
@@ -126,12 +126,12 @@ distclean:: clobber
 
 dist: distclean MANIFEST
 	@src=`basename \`pwd\``; \
-	dst=$(DAEMON_ID); \
+	dst=$(PROG_ID); \
 	cd ..; \
 	$(TEST) "$$src" != "$$dst" -a ! -e "$$dst" && ln -s $$src $$dst; \
-	tar chzf $(DAEMON_DIST) $$dst; \
+	tar chzf $(PROG_DIST) $$dst; \
 	$(TEST) -L "$$dst" && rm -f $$dst; \
 	rm $$src/MANIFEST
 
-include $(DAEMON_SRCDIR)/rules.mk
+include $(PROG_SRCDIR)/rules.mk
 
