@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2002 raf <raf@raf.org>
+* Copyright (C) 1999-2004 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20020916 raf <raf@raf.org>
+* 20040102 raf <raf@raf.org>
 */
 
 /* Define if defining _POSIX_SOURCE breaks things */
@@ -29,6 +29,9 @@
 
 /* Define if we have <stdarg.h> */
 #define HAVE_STDARG_H 1
+
+/* Define if we have <stdint.h> */
+/* #undef HAVE_STDINT_H */
 
 /* Define if we have <poll.h> */
 #define HAVE_POLL_H 1
@@ -224,3 +227,6 @@
 
 /* Define if we have ptsname() */
 #define HAVE_PTSNAME 1
+
+/* Define if we have an evil poll() that aborts when pollfds is null */
+/* #undef HAVE_POLL_THAT_ABORTS_WHEN_POLLFDS_IS_NULL */

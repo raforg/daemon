@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2002 raf <raf@raf.org>
+* Copyright (C) 1999-2004 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20020916 raf <raf@raf.org>
+* 20040102 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_MSG_H
@@ -40,42 +40,42 @@ typedef void msg_out_t(void *data, const void *mesg, size_t mesglen);
 typedef void msg_release_t(void *data);
 
 _begin_decls
-Msg *msg_create _args ((int type, msg_out_t *out, void *data, msg_release_t *destroy));
-Msg *msg_create_with_locker _args ((Locker *locker, int type, msg_out_t *out, void *data, msg_release_t *destroy));
-int msg_rdlock _args ((Msg *mesg));
-int msg_wrlock _args ((Msg *mesg));
-int msg_unlock _args ((Msg *mesg));
-void msg_release _args ((Msg *mesg));
-void *msg_destroy _args ((Msg **mesg));
-void msg_out _args ((Msg *dst, const char *format, ...));
-void msg_out_unlocked _args ((Msg *dst, const char *format, ...));
-void vmsg_out _args ((Msg *dst, const char *format, va_list args));
-void vmsg_out_unlocked _args ((Msg *dst, const char *format, va_list args));
-Msg *msg_create_fd _args ((int fd));
-Msg *msg_create_fd_with_locker _args ((Locker *locker, int fd));
-Msg *msg_create_stderr _args ((void));
-Msg *msg_create_stderr_with_locker _args ((Locker *locker));
-Msg *msg_create_stdout _args ((void));
-Msg *msg_create_stdout_with_locker _args ((Locker *locker));
-Msg *msg_create_file _args ((const char *path));
-Msg *msg_create_file_with_locker _args ((Locker *locker, const char *path));
-Msg *msg_create_syslog _args ((const char *ident, int option, int facility, int priority));
-Msg *msg_create_syslog_with_locker _args ((Locker *locker, const char *ident, int option, int facility, int priority));
-Msg *msg_syslog_set_facility _args ((Msg *mesg, int facility));
-Msg *msg_syslog_set_facility_unlocked _args ((Msg *mesg, int facility));
-Msg *msg_syslog_set_priority _args ((Msg *mesg, int priority));
-Msg *msg_syslog_set_priority_unlocked _args ((Msg *mesg, int priority));
-Msg *msg_create_plex _args ((Msg *msg1, Msg *msg2));
-Msg *msg_create_plex_with_locker _args ((Locker *locker, Msg *msg1, Msg *msg2));
-int msg_add_plex _args ((Msg *mesg, Msg *item));
-int msg_add_plex_unlocked _args ((Msg *mesg, Msg *item));
-const char *msg_set_timestamp_format _args ((const char *format));
-int msg_set_timestamp_format_locker _args ((Locker *locker));
-int syslog_lookup_facility _args ((const char *facility));
-int syslog_lookup_priority _args ((const char *priority));
-const char *syslog_facility_str _args ((int spec));
-const char *syslog_priority_str _args ((int spec));
-int syslog_parse _args ((const char *spec, int *facility, int *priority));
+Msg *msg_create(int type, msg_out_t *out, void *data, msg_release_t *destroy);
+Msg *msg_create_with_locker(Locker *locker, int type, msg_out_t *out, void *data, msg_release_t *destroy);
+int msg_rdlock(Msg *mesg);
+int msg_wrlock(Msg *mesg);
+int msg_unlock(Msg *mesg);
+void msg_release(Msg *mesg);
+void *msg_destroy(Msg **mesg);
+void msg_out(Msg *dst, const char *format, ...);
+void msg_out_unlocked(Msg *dst, const char *format, ...);
+void vmsg_out(Msg *dst, const char *format, va_list args);
+void vmsg_out_unlocked(Msg *dst, const char *format, va_list args);
+Msg *msg_create_fd(int fd);
+Msg *msg_create_fd_with_locker(Locker *locker, int fd);
+Msg *msg_create_stderr(void);
+Msg *msg_create_stderr_with_locker(Locker *locker);
+Msg *msg_create_stdout(void);
+Msg *msg_create_stdout_with_locker(Locker *locker);
+Msg *msg_create_file(const char *path);
+Msg *msg_create_file_with_locker(Locker *locker, const char *path);
+Msg *msg_create_syslog(const char *ident, int option, int facility, int priority);
+Msg *msg_create_syslog_with_locker(Locker *locker, const char *ident, int option, int facility, int priority);
+Msg *msg_syslog_set_facility(Msg *mesg, int facility);
+Msg *msg_syslog_set_facility_unlocked(Msg *mesg, int facility);
+Msg *msg_syslog_set_priority(Msg *mesg, int priority);
+Msg *msg_syslog_set_priority_unlocked(Msg *mesg, int priority);
+Msg *msg_create_plex(Msg *msg1, Msg *msg2);
+Msg *msg_create_plex_with_locker(Locker *locker, Msg *msg1, Msg *msg2);
+int msg_add_plex(Msg *mesg, Msg *item);
+int msg_add_plex_unlocked(Msg *mesg, Msg *item);
+const char *msg_set_timestamp_format(const char *format);
+int msg_set_timestamp_format_locker(Locker *locker);
+int syslog_lookup_facility(const char *facility);
+int syslog_lookup_priority(const char *priority);
+const char *syslog_facility_str(int spec);
+const char *syslog_priority_str(int spec);
+int syslog_parse(const char *spec, int *facility, int *priority);
 _end_decls
 
 #endif

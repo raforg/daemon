@@ -1,7 +1,7 @@
 #
 # libslack - http://libslack.org/
 #
-# Copyright (C) 1999-2001 raf <raf@raf.org>
+# Copyright (C) 1999-2004 raf <raf@raf.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
-# 20020916 raf <raf@raf.org>
+# 20040102 raf <raf@raf.org>
 
 ifneq ($(SLACK_TARGET),./$(SLACK_NAME))
 
@@ -126,7 +126,7 @@ uninstall-slack-man:
 uninstall-slack-html:
 	@rm -f $(patsubst %, $(SLACK_HTMLDIR)/%, $(notdir $(SLACK_APP_HTMLFILES) $(SLACK_LIB_HTMLFILES)))
 
-.PHONY: dist-slack dist-html-slack rpm-slack deb-slack sol-slack obsd-slack fbsd-slack
+.PHONY: dist-slack dist-html-slack rpm-slack deb-slack sol-slack obsd-slack fbsd-slack osx-slack
 
 dist-slack: distclean
 	@set -e; \
@@ -257,7 +257,7 @@ sol-slack: $(SLACK_SRCDIR)/libslack.pkginfo
 	cd $(SLACK_SRCDIR)/solaris/build; \
 	tar xzf $$up/$(SLACK_DIST); \
 	cd $(SLACK_ID); \
-	conf/solaris8-cc; \
+	conf/solaris8-gcc; \
 	make PREFIX=../../install FINAL_PREFIX="$(PREFIX)" all install-slack; \
 	cd "$$base"; \
 	mv $(SLACK_SRCDIR)/libslack.pkginfo $(SLACK_SRCDIR)/solaris/info/pkginfo; \
@@ -387,6 +387,23 @@ $(SLACK_SRCDIR)/fbsd-slack-description:
 		} \
 	' < $(SLACK_SRCDIR)/README > $(SLACK_SRCDIR)/fbsd-slack-description
 
+osx-slack:
+	@set -e; \
+	base="`pwd`"; \
+	up="$$base/.."; \
+	mkdir -p "osx-$(SLACK_NAME)/build"; \
+	mkdir -p "osx-$(SLACK_NAME)/install"; \
+	cd "./osx-$(SLACK_NAME)/build"; \
+	tar xzf "$$up/$(SLACK_DIST)"; \
+	cd ./$(SLACK_ID); \
+	./conf/macosx; \
+	make PREFIX=../../install FINAL_PREFIX="$(PREFIX)" all install-slack; \
+	cd ../../install; \
+	arch="`uname -p`"; \
+	tar czf "$$up/$(SLACK_ID)-osx-$$arch.tar.gz" .; \
+	cd "$$base"; \
+	rm -rf "$$base/osx-$(SLACK_NAME)"
+
 # Present make targets separately in help if we are not alone
 
 ifneq ($(SLACK_SRCDIR), .)
@@ -421,6 +438,8 @@ help::
 	echo " sol-slack             -- makes a binary solaris pkg for libslack"; \
 	echo " obsd-slack            -- makes a binary openbsd pkg for libslack"; \
 	echo " fbsd-slack            -- makes a binary freebsd pkg for libslack"; \
+	echo " osx-slack             -- makes a binary macosx pkg for libslack"; \
+	echo " slack.swig            -- makes a SWIG input file for libslack"; \
 	echo
 endif
 
@@ -446,6 +465,7 @@ help-macros::
 	echo "SLACK_HTMLDIR = $(SLACK_HTMLDIR)"; \
 	echo "SLACK_LIB_MANFILES = $(SLACK_LIB_MANFILES)"; \
 	echo "SLACK_APP_MANFILES = $(SLACK_APP_MANFILES)"; \
+	echo "SLACK_SWIGFILE = $(SLACK_SWIGFILE)"; \
 	echo "SLACK_LIB_HTMLFILES = $(SLACK_LIB_HTMLFILES)"; \
 	echo "SLACK_APP_HTMLFILES = $(SLACK_APP_HTMLFILES)"; \
 	echo "SLACK_RPM_FILES = $(SLACK_RPM_FILES)"; \
@@ -502,4 +522,22 @@ $(SLACK_SRCDIR)/%.$(LIB_MANSECT).html: $(SLACK_SRCDIR)/%.pod
 
 $(SLACK_SRCDIR)/%.$(APP_MANSECT).html: $(SLACK_SRCDIR)/%.pod
 	$(POD2HTML) --noindex < $< > $@ 2>/dev/null
+
+$(SLACK_SWIGFILE): $(SLACK_HFILES)
+	@perl -e ' \
+		print "%module slack\n"; \
+		print "%{\n"; \
+		print "#include \"$(PREFIX)/include/slack/lib.h\"\n"; \
+		print "%}\n\n"; \
+		for (split /\s+/, "$(SLACK_CLIENT_CFLAGS)") \
+		{ \
+			s/^-D//; s/=/ /; \
+			print "#define $$_\n"; \
+		} \
+		print "\n%import $(PREFIX)/include/slack/hdr.h\n\n"; \
+		for (@ARGV) \
+		{ \
+			print "%include $(PREFIX)/include/slack/$$_.h\n"; \
+		} \
+	' $(SLACK_MODULES) > $(SLACK_SWIGFILE)
 

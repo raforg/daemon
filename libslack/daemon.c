@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2002 raf <raf@raf.org>
+* Copyright (C) 1999-2004 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20020916 raf <raf@raf.org>
+* 20040102 raf <raf@raf.org>
 */
 
 /*
@@ -40,7 +40,7 @@ I<libslack(daemon)> - daemon module
     int daemon_revoke_privileges(void);
     int daemon_become_user(uid_t uid, gid_t gid, char *user);
     char *daemon_absolute_path(const char *path);
-    int daemon_path_is_safe(const char *path);
+    int daemon_path_is_safe(const char *path, char *explanation, size_t explanation_size);
     void *daemon_parse_config(const char *path, void *obj, daemon_config_parser_t *parser);
     int daemon_pidfile(const char *name);
     int daemon_init(const char *name);
@@ -138,7 +138,7 @@ int daemon_started_by_inetd(void)
 	size_t optlen = sizeof(int);
 	int optval;
 
-	return (getsockopt(STDIN_FILENO, SOL_SOCKET, SO_TYPE, &optval, &optlen) == 0);
+	return (getsockopt(STDIN_FILENO, SOL_SOCKET, SO_TYPE, &optval, (void *)&optlen) == 0);
 }
 
 /*
@@ -362,20 +362,24 @@ char *daemon_absolute_path(const char *path)
 
 /*
 
-=item C<int daemon_path_is_safe(const char *path)>
+=item C<int daemon_path_is_safe(const char *path, char *explanation, size_t explanation_size)>
 
 Checks that the file referred to by C<path> is not group or world writable.
 Also checks that the containing directories are not group or world writable,
 following symbolic links. Useful when you need to know whether or not you
 can trust a user supplied configuration/command file before reading and
 acting upon its contents. On success, returns 1 if C<path> is safe or 0 if
-it is not. On error, returns C<-1> with C<errno> set appropriately.
+it is not. When the path is not safe, an explanation is written to the
+C<explanation> buffer (if it is not C<null>). No more than
+C<explanation_size> bytes including the terminating C<nul> byte will be
+written to the C<explanation> buffer. On error, returns C<-1> with C<errno>
+set appropriately.
 
 =cut
 
 */
 
-static int daemon_check_path(char *path, int level)
+static int daemon_check_path(char *path, char *explanation, size_t explanation_size, int level)
 {
 	struct stat status[1];
 	char *sep;
@@ -439,7 +443,7 @@ static int daemon_check_path(char *path, int level)
 			if (!(sym_linked = tmp))
 				return -1;
 
-			rc = daemon_check_path(sym_linked, level + 1);
+			rc = daemon_check_path(sym_linked, explanation, explanation_size, level + 1);
 			mem_release(sym_linked);
 
 			switch (rc)
@@ -451,6 +455,15 @@ static int daemon_check_path(char *path, int level)
 		}
 		else if (status->st_mode & (S_IWGRP | S_IWOTH))
 		{
+			if (explanation)
+			{
+				snprintf(explanation, explanation_size, "%s is %s%s%s writable", path,
+					(status->st_mode & S_IWGRP) ? "group" : "",
+					((status->st_mode & (S_IWGRP | S_IWOTH)) == (S_IWGRP | S_IWOTH)) ? " and " : "",
+					(status->st_mode & S_IWOTH) ? "world" : ""
+				);
+			}
+
 			return 0;
 		}
 
@@ -461,7 +474,7 @@ static int daemon_check_path(char *path, int level)
 	return 1;
 }
 
-int daemon_path_is_safe(const char *path)
+int daemon_path_is_safe(const char *path, char *explanation, size_t explanation_size)
 {
 	char *abs_path;
 	int rc;
@@ -473,7 +486,7 @@ int daemon_path_is_safe(const char *path)
 	if (!abs_path)
 		return -1;
 
-	rc = daemon_check_path(abs_path, 0);
+	rc = daemon_check_path(abs_path, explanation, explanation_size, 0);
 	mem_release(abs_path);
 
 	return rc;
@@ -664,7 +677,7 @@ static int daemon_pidfile_unlocked(const char *name)
 
 	/* Store our pid */
 
-	snprintf(pid, 32, "%d\n", getpid());
+	snprintf(pid, 32, "%d\n", (int)getpid());
 
 	if (write(pid_fd, pid, strlen(pid)) != strlen(pid))
 	{
@@ -986,7 +999,7 @@ pid_t daemon_getpid(const char *name)
 	char buf[BUFSIZ];
 	ssize_t bytes;
 	int pid_fd;
-	pid_t pid = (pid_t)0;
+	int pid = 0;
 
 	/* Check argument */
 
@@ -1014,7 +1027,7 @@ pid_t daemon_getpid(const char *name)
 	if (sscanf(buf, "%d", &pid) != 1)
 		return -1;
 
-	return pid;
+	return (pid_t)pid;
 }
 
 /*
@@ -1188,11 +1201,14 @@ name.
 
 =back
 
+=head1 MT-Level
+
+MT-Safe
+
 =head1 EXAMPLE
 
-    #include <stdio.h>
-    #include <unistd.h>
-    #include <syslog.h>
+This example reads and prints C</etc/services> with I<daemon_parse_config(3)>,
+becomes and daemon and then sends a I<syslog(3)> message and then terminates.
 
     #include <slack/lib.h>
 
@@ -1234,6 +1250,7 @@ name.
     void do_stuff()
     {
         // do stuff...
+        syslog(LOG_DAEMON | LOG_DEBUG, "Here we are");
         kill(getpid(), SIGTERM);
         signal_handle_all();
     }
@@ -1242,22 +1259,18 @@ name.
     {
         if (daemon_revoke_privileges() == -1 ||
             daemon_prevent_core() == -1 ||
-            daemon_path_is_safe(config_fname) != 1 ||
+            daemon_path_is_safe(config_fname, NULL, 0) != 1 ||
             (config = list_create(free)) == NULL ||
             daemon_parse_config(config_fname, config, fstab_parser) == NULL ||
             daemon_init(prog_basename(*av)) == -1 ||
             signal_set_handler(SIGHUP, 0, hup) == -1 ||
             signal_set_handler(SIGTERM, 0, term) == -1)
-            return 1;
+            return EXIT_FAILURE;
 
         do_stuff();
 
         return EXIT_SUCCESS; // unreached
     }
-
-=head1 MT-Level
-
-MT-Safe
 
 =head1 BUGS
 
@@ -1308,7 +1321,7 @@ L<kill(2)|kill(2))>
 
 =head1 AUTHOR
 
-20020916 raf <raf@raf.org>
+20040102 raf <raf@raf.org>
 
 =cut
 
@@ -1421,11 +1434,11 @@ static void parse_test1(void *obj, const char *path, char *line, size_t lineno)
 	char port[BUFSIZ];
 
 	if (sscanf(line, "%s %s", service, port) != 2)
-		++errors, printf("Test%d: syntax error: '%s' (file %s line %d)\n", data1->test, line, path, lineno);
+		++errors, printf("Test%d: syntax error: '%s' (file %s line %d)\n", data1->test, line, path, (int)lineno);
 	else if (strcmp(service, data1->pair[data1->i].service))
-		++errors, printf("Test%d: expected service '%s', received '%s' (file %s line %d)\n", data1->test, data1->pair[data1->i].service, service, path, lineno);
+		++errors, printf("Test%d: expected service '%s', received '%s' (file %s line %d)\n", data1->test, data1->pair[data1->i].service, service, path, (int)lineno);
 	else if (strcmp(port, data1->pair[data1->i].port))
-		++errors, printf("Test%d: expected port '%s', received '%s' (file %s line %d)\n", data1->test, data1->pair[data1->i].port, port, path, lineno);
+		++errors, printf("Test%d: expected port '%s', received '%s' (file %s line %d)\n", data1->test, data1->pair[data1->i].port, port, path, (int)lineno);
 	++data1->i;
 }
 
@@ -1456,14 +1469,14 @@ static void parse_test2(void *obj, const char *path, char *line, size_t lineno)
 	{
 		if (!data2->results[data2->i][data2->j])
 		{
-			++errors, printf("Test%d: too many words: '%s' (file %s line %d)\n", data2->test, line, path, lineno);
+			++errors, printf("Test%d: too many words: '%s' (file %s line %d)\n", data2->test, line, path, (int)lineno);
 			break;
 		}
 
 		if (strcmp(word[data2->j], data2->results[data2->i][data2->j]))
 		{
 			++errors;
-			printf("Test%d: expected '%s', received '%s' (file %s line %d)\n", data2->test, data2->results[data2->i][data2->j], word[data2->j - 1], path, lineno);
+			printf("Test%d: expected '%s', received '%s' (file %s line %d)\n", data2->test, data2->results[data2->i][data2->j], word[data2->j - 1], path, (int)lineno);
 			break;
 		}
 	}
@@ -1676,11 +1689,12 @@ int main(int ac, char **av)
 
 	/* Test daemon_path_is_safe() */
 
-#define TEST_PATH_IS_SAFE(i, path, safe, err) \
+#define TEST_PATH_IS_SAFE(i, path, safe, err, explanation) \
 	{ \
 		int rc; \
+		char buf[128]; \
 		errno = 0; \
-		if ((rc = daemon_path_is_safe(path)) != (safe)) \
+		if ((rc = daemon_path_is_safe(path, buf, 128)) != (safe)) \
 		{ \
 			struct stat status[1]; \
 			++errors, printf("Test%d: daemon_path_is_safe(%s) failed (ret %d, not %d) %s\n", (i), (path), rc, (safe), errno ? strerror(errno) : ""); \
@@ -1689,13 +1703,15 @@ int main(int ac, char **av)
 		} \
 		else if (rc == -1 && errno != (err)) \
 			++errors, printf("Test%d: daemon_path_is_safe(%s) failed (errno was %d, not %d)\n", (i), (path), errno, (err)); \
+		else if (rc == 0 && strcmp(buf + strlen(buf) - strlen(explanation), explanation)) \
+			++errors, printf("Test%d: daemon_path_is_safe(%s) failed (explanation was \"%s\", not \"%s\")\n", (i), (path), buf, (explanation)); \
 	}
 
-	TEST_PATH_IS_SAFE(25, "/etc/passwd", 1, 0)
-	TEST_PATH_IS_SAFE(26, "/tmp", 0, 0)
-	TEST_PATH_IS_SAFE(27, "/nonexistent-path", -1, ENOENT)
+	TEST_PATH_IS_SAFE(25, "/etc/passwd", 1, 0, "")
+	TEST_PATH_IS_SAFE(26, "/tmp", 0, 0, "/tmp is group and world writable")
+	TEST_PATH_IS_SAFE(27, "/nonexistent-path", -1, ENOENT, "")
 
-	if (daemon_path_is_safe(".") != 1)
+	if (daemon_path_is_safe(".", NULL, 0) != 1)
 		not_safe = 1;
 	else
 	{
@@ -1711,13 +1727,13 @@ int main(int ac, char **av)
 		else
 		{
 			close(fd);
-			TEST_PATH_IS_SAFE(28, sym_linked, 0, 0)
+			TEST_PATH_IS_SAFE(28, sym_linked, 0, 0, "/tmp is group and world writable")
 
 			if (symlink(sym_linked, sym_link) == -1)
 				++errors, printf("Test28: Failed to run test: symlink(%s, %s) failed %s\n", sym_linked, sym_link, strerror(errno));
 			else
 			{
-				TEST_PATH_IS_SAFE(28, sym_link, 0, 0)
+				TEST_PATH_IS_SAFE(28, sym_link, 0, 0, "/tmp is group and world writable")
 
 				if (unlink(sym_link) == -1)
 					++errors, printf("Test28: Failed to unlink(%s): %s\n", sym_link, strerror(errno));
@@ -1737,7 +1753,7 @@ int main(int ac, char **av)
 				++errors, printf("Test29: symlink(.., safedir/safelink) failed: %s\n", strerror(errno));
 			else
 			{
-				TEST_PATH_IS_SAFE(29, "safedir/safelink", 1, 0)
+				TEST_PATH_IS_SAFE(29, "safedir/safelink", 1, 0, "")
 
 				if (unlink("safedir/safelink") == -1)
 					++errors, printf("Test29: Failed to unlink(safedir/safelink): %s\n", strerror(errno));
@@ -1763,7 +1779,7 @@ int main(int ac, char **av)
 					++errors, printf("Test30: symlink(../unsafedir, safedir/unsafelink) failed: %s\n", strerror(errno));
 				else
 				{
-					TEST_PATH_IS_SAFE(30, "safedir/unsafelink", 0, 0)
+					TEST_PATH_IS_SAFE(30, "safedir/unsafelink", 0, 0, "/unsafedir is group writable")
 
 					if (unlink("safedir/unsafelink") == -1)
 						++errors, printf("Test30: Failed to unlink(safedir/unsafelink): %s\n", strerror(errno));
@@ -1795,7 +1811,7 @@ int main(int ac, char **av)
 					++errors, printf("Test31: Failed to run test: mkdir(unsafelink/unsafedir) failed: %s\n", strerror(errno));
 				else
 				{
-					TEST_PATH_IS_SAFE(31, "unsafelink/unsafedir", 0, 0)
+					TEST_PATH_IS_SAFE(31, "unsafelink/unsafedir", 0, 0, "/unsafedir is group writable")
 
 					if (rmdir("unsafelink/unsafedir") == -1)
 						++errors, printf("Test31: Failed to rmdir(unsafelink/unsafedir): %s\n", strerror(errno));

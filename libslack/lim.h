@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2002 raf <raf@raf.org>
+* Copyright (C) 1999-2004 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20020916 raf <raf@raf.org>
+* 20040102 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_LIM_H
@@ -27,42 +27,42 @@
 #include <slack/hdr.h>
 
 _begin_decls
-long limit_arg _args ((void));
-long limit_child _args ((void));
-long limit_tick _args ((void));
-long limit_group _args ((void));
-long limit_open _args ((void));
-long limit_stream _args ((void));
-long limit_tzname _args ((void));
-long limit_job _args ((void));
-long limit_save_ids _args ((void));
-long limit_version _args ((void));
-long limit_pcanon _args ((const char *path));
-long limit_fcanon _args ((int fd));
-long limit_canon _args ((void));
-long limit_pinput _args ((const char *path));
-long limit_finput _args ((int fd));
-long limit_input _args ((void));
-long limit_pvdisable _args ((const char *path));
-long limit_fvdisable _args ((int fd));
-long limit_vdisable _args ((void));
-long limit_plink _args ((const char *path));
-long limit_flink _args ((int fd));
-long limit_link _args ((void));
-long limit_pname _args ((const char *path));
-long limit_fname _args ((int fd));
-long limit_name _args ((void));
-long limit_ppath _args ((const char *path));
-long limit_fpath _args ((int fd));
-long limit_path _args ((void));
-long limit_ppipe _args ((const char *path));
-long limit_fpipe _args ((int fd));
-long limit_pnotrunc _args ((const char *path));
-long limit_fnotrunc _args ((int fd));
-long limit_notrunc _args ((void));
-long limit_pchown _args ((const char *path));
-long limit_fchown _args ((int fd));
-long limit_chown _args ((void));
+long limit_arg(void);
+long limit_child(void);
+long limit_tick(void);
+long limit_group(void);
+long limit_open(void);
+long limit_stream(void);
+long limit_tzname(void);
+long limit_job(void);
+long limit_save_ids(void);
+long limit_version(void);
+long limit_pcanon(const char *path);
+long limit_fcanon(int fd);
+long limit_canon(void);
+long limit_pinput(const char *path);
+long limit_finput(int fd);
+long limit_input(void);
+long limit_pvdisable(const char *path);
+long limit_fvdisable(int fd);
+long limit_vdisable(void);
+long limit_plink(const char *path);
+long limit_flink(int fd);
+long limit_link(void);
+long limit_pname(const char *path);
+long limit_fname(int fd);
+long limit_name(void);
+long limit_ppath(const char *path);
+long limit_fpath(int fd);
+long limit_path(void);
+long limit_ppipe(const char *path);
+long limit_fpipe(int fd);
+long limit_pnotrunc(const char *path);
+long limit_fnotrunc(int fd);
+long limit_notrunc(void);
+long limit_pchown(const char *path);
+long limit_fchown(int fd);
+long limit_chown(void);
 _end_decls
 
 #endif

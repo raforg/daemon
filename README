@@ -105,19 +105,16 @@ INSTALL
 ~~~~~~~
 Currently, this is only known to work on the following systems:
 
-    Linux 2.2/2.4 (Redhat 6.x/7.x, Debian 2.2r6/3.0r0)
-    Solaris 2.6/8 (sun, x86)
-    OpenBSD 2.9/3.1
-    FreeBSD 4.5
+    Linux 2.2/2.4 (intel, Redhat 6.x/7.x/9, Debian 2.2r6/3.0r0)
+    Solaris 2.6/8 (sparc, intel)
+    OpenBSD 2.9/3.1 (intel)
+    FreeBSD 4.5 (intel)
+    Mac OS X (Darwin) 10.3.2 (G4)
 
-Compiling on Solaris 2.6 requires running conf/solaris6-cc (If you have the
-Sun WorkShop C compiler) or conf/solaris6-gcc (If you have gcc) in the source
-directory. If you have Solaris 8, run the conf/solaris8-[g]cc scripts
-instead. Compiling on OpenBSD requires running conf/openbsd. Compiling on
-FreeBSD requires running conf/freebsd. It is ready to compile on Linux as
-distributed so it is not necessary to run conf/linux.
+For these systems, just run the "config" script in the source directory. It
+will run the appropriate script in the "conf" directory for the current host.
 
-There isn't a real configure script yet so you will no doubt encounter
+Note: There isn't a real configure script yet so you will no doubt encounter
 problems on other systems. An ISO C and POSIX/XPG4 environment will help
 greatly. If your system doesn't have snprintf(3), GNU getopt_long(3),
 vsscanf(3), strcasecmp(3), strncasecmp(3), strlcpy(3) or strlcat(3),
@@ -144,16 +141,16 @@ they have some very nasty bugs.
 
 First, uninstall any previous version:
 
-    cd /usr/local/src/daemon-0.6
+    cd /usr/local/src/daemon-0.6.1
     make uninstall
 
 To build and test:
 
-    tar xzf daemon-0.6.1.tar.gz
-    cd daemon-0.6.1
-    conf/<your-system>   # i.e. linux, solaris[68]-[g]cc, openbsd, freebsd
-    mak                  # must be gnu make
-    make test            # only tests libslack. to test daemon, see test/README
+    tar xzf daemon-0.6.2.tar.gz
+    cd daemon-0.6.2
+    ./config          # iff linux, solaris, openbsd, freebsd or macosx
+    make              # must be gnu make
+    make test         # only tests libslack. to test daemon, see test/README
 
 To install daemon and its manpage (in /usr/local by default):
 
@@ -194,28 +191,38 @@ BINARY PACKAGES
 ~~~~~~~~~~~~~~~
 To install from the RPM binary package (into /usr by default):
 
-    rpm -i daemon-0.6.1-1.i386.rpm
+    rpm -i daemon-0.6.2-1.i386.rpm
 
 To install from the RPM binary package into somewhere other than /usr:
 
-    rpm --prefix=/usr/local -i daemon-0.6.1-1.i386.rpm
+    rpm --prefix=/usr/local -i daemon-0.6.2-1.i386.rpm
 
 To install from the (relocatable) Debian binary package (into /usr):
 
-    dpkg -i daemon_0.6.1-0_i386.deb
-
-To install from the (relocatable) Solaris8 binary package (into /opt/daemon):
-
-    gunzip daemon-0.6.1.sun4u.pkg.gz
-    pkgadd -d daemon-0.6.1.sun4u.pkg
+    dpkg -i daemon_0.6.2-0_i386.deb # you should really use apt-get
 
 Install from the OpenBSD binary package (into /usr/local):
 
-    pkg_add daemon-0.6.1-obsd-i386.tar.gz
+    pkg_add daemon-0.6.2-obsd-i386.tar.gz
 
 Install from the FreeBSD binary package (into /usr/local):
 
-    pkg_add daemon-0.6.1-fbsd-i386.tar.gz
+    pkg_add daemon-0.6.2-fbsd-i386.tar.gz
+
+Install from the (relocatable) Mac OS X binary package (into /usr/local):
+
+    cd /usr/local
+    tar xzf /usr/local/src/daemon-0.6.2-osx-powerpc.tar.gz
+
+To install from the (relocatable) Solaris8 binary package (into /opt/daemon):
+
+    gunzip daemon-0.6.2.sun4u.pkg.gz
+    pkgadd -d daemon-0.6.2.sun4u.pkg
+
+or:
+
+    gunzip daemon-0.6.2.i86pc.pkg.gz
+    pkgadd -d daemon-0.6.2.i86pc.pkg
 
 REQUIREMENTS
 ~~~~~~~~~~~~
@@ -275,10 +282,14 @@ FreeBSD
 Has the same UNIX domain datagram socket problem as Solaris.
 Can't lock fifos so fifo_open() can't guarantee a unique reader.
 
+Mac OS X
+~~~~~~~~
+Probably has the same UNIX domain datagram problem as Solaris.
+
 COPYING
 ~~~~~~~
 daemon - turns other processes into daemons
-Copyright (C) 1999-2002 raf <raf@raf.org>
+Copyright (C) 1999-2004 raf <raf@raf.org>
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -296,7 +307,7 @@ Copyright (C) 1999-2002 raf <raf@raf.org>
     or visit http://www.gnu.org/copyleft/gpl.html
 
 libslack - A UNIX/C library of general utilities for programmers with Slack
-Copyright (C) 1999-2002 raf <raf@raf.org>
+Copyright (C) 1999-2004 raf <raf@raf.org>
 
     This library is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -328,7 +339,7 @@ All rights reserved.
        documentation and/or other materials provided with the distribution.
     3. The name of the author may not be used to endorse or promote products
        derived from this software without specific prior written permission.
-    
+
     THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES,
     INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
     AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL
@@ -698,22 +709,51 @@ HISTORY
     - Fixed bug: exit too quickly on sigterm (spotted by stodden@cs.tum.edu)
     - Set prog name to --name argument, if any (for syslog message prefix)
 
+0.6.2 (20040102)
+    - Fixed bug: --stop during spawn delay wasn't acted upon
+    - Fixed API bug: <slack/lib.h> didn't include <slack/coproc.h>
+    - Fixed bug: -lm wasn't in `libslack-config --libs` on Solaris
+    - Changed --restart: reset spawn burst counters (for stodden@peppermind.de)
+    - Changed daemon_path_is_safe() to give an explanation when unsafe
+    - Added explanations when rejecting unsafe config files and executables
+    - Fixed bug: reset agent state to IDLE when interrupted (bte@kamash.com)
+    - Trim unquoted leading spaces from property values (with bte@kamash.com)
+    - Also trim only unquoted trailing spaces from property names
+    - Added tools/migrate-properties utility (preserves old propfile behaviour)
+    - Fixed bug: ownership partially lost in map_resize (with bte@kamash.com)
+    - Fixed bug: mem_resize was broken since libslack-0.4 (bte@kamash.com)
+    - Fixed DOC bug: stated the importance of including <slack/lib.h> first
+    - Cleaned up error messages (now that prog name is set to --name argument)
+    - Added sections to libslack(3) features list (coproc+pty, low level api)
+    - Fixed bug: if select() failed (unlikely), coproc wasn't closed properly
+    - Fixed bug: when tty_raw() failed (unlikely), it returned the wrong value
+    - Added many examples to the manpages (there are now 91 runnable examples)
+    - Added tools/check-examples to verify that all examples work
+    - Fixed bug: str_fgetline() returned empty string rather than null on eof
+    - Fixed bug: cstrstr() didn't always work due to a typo 
+    - Added sections to libslack(3) features list (documentation, testing)
+    - Added intel solaris8 binary package
+    - Ported to Mac OS X (Darwin) 10.3.2
+    - Added make osx osx-daemon osx-slack (macosx binary packages)
+    - Added pid to --running output (requested by rubinson@email.arizona.edu)
+    - Dropped support for K&R clients (suggested by skaller@ozemail.com.au)
+    - Added hsort_closure(3) (suggested by skaller@maxtal.com.au)
+    - Added make slack.swig (generate a SWIG input file for libslack)
+
 TODO
 ~~~~
-    - Port to Mac OS X (again), NetBSD, Cygwin[?]
+    - Port to NetBSD, Cygwin[?]
     - Decouple memory type and allocation strategy from List/Map/String code
     - Check out/incorporate Kiem-Phong Vo's error handling architecture [?]
     - Use autoconf and libtool (then add devel/static/dynamic packages)
-    - Add sub libraries (str/list/map, daemon/net/agent, mtdisc, memdisc) [?]
     - Add debian source package creation for libslack (after libtool)
     - Make sure net module interoperates with openssl
     - Add scan/print money/numbers/dates/times according to a locale [?]
-    - Add bitstring module
+    - Add bitstring module [?]
     - Write Scalable Makefiles paper
     - Write fast/slow lane paper (requires access to a gigabit network)
-    - Add more examples to the manpages
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 URL: http://libslack.org/daemon/
-Date: 20030901
+Date: 20040102
 Author: raf <raf@raf.org>

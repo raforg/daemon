@@ -220,10 +220,15 @@ but the support remains in GNU libc.
 =head1 EXAMPLE
 
 The following example program, from the source code, illustrates the
-use of I<getopt_long()> with most of its features.
+use of I<getopt_long(3)> with most of its features.
 
     #include <stdio.h>
-    
+    #ifndef HAVE_GETOPT_LONG
+    #include <slack/getopt.h>
+    #else
+    #include <getopt.h>
+    #endif
+
     int
     main (argc, argv)
          int argc;
@@ -231,7 +236,7 @@ use of I<getopt_long()> with most of its features.
     {
       int c;
       int digit_optind = 0;
-    
+
       while (1)
         {
           int this_option_optind = optind ? optind : 1;
@@ -246,62 +251,62 @@ use of I<getopt_long()> with most of its features.
             {"file", 1, 0, 0},
             {0, 0, 0, 0}
           };
-    
+
           c = getopt_long (argc, argv, "abc:d:012",
     		       long_options, &option_index);
           if (c == -1)
     	break;
-    
+
           switch (c)
             {
             case 0:
               printf ("option %s", long_options[option_index].name);
               if (optarg)
                 printf (" with arg %s", optarg);
-              printf ("\\n");
+              printf ("\n");
               break;
-    
+
             case '0':
             case '1':
             case '2':
               if (digit_optind != 0 && digit_optind != this_option_optind)
-                printf ("digits occur in two different argv-elements.\\n");
+                printf ("digits occur in two different argv-elements.\n");
               digit_optind = this_option_optind;
-              printf ("option %c\\n", c);
+              printf ("option %c\n", c);
               break;
-    
+
             case 'a':
-              printf ("option a\\n");
+              printf ("option a\n");
               break;
-    
+
             case 'b':
-              printf ("option b\\n");
+              printf ("option b\n");
               break;
-    
+
             case 'c':
-              printf ("option c with value `%s'\\n", optarg);
+              printf ("option c with value `%s'\n", optarg);
               break;
-    
+
             case 'd':
-              printf ("option d with value `%s'\\n", optarg);
+              printf ("option d with value `%s'\n", optarg);
               break;
-    
+
             case '?':
               break;
-    
+
             default:
-              printf ("?? getopt returned character code 0%o ??\\n", c);
+              printf ("?? getopt returned character code 0%o ??\n", c);
             }
         }
-    
+
       if (optind < argc)
         {
           printf ("non-option ARGV-elements: ");
           while (optind < argc)
           printf ("%s ", argv[optind++]);
-          printf ("\\n");
+          printf ("\n");
         }
-    
+
       exit (0);
     }
 
@@ -485,7 +490,6 @@ __getopt_clean_environment (char **env)
 #endif
 
 #ifndef ELIDE_CODE
-
 
 /* This needs to come after some library #include
    to get __GNU_LIBRARY__ defined.  */
@@ -1459,7 +1463,6 @@ getopt (argc, argv, optstring)
 
 #ifndef ELIDE_CODE
 
-
 /* This needs to come after some library #include
    to get __GNU_LIBRARY__ defined.  */
 #ifdef __GNU_LIBRARY__
@@ -1497,11 +1500,11 @@ getopt_long_only (argc, argv, options, long_options, opt_index)
   return _getopt_internal (argc, argv, options, long_options, opt_index, 1);
 }
 
-
 #endif	/* Not ELIDE_CODE.  */
 
 #ifdef TEST
 
+#include <stdlib.h>
 #include <stdio.h>
 
 int

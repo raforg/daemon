@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2002 raf <raf@raf.org>
+* Copyright (C) 1999-2004 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20020916 raf <raf@raf.org>
+* 20040102 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_LOCKER_H
@@ -61,30 +61,30 @@ struct pthread_rwlockattr_t
 #endif
 
 _begin_decls
-Locker *locker_create_mutex _args ((pthread_mutex_t *mutex));
-Locker *locker_create_rwlock _args ((pthread_rwlock_t *rwlock));
-Locker *locker_create_debug_mutex _args ((pthread_mutex_t *mutex));
-Locker *locker_create_debug_rwlock _args ((pthread_rwlock_t *rwlock));
-Locker *locker_create _args ((void *lock, lockerf_t *tryrdlock, lockerf_t *rdlock, lockerf_t *trywrlock, lockerf_t *wrlock, lockerf_t *unlock));
-void locker_release _args ((Locker *locker));
-void *locker_destroy _args ((Locker **locker));
-int locker_tryrdlock _args ((Locker *locker));
-int locker_rdlock _args ((Locker *locker));
-int locker_trywrlock _args ((Locker *locker));
-int locker_wrlock _args ((Locker *locker));
-int locker_unlock _args ((Locker *locker));
+Locker *locker_create_mutex(pthread_mutex_t *mutex);
+Locker *locker_create_rwlock(pthread_rwlock_t *rwlock);
+Locker *locker_create_debug_mutex(pthread_mutex_t *mutex);
+Locker *locker_create_debug_rwlock(pthread_rwlock_t *rwlock);
+Locker *locker_create(void *lock, lockerf_t *tryrdlock, lockerf_t *rdlock, lockerf_t *trywrlock, lockerf_t *wrlock, lockerf_t *unlock);
+void locker_release(Locker *locker);
+void *locker_destroy(Locker **locker);
+int locker_tryrdlock(Locker *locker);
+int locker_rdlock(Locker *locker);
+int locker_trywrlock(Locker *locker);
+int locker_wrlock(Locker *locker);
+int locker_unlock(Locker *locker);
 #ifndef HAVE_PTHREAD_RWLOCK
-int pthread_rwlock_init _args ((pthread_rwlock_t *rwlock, const pthread_rwlockattr_t *attr));
-int pthread_rwlock_destroy _args ((pthread_rwlock_t *rwlock));
-int pthread_rwlock_rdlock _args ((pthread_rwlock_t *rwlock));
-int pthread_rwlock_tryrdlock _args ((pthread_rwlock_t *rwlock));
-int pthread_rwlock_wrlock _args ((pthread_rwlock_t *rwlock));
-int pthread_rwlock_trywrlock _args ((pthread_rwlock_t *rwlock));
-int pthread_rwlock_unlock _args ((pthread_rwlock_t *rwlock));
-int pthread_rwlockattr_init _args ((pthread_rwlockattr_t *attr));
-int pthread_rwlockattr_destroy _args ((pthread_rwlockattr_t *attr));
-int pthread_rwlockattr_getpshared _args ((const pthread_rwlockattr_t *attr, int *pshared));
-int pthread_rwlockattr_setpshared _args ((pthread_rwlockattr_t *attr, int pshared));
+int pthread_rwlock_init(pthread_rwlock_t *rwlock, const pthread_rwlockattr_t *attr);
+int pthread_rwlock_destroy(pthread_rwlock_t *rwlock);
+int pthread_rwlock_rdlock(pthread_rwlock_t *rwlock);
+int pthread_rwlock_tryrdlock(pthread_rwlock_t *rwlock);
+int pthread_rwlock_wrlock(pthread_rwlock_t *rwlock);
+int pthread_rwlock_trywrlock(pthread_rwlock_t *rwlock);
+int pthread_rwlock_unlock(pthread_rwlock_t *rwlock);
+int pthread_rwlockattr_init(pthread_rwlockattr_t *attr);
+int pthread_rwlockattr_destroy(pthread_rwlockattr_t *attr);
+int pthread_rwlockattr_getpshared(const pthread_rwlockattr_t *attr, int *pshared);
+int pthread_rwlockattr_setpshared(pthread_rwlockattr_t *attr, int pshared);
 #endif
 _end_decls
 

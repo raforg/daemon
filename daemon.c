@@ -1,7 +1,7 @@
 /*
 * daemon - http://libslack.org/daemon/
 *
-* Copyright (C) 1999-2003 raf <raf@raf.org>
+* Copyright (C) 1999-2004 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20030901 raf <raf@raf.org>
+* 20040102 raf <raf@raf.org>
 */
 
 /*
@@ -613,7 +613,7 @@ L<kill(2)|kill(2)>
 
 =head1 AUTHOR
 
-20030901 raf <raf@raf.org>
+20040102 raf <raf@raf.org>
 
 =cut
 
@@ -1621,9 +1621,11 @@ static void config_load(List **conf, const char *configfile)
 
 	if (g.safe || (getuid() == 0 && !g.unsafe))
 	{
-		switch (daemon_path_is_safe(configfile))
+		char explanation[256];
+
+		switch (daemon_path_is_safe(configfile, explanation, 256))
 		{
-			case  0: error("ignoring unsafe %s", configfile);
+			case  0: error("ignoring unsafe %s (%s)", configfile, explanation);
 			case -1: return;
 		}
 	}
@@ -1711,12 +1713,12 @@ static void term(int signo)
 
 	if (g.pid != 0 && g.pid != -1 && g.pid != getpid())
 	{
-		debug((2, "kill(term) process %d", g.pid))
+		debug((2, "kill(term) process %d", (int)g.pid))
 
 		if (kill(g.pid, SIGTERM) == -1)
-			errorsys("%s%sfailed to terminate client (%d)", g.name ? g.name : "", g.name ? ": " : "", g.pid);
+			errorsys("failed to terminate client (%d)", (int)g.pid);
 
-		debug((2, "%s%sstopped", g.name ? g.name : "", g.name ? ": " : ""))
+		debug((2, "stopped"))
 	}
 
 	g.terminated = 1;
@@ -1753,12 +1755,16 @@ static void usr1(int signo)
 
 	if (g.pid != 0 && g.pid != -1 && g.pid != getpid())
 	{
-		debug((2, "kill(term) process %d", g.pid))
+		debug((2, "kill(term) process %d", (int)g.pid))
+
+		g.spawn_time = (time_t)0;
+		g.attempt = 0;
+		g.burst = 0;
 
 		if (kill(g.pid, SIGTERM) == -1)
-			errorsys("%s%sfailed to terminate client (%d)", g.name ? g.name : "", g.name ? ": " : "", g.pid);
+			errorsys("failed to terminate client (%d)", (int)g.pid);
 
-		debug((2, "%s%sstopped", g.name ? g.name : "", g.name ? ": " : ""))
+		debug((2, "stopped"))
 	}
 }
 
@@ -1784,14 +1790,14 @@ static void winch(int signo)
 
 	if (ioctl(STDIN_FILENO, TIOCGWINSZ, &win) == -1)
 	{
-		errorsys("%s%sfailed to get stdin's window size", g.name ? g.name : "", g.name ? ": " : "");
+		errorsys("failed to get stdin's window size");
 		return;
 	}
 
 	debug((2, "ioctl(masterfd=%d, TIOCSWINSZ, row = %d, col = %d, xpixel = %d, ypixel = %d)", g.masterfd, win.ws_row, win.ws_col, win.ws_xpixel, win.ws_ypixel))
 
 	if (ioctl(g.masterfd, TIOCSWINSZ, &win) == -1)
-		errorsys("%s%sfailed to set pty's window size", g.name ? g.name : "", g.name ? ": " : "");
+		errorsys("failed to set pty's window size");
 }
 
 /*
@@ -1852,7 +1858,7 @@ static int tty_raw(int fd)
 	attr->c_cc[VMIN] = 1;
 	attr->c_cc[VTIME] = 0;
 
-	return tcsetattr(fd, TCSANOW, attr) == -1;
+	return tcsetattr(fd, TCSANOW, attr);
 }
 
 /*
@@ -1871,7 +1877,7 @@ static int tty_noecho(int fd)
 	debug((1, "tty_noecho(fd = %d)", fd))
 
 	if (tcgetattr(fd, attr) == -1)
-		return errorsys("%s%sfailed to get terminal attributes for slave pty", g.name ? g.name : "", g.name ? ": " : "");
+		return errorsys("failed to get terminal attributes for slave pty");
 
 	attr->c_lflag &= ~(ECHO | ECHOE | ECHOK | ECHONL);
 	attr->c_oflag &= ~ONLCR;
@@ -1892,7 +1898,7 @@ static void restore_stdin(void)
 	debug((1, "restore_stdin()"))
 
 	if (tcsetattr(STDIN_FILENO, TCSANOW, &g.stdin_termios) == -1)
-		errorsys("%s%sfailed to restore stdin terminal attributes", g.name ? g.name : "", g.name ? ": " : "");
+		errorsys("failed to restore stdin terminal attributes");
 }
 
 /*
@@ -1910,17 +1916,17 @@ static void prepare_parent(void)
 	debug((2, "setting sigterm action"))
 
 	if (signal_set_handler(SIGTERM, 0, term) == -1)
-		fatalsys("%s%sfailed to set sigterm action", g.name ? g.name : "", g.name ? ": " : "");
+		fatalsys("failed to set sigterm action");
 
 	debug((2, "setting sigchld action"))
 
 	if (signal_set_handler(SIGCHLD, 0, chld) == -1)
-		fatalsys("%s%sfailed to set sigchld action", g.name ? g.name : "", g.name ? ": " : "");
+		fatalsys("failed to set sigchld action");
 
 	debug((2, "setting sigusr1 action"))
 
 	if (signal_set_handler(SIGUSR1, 0, usr1) == -1)
-		fatalsys("%s%sfailed to set sigusr1 action", g.name ? g.name : "", g.name ? ": " : "");
+		fatalsys("failed to set sigusr1 action");
 
 	if (g.foreground && isatty(STDIN_FILENO))
 	{
@@ -1929,20 +1935,20 @@ static void prepare_parent(void)
 		/* Get stdin's terminal attributes and window size */
 
 		if (tcgetattr(STDIN_FILENO, &g.stdin_termios) == -1)
-			errorsys("%s%sfailed to get terminal attributes for stdin", g.name ? g.name : "", g.name ? ": " : "");
+			errorsys("failed to get terminal attributes for stdin");
 
 		if (ioctl(STDIN_FILENO, TIOCGWINSZ, &g.stdin_winsize) == -1)
-			errorsys("%s%sfailed to get terminal window size for stdin", g.name ? g.name : "", g.name ? ": " : "");
+			errorsys("failed to get terminal window size for stdin");
 
 		/* Set stdin to raw mode (let the slave do everything) */
 
 		if (tty_raw(STDIN_FILENO) == -1)
-			errorsys("%s%sfailed to set stdin to raw mode", g.name ? g.name : "", g.name ? ": " : "");
+			errorsys("failed to set stdin to raw mode");
 
 		/* Restore stdin's terminal settings on exit */
 
 		if (atexit((void (*)(void))restore_stdin) == -1)
-			errorsys("%s%sfailed to atexit(restore_stdin)", g.name ? g.name : "", g.name ? ": " : "");
+			errorsys("failed to atexit(restore_stdin)");
 
 		g.stdin_isatty = 1;
 	}
@@ -1966,19 +1972,19 @@ static void prepare_child(void *data)
 	debug((2, "child restoring sigterm action"))
 
 	if (signal_set_handler(SIGTERM, 0, SIG_DFL) == -1)
-		fatalsys("%s%sfailed to restore sigterm action, exiting", g.name ? g.name : "", g.name ? ": " : "");
+		fatalsys("failed to restore sigterm action, exiting");
 
 	debug((2, "child restoring sigchld action"))
 
 	if (signal_set_handler(SIGCHLD, 0, SIG_DFL) == -1)
-		fatalsys("%s%sfailed to restore sigchld action, exiting", g.name ? g.name : "", g.name ? ": " : "");
+		fatalsys("failed to restore sigchld action, exiting");
 
 	if (g.stdin_isatty)
 	{
 		debug((2, "child restoring sigwinch action"))
 
 		if (signal_set_handler(SIGWINCH, 0, SIG_DFL) == -1)
-			fatalsys("%s%sfailed to restore sigwinch action, exiting", g.name ? g.name : "", g.name ? ": " : "");
+			fatalsys("failed to restore sigwinch action, exiting");
 	}
 
 	if (g.noecho)
@@ -1986,7 +1992,7 @@ static void prepare_child(void *data)
 		debug((2, "child setting slave pty to noecho mode"))
 
 		if (tty_noecho(STDIN_FILENO) == -1)
-			fatalsys("%s%sfailed to set noecho on slave pty", g.name ? g.name : "", g.name ? ": " : "");
+			fatalsys("failed to set noecho on slave pty");
 	}
 }
 
@@ -2016,7 +2022,7 @@ static void spawn_child(void)
 	debug((1, "spawn_child()"))
 
 	if ((spawn_time = time(0)) == -1)
-		fatalsys("%s%sfailed to get the time", g.name ? g.name : "", g.name ? ": " : "");
+		fatalsys("failed to get the time");
 
 	if (g.spawn_time)
 	{
@@ -2040,15 +2046,20 @@ static void spawn_child(void)
 			if (++g.attempt >= g.attempts)
 			{
 				if (g.limit && ++g.burst >= g.limit)
-					fatal("%s%sreached respawn attempt burst limit (%d), exiting", g.name ? g.name : "", g.name ? ": " : "", g.limit);
+					fatal("reached respawn attempt burst limit (%d), exiting", g.limit);
 
-				error("%s%sterminating too quickly, waiting %d seconds", g.name ? g.name : "", g.name ? ": " : "", g.delay);
+				error("terminating too quickly, waiting %d seconds", g.delay);
 
 				while (nap(g.delay, 0) == -1 && errno == EINTR)
+				{
 					signal_handle_all();
 
+					if (g.terminated)
+						fatal("terminated");
+				}
+
 				if ((spawn_time = time(0)) == -1)
-					fatalsys("%s%sfailed to get the time", g.name ? g.name : "", g.name ? ": " : "");
+					fatalsys("failed to get the time");
 
 				g.attempt = 0;
 			}
@@ -2072,21 +2083,21 @@ static void spawn_child(void)
 			slave_winsize = &g.stdin_winsize;
 
 			if (signal_set_handler(SIGWINCH, 0, winch) == -1)
-				errorsys("%s%sfailed to set sigwinch action", g.name ? g.name : "", g.name ? ": " : "");
+				errorsys("failed to set sigwinch action");
 		}
 
 		if ((g.pid = coproc_pty_open(&g.masterfd, g.slavename, g.slavenamesize, slave_termios, slave_winsize, *g.cmd, g.cmd, (g.env) ? g.environ : environ, prepare_child, null)) == -1)
-			fatalsys("%s%sfailed to start: %s", g.name ? g.name : "", g.name ? ": " : "", *g.cmd);
+			fatalsys("failed to start: %s", *g.cmd);
 	}
 	else
 	{
 		debug((2, "no pty: coproc_open()"))
 
 		if ((g.pid = coproc_open(&g.in, &g.out, &g.err, *g.cmd, g.cmd, (g.env) ? g.environ : environ, prepare_child, null)) == -1)
-			fatalsys("%s%sfailed to start: %s", g.name ? g.name : "", g.name ? ": " : "", *g.cmd);
+			fatalsys("failed to start: %s", *g.cmd);
 	}
 
-	debug((2, "parent pid = %d, child pid = %d", getpid(), g.pid))
+	debug((2, "parent pid = %d, child pid = %d", (int)getpid(), (int)g.pid))
 }
 
 /*
@@ -2104,7 +2115,7 @@ static void examine_child(void)
 {
 	int status;
 
-	debug((1, "examine_child(pid = %d)", g.pid))
+	debug((1, "examine_child(pid = %d)", (int)g.pid))
 
 	if (g.masterfd != -1)
 	{
@@ -2114,7 +2125,7 @@ static void examine_child(void)
 			signal_handle_all();
 
 		if (status == -1)
-			fatalsys("%s%scoproc_pty_close(pid = %d) failed", g.name ? g.name : "", g.name ? ": " : "", g.pid);
+			fatalsys("coproc_pty_close(pid = %d) failed", (int)g.pid);
 	}
 	else
 	{
@@ -2124,32 +2135,34 @@ static void examine_child(void)
 			signal_handle_all();
 
 		if (status == -1)
-			fatalsys("%s%scoproc_close(pid = %d) failed", g.name ? g.name : "", g.name ? ": " : "", g.pid);
+			fatalsys("coproc_close(pid = %d) failed", (int)g.pid);
 	}
 
-	debug((2, "pid %d received sigchld for pid %d", getpid(), g.pid))
+	debug((2, "pid %d received sigchld for pid %d", getpid(), (int)g.pid))
 
 	if (WIFEXITED(status))
 	{
 		debug((2, "child terminated with status %d", WEXITSTATUS(status)))
 
 		if (WEXITSTATUS(status) != EXIT_SUCCESS)
-			error("%s%sclient (pid %d) exited with %d status", g.name ? g.name : "", g.name ? ": " : "", (int)g.pid, WEXITSTATUS(status));
+			error("client (pid %d) exited with %d status", (int)g.pid, WEXITSTATUS(status));
 	}
 	else if (WIFSIGNALED(status))
 	{
-		if (g.respawn)
-			error("%s%sclient (pid %d) killed by signal %d, respawning", g.name ? g.name : "", g.name ? ": " : "", (int)g.pid, WTERMSIG(status));
+		if (g.terminated)
+			error("client (pid %d) killed by signal %d, stopping", (int)g.pid, WTERMSIG(status));
+		else if (g.respawn)
+			error("client (pid %d) killed by signal %d, respawning", (int)g.pid, WTERMSIG(status));
 		else
-			fatal("%s%sclient (pid %d) killed by signal %d, exiting", g.name ? g.name : "", g.name ? ": " : "", (int)g.pid, WTERMSIG(status));
+			fatal("client (pid %d) killed by signal %d, exiting", (int)g.pid, WTERMSIG(status));
 	}
 	else if (WIFSTOPPED(status)) /* can't happen - we didn't set WUNTRACED */
 	{
-		fatal("%s%sclient (pid %d) stopped by signal %d, exiting", g.name ? g.name : "", g.name ? ": " : "", (int)g.pid, WSTOPSIG(status));
+		fatal("client (pid %d) stopped by signal %d, exiting", (int)g.pid, WSTOPSIG(status));
 	}
 	else /* can't happen - there are no other options */
 	{
-		fatal("%s%sclient (pid %d) died under mysterious circumstances, exiting", g.name ? g.name : "", g.name ? ": " : "", (int)g.pid);
+		fatal("client (pid %d) died under mysterious circumstances, exiting", (int)g.pid);
 	}
 
 	g.pid = (pid_t)0;
@@ -2188,18 +2201,21 @@ static void run(void)
 
 	for (;;)
 	{
-		debug((2, "run loop - handle any signals"))
-
-		signal_handle_all();
-
-		/* Signals arriving here are lost */
-
-		if (g.masterfd != -1 || g.out != -1 || g.err != -1)
+		for (;;)
 		{
 			char buf[BUFSIZ + 1];
 			fd_set readfds[1];
 			int maxfd = -1;
 			int n;
+
+			debug((2, "run loop - handle any signals"))
+
+			signal_handle_all();
+
+			/* Signals arriving between here and select are lost */
+
+			if (g.masterfd == -1 && g.out == -1 && g.err == -1)
+				break;
 
 			debug((2, "select(%s)", (g.masterfd != -1) ? "pty" : "pipes"))
 
@@ -2248,41 +2264,8 @@ static void run(void)
 
 			if ((n = select(maxfd + 1, readfds, null, null, null)) == -1 && errno != EINTR)
 			{
-				errorsys("%s%sfailed to select(2): refusing to handle client %soutput anymore", g.name ? g.name : "", g.name ? ": " : "", g.foreground ? "input/" : "");
-
-				if (g.masterfd != -1)
-				{
-					if (close(g.masterfd) == -1)
-						errorsys("%s%sfailed to close(masterfd = %d)", g.name ? g.name : "", g.name ? ": " : "", g.masterfd);
-
-					g.masterfd = -1;
-				}
-
-				if (g.in != -1)
-				{
-					if (close(g.in) == -1)
-						errorsys("%s%sfailed to close(in = %d)", g.name ? g.name : "", g.name ? ": " : "", g.in);
-
-					g.in = -1;
-				}
-
-				if (g.out != -1)
-				{
-					if (close(g.out) == -1)
-						errorsys("%s%sfailed to close(out = %d)", g.name ? g.name : "", g.name ? ": " : "", g.out);
-
-					g.out = -1;
-				}
-
-				if (g.err != -1)
-				{
-					if (close(g.err) == -1)
-						errorsys("%s%sfailed to close(err = %d)", g.name ? g.name : "", g.name ? ": " : "", g.err);
-
-					g.err = -1;
-				}
-
-				continue;
+				errorsys("failed to select(2): refusing to handle client %soutput anymore", g.foreground ? "input/" : "");
+				break;
 			}
 
 			if (n == -1 && errno == EINTR)
@@ -2310,7 +2293,7 @@ static void run(void)
 						debug((2, "writing client stdout (fd %d, %d bytes)", g.client_outfd, n))
 
 						if (write(g.client_outfd, buf, n) == -1)
-							errorsys("%s%sfailed to write(client_outfd = %d)", g.name ? g.name : "", g.name ? ": " : "", g.client_outfd);
+							errorsys("failed to write(client_outfd = %d)", g.client_outfd);
 					}
 
 					if (g.client_outlog)
@@ -2335,10 +2318,10 @@ static void run(void)
 				}
 				else if (n == -1)
 				{
-					errorsys("%s%sread(out) failed, refusing to handle client stdout anymore", g.name ? g.name : "", g.name ? ": " : "");
+					errorsys("read(out) failed, refusing to handle client stdout anymore");
 
 					if (close(g.out) == -1)
-						errorsys("%s%sfailed to close(out = %d)", g.name ? g.name : "", g.name ? ": " : "", g.out);
+						errorsys("failed to close(out = %d)", g.out);
 
 					g.out = -1;
 				}
@@ -2347,7 +2330,7 @@ static void run(void)
 					debug((2, "read(out) returned %d, closing out", n))
 
 					if (close(g.out) == -1)
-						errorsys("%s%sfailed to close(out = %d)", g.name ? g.name : "", g.name ? ": " : "", g.out);
+						errorsys("failed to close(out = %d)", g.out);
 
 					g.out = -1;
 				}
@@ -2370,7 +2353,7 @@ static void run(void)
 						debug((2, "writing client stderr (fd %d, %d bytes)", g.client_errfd, n))
 
 						if (write(g.client_errfd, buf, n) == -1)
-							errorsys("%s%sfailed to write(client_errfd = %d)", g.name ? g.name : "", g.name ? ": " : "", g.client_errfd);
+							errorsys("failed to write(client_errfd = %d)", g.client_errfd);
 					}
 
 					if (g.client_errlog)
@@ -2395,10 +2378,10 @@ static void run(void)
 				}
 				else if (n == -1)
 				{
-					errorsys("%s%sread(err) failed", g.name ? g.name : "", g.name ? ": " : "");
+					errorsys("read(err) failed, refusing to handle client stderr anymore");
 
 					if (close(g.err) == -1)
-						errorsys("%s%sfailed to close(err = %d)", g.name ? g.name : "", g.name ? ": " : "", g.err);
+						errorsys("failed to close(err = %d)", g.err);
 
 					g.err = -1;
 				}
@@ -2407,7 +2390,7 @@ static void run(void)
 					debug((2, "read(err) returned %d, closing err", n))
 
 					if (close(g.err) == -1)
-						errorsys("%s%sfailed to close(err = %d)", g.name ? g.name : "", g.name ? ": " : "", g.err);
+						errorsys("failed to close(err = %d)", g.err);
 
 					g.err = -1;
 				}
@@ -2430,7 +2413,7 @@ static void run(void)
 						debug((2, "writing client stdout/stderr (fd %d, %d bytes)", g.client_outfd, n))
 
 						if (write(g.client_outfd, buf, n) == -1)
-							errorsys("%s%sfailed to write(client_outfd = %d)", g.name ? g.name : "", g.name ? ": " : "", g.client_outfd);
+							errorsys("failed to write(client_outfd = %d)", g.client_outfd);
 					}
 
 					if (g.client_outlog)
@@ -2456,21 +2439,14 @@ static void run(void)
 				else if (n == -1)
 				{
 					if (errno != EIO)
-						errorsys("%s%sread(masterfd) failed, closing masterfd", g.name ? g.name : "", g.name ? ": " : "");
+						errorsys("read(masterfd) failed, refusing to handle client output anymore");
 
-					if (close(g.masterfd) == -1)
-						errorsys("%s%sfailed to close(masterfd = %d)", g.name ? g.name : "", g.name ? ": " : "", g.masterfd);
-
-					g.masterfd = -1;
+					break;
 				}
 				else /* eof */
 				{
 					debug((2, "read(masterfd) returned %d, closing masterfd", n))
-
-					if (close(g.masterfd) == -1)
-						errorsys("%s%sfailed to close(masterfd = %d)", g.name ? g.name : "", g.name ? ": " : "", g.masterfd);
-
-					g.masterfd = -1;
+					break;
 				}
 			}
 
@@ -2485,22 +2461,18 @@ static void run(void)
 					{
 						if (write(g.masterfd, buf, n) != n)
 						{
-							errorsys("%s%sfailed to write(masterfd = %d)", g.name ? g.name : "", g.name ? ": " : "", g.masterfd);
-
-							if (close(g.masterfd) == -1)
-								errorsys("%s%sfailed to close(masterfd = %d)", g.name ? g.name : "", g.name ? ": " : "", g.masterfd);
-
-							g.masterfd = -1;
+							errorsys("failed to write(masterfd = %d)", g.masterfd);
+							break;
 						}
 					}
 					else if (g.in != -1)
 					{
 						if (write(g.in, buf, n) != n)
 						{
-							errorsys("%s%sfailed to write(in = %d)", g.name ? g.name : "", g.name ? ": " : "", g.in);
+							errorsys("failed to write(in = %d), closing in", g.in);
 
 							if (close(g.in) == -1)
-								errorsys("%s%sfailed to close(in = %d)", g.name ? g.name : "", g.name ? ": " : "", g.in);
+								errorsys("failed to close(in = %d)", g.in);
 
 							g.in = -1;
 						}
@@ -2519,21 +2491,24 @@ static void run(void)
 						char eof = CEOF;
 
 						if (tcgetattr(g.masterfd, attr) == -1)
-							errorsys("%s%sfailed to get terminal attributes for masterfd = %d", g.name ? g.name : "", g.name ? ": " : "", g.masterfd);
+							errorsys("failed to get terminal attributes for masterfd = %d", g.masterfd);
 						else
 							eof = attr->c_cc[VEOF];
 
 						debugsys((2, "read(stdin) returned %d, sending eof(%d) to masterfd", n, eof))
 
 						if (write(g.masterfd, &eof, 1) == -1)
-							errorsys("%s%sfailed to write(masterfd = %d) sending eof (%d)", g.name ? g.name : "", g.name ? ": " : "", g.masterfd, (int)eof);
+						{
+							errorsys("failed to write(masterfd = %d) when sending eof (%d)", g.masterfd, (int)eof);
+							break;
+						}
 					}
 					else if (g.in != -1)
 					{
 						debugsys((2, "read(stdin) returned %d, closing in", n))
 
 						if (close(g.in) == -1)
-							errorsys("%s%sfailed to close(in = %d)", g.name ? g.name : "", g.name ? ": " : "", g.in);
+							errorsys("failed to close(in = %d)", g.in);
 
 						g.in = -1;
 					}
@@ -2542,12 +2517,10 @@ static void run(void)
 				}
 			}
 		}
-		else
-		{
-			debug((2, "no output, just wait for child to terminate"))
 
-			examine_child();
-		}
+		debug((2, "no more output, just wait for child to terminate"))
+
+		examine_child();
 	}
 }
 
@@ -2622,11 +2595,11 @@ static void show(void)
 		}
 	}
 
-	debug((2, "environment:"))
+	debug((3, "environment:"))
 
 	for (i = 0; (g.environ ? g.environ : environ)[i]; ++i)
 	{
-		debug((2, " %s", (g.environ ? g.environ : environ)[i]))
+		debug((3, " %s", (g.environ ? g.environ : environ)[i]))
 	}
 }
 
@@ -2640,9 +2613,9 @@ error, returns C<-1> with C<errno> set appropriately.
 
 */
 
-static int safety_check(const char *cmd);
+static int safety_check(const char *cmd, char *explanation, size_t explanation_size);
 
-static int safety_check_script(const char *cmd)
+static int safety_check_script(const char *cmd, char *explanation, size_t explanation_size)
 {
 	char intbuf[256];
 	ssize_t bytes;
@@ -2673,7 +2646,7 @@ static int safety_check_script(const char *cmd)
 
 				debug((2, "checking #! interpreter: %s", intbuf + 2))
 
-				if ((ret = daemon_path_is_safe(intbuf + 2)) != 1)
+				if ((ret = daemon_path_is_safe(intbuf + 2, explanation, explanation_size)) != 1)
 					return ret;
 
 				/* If it's "#!/usr/bin/env cmd", check the cmd */
@@ -2685,7 +2658,7 @@ static int safety_check_script(const char *cmd)
 
 					debug((2, "checking interpreter (via env): %s", intbuf + 15))
 
-					if ((ret = safety_check(intbuf + 15)) != 1)
+					if ((ret = safety_check(intbuf + 15, explanation, explanation_size)) != 1)
 						return ret;
 				}
 			}
@@ -2717,7 +2690,7 @@ error, returns C<-1> with C<errno> set appropriately.
 #define DEFAULT_USER_PATH ":/bin:/usr/bin"
 #endif
 
-static int safety_check(const char *cmd)
+static int safety_check(const char *cmd, char *explanation, size_t explanation_size)
 {
 	struct stat status[1];
 	char cmdbuf[512];
@@ -2735,13 +2708,13 @@ static int safety_check(const char *cmd)
 
 		debug((2, "checking \"%s\"", path))
 
-		if ((ret = daemon_path_is_safe(path)) != 1)
+		if ((ret = daemon_path_is_safe(path, explanation, explanation_size)) != 1)
 		{
 			mem_release(path);
 			return ret;
 		}
 
-		ret = safety_check_script(path);
+		ret = safety_check_script(path, explanation, explanation_size);
 		mem_release(path);
 
 		return ret;
@@ -2778,10 +2751,10 @@ static int safety_check(const char *cmd)
 		{
 			debug((2, "checking \"%s\"", cmdbuf))
 
-			if ((ret = daemon_path_is_safe(cmdbuf)) != 1)
+			if ((ret = daemon_path_is_safe(cmdbuf, explanation, explanation_size)) != 1)
 				return ret;
 
-			return safety_check_script(cmdbuf);
+			return safety_check_script(cmdbuf, explanation, explanation_size);
 		}
 	}
 
@@ -2886,7 +2859,7 @@ static void init(int ac, char **av)
 
 	prog_set_legal
 	(
-		"Copyright (C) 1999-2003 raf <raf@raf.org>\n"
+		"Copyright (C) 1999-2004 raf <raf@raf.org>\n"
 		"\n"
 		"This is free software released under the terms of the GPL:\n"
 		"\n"
@@ -2936,7 +2909,7 @@ static void init(int ac, char **av)
 	{
 		struct group *grp = getgrgid(g.gid);
 		struct passwd *pwd = getpwuid(g.uid);
-		fatalsys("failed to set user/group to %s/%s (%d/%d): uid/gid = %d/%d euid/egid = %d/%d", (pwd) ? pwd->pw_name : "<noname>", (grp) ? grp->gr_name : "<noname>", g.uid, g.pid, getuid(), getgid(), geteuid(), getegid());
+		fatalsys("failed to set user/group to %s/%s (%d/%d): uid/gid = %d/%d euid/egid = %d/%d", (pwd) ? pwd->pw_name : "<noname>", (grp) ? grp->gr_name : "<noname>", (int)g.uid, (int)g.pid, (int)getuid(), (int)getgid(), (int)geteuid(), (int)getegid());
 	}
 
 	g.done_user = 1;
@@ -2948,11 +2921,6 @@ static void init(int ac, char **av)
 	/* Check sanity of command line options */
 
 	sanity_check();
-
-	/* Set message prefix to the --name argument, if any */
-
-	if (g.name)
-		prog_set_name(g.name);
 
 	/* Prevent core file generation */
 
@@ -3007,7 +2975,7 @@ static void init(int ac, char **av)
 				exit(EXIT_FAILURE);
 
 			case 1:
-				verbose(1, "%s is running", g.name);
+				verbose(1, "%s is running (pid %d)", g.name, (int)daemon_getpid(g.name));
 				exit(EXIT_SUCCESS);
 
 			default:
@@ -3029,6 +2997,49 @@ static void init(int ac, char **av)
 
 		exit(EXIT_SUCCESS);
 	}
+
+	/* Build a command line argument vector for the client */
+
+	if (g.command && !(cmd = split(g.command, " ")))
+		fatalsys("out of memory");
+
+	if (!(g.cmd = mem_create((cmd ? list_length(cmd) : 0) + (ac - a) + 1, char *)))
+		fatalsys("out of memory");
+
+	for (i = 0; i < list_length(cmd); ++i)
+		if (!(g.cmd[i] = mem_strdup(cstr((String *)list_item(cmd, i)))))
+			fatalsys("out of memory");
+
+	list_release(cmd);
+
+	if (a != ac)
+		memmove(g.cmd + i, av + a, (ac - a) * sizeof(char *));
+
+	g.cmd[i + ac - a] = null;
+
+	/* Check that we have a command to run */
+
+	if (g.cmd[0] == null)
+		prog_usage_msg("Invalid arguments: no command supplied");
+
+	/* Check that the client executable is safe */
+
+	if (g.safe || (getuid() == 0 && !g.unsafe))
+	{
+		char explanation[256];
+
+		switch (safety_check(g.cmd[0], explanation, 256))
+		{
+			case 1: break;
+			case 0: fatal("refusing to execute unsafe program: %s (%s)", g.cmd[0], explanation);
+			default: fatalsys("failed to tell if %s is safe", g.cmd[0]);
+		}
+	}
+
+	/* Set message prefix to the --name argument, if any */
+
+	if (g.name)
+		prog_set_name(g.name);
 
 	/* Enter daemon space, or just name the client, or neither */
 
@@ -3059,19 +3070,19 @@ static void init(int ac, char **av)
 	/* Set directory */
 
 	if (g.chdir && chdir(g.chdir) == -1)
-		fatalsys("%s%sfailed to change directory to %s", g.name ? g.name : "", g.name ? ": " : "", g.chdir);
+		fatalsys("failed to change directory to %s", g.chdir);
 
 	/* Set daemon's error message destination (syslog or file) */
 
 	if (g.daemon_errlog)
 	{
 		if (prog_err_syslog(prog_name(), 0, g.daemon_errlog & LOG_FACMASK, g.daemon_errlog & LOG_PRIMASK) == -1)
-			fatalsys("%s%sfailed to start error delivery to %s.%s", g.name ? g.name : "", g.name ? ": " : "", syslog_facility_str(g.daemon_errlog), syslog_priority_str(g.daemon_errlog));
+			fatalsys("failed to start error delivery to %s.%s", syslog_facility_str(g.daemon_errlog), syslog_priority_str(g.daemon_errlog));
 	}
 	else if (g.daemon_err)
 	{
 		if (prog_err_file(g.daemon_err) == -1)
-			fatalsys("%s%sfailed to start output delivery to %s", g.name ? g.name : "", g.name ? ": " : "", g.daemon_err);
+			fatalsys("failed to start output delivery to %s", g.daemon_err);
 	}
 
 	/* Set daemon's debug message destination (syslog or file) */
@@ -3079,12 +3090,12 @@ static void init(int ac, char **av)
 	if (g.daemon_dbglog)
 	{
 		if (prog_dbg_syslog(prog_name(), 0, g.daemon_dbglog & LOG_FACMASK, g.daemon_dbglog & LOG_PRIMASK) == -1)
-			fatalsys("%s%sfailed to start debug delivery to %s.%s", g.name ? g.name : "", g.name ? ": " : "", syslog_facility_str(g.daemon_dbglog), syslog_priority_str(g.daemon_dbglog));
+			fatalsys("failed to start debug delivery to %s.%s", syslog_facility_str(g.daemon_dbglog), syslog_priority_str(g.daemon_dbglog));
 	}
 	else if (g.daemon_dbg)
 	{
 		if (prog_dbg_file(g.daemon_dbg) == -1)
-			fatalsys("%s%sfailed to start debug delivery to %s", g.name ? g.name : "", g.name ? ": " : "", g.daemon_dbg);
+			fatalsys("failed to start debug delivery to %s", g.daemon_dbg);
 	}
 
 	/* Set client's stdout and stderr destinations (syslog or file) */
@@ -3093,46 +3104,10 @@ static void init(int ac, char **av)
 	mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
 
 	if (g.client_out && !g.client_outlog && (g.client_outfd = open(g.client_out, flags, mode)) == -1)
-		errorsys("%s%sfailed to open %s to log client stdout", g.name ? g.name : "", g.name ? ": " : "", g.client_out);
+		errorsys("failed to open %s to log client stdout", g.client_out);
 
 	if (g.client_err && !g.client_errlog && (g.client_errfd = open(g.client_err, flags, mode)) == -1)
-		errorsys("%s%sfailed to open %s to log client stderr", g.name ? g.name : "", g.name ? ": " : "", g.client_err);
-
-	/* Build a command line argument vector for the client */
-
-	if (g.command && !(cmd = split(g.command, " ")))
-		fatalsys("out of memory");
-
-	if (!(g.cmd = mem_create((cmd ? list_length(cmd) : 0) + (ac - a) + 1, char *)))
-		fatalsys("out of memory");
-
-	for (i = 0; i < list_length(cmd); ++i)
-		if (!(g.cmd[i] = mem_strdup(cstr((String *)list_item(cmd, i)))))
-			fatalsys("out of memory");
-
-	list_release(cmd);
-
-	if (a != ac)
-		memmove(g.cmd + i, av + a, (ac - a) * sizeof(char *));
-
-	g.cmd[i + ac - a] = null;
-
-	/* Check that we have a command to run */
-
-	if (g.cmd[0] == null)
-		prog_usage_msg("Invalid arguments: no command supplied");
-
-	/* Check that the client executable is safe */
-
-	if (g.safe || (getuid() == 0 && !g.unsafe))
-	{
-		switch (safety_check(g.cmd[0]))
-		{
-			case 1: break;
-			case 0: fatal("refusing to execute unsafe program: %s", g.cmd[0]);
-			default: fatalsys("failed to tell if %s is safe", g.cmd[0]);
-		}
-	}
+		errorsys("failed to open %s to log client stderr", g.client_err);
 
 	/* Build an environment variable vector for the client */
 

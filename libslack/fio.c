@@ -1,7 +1,7 @@
 /*
 # libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2002 raf <raf@raf.org>
+* Copyright (C) 1999-2004 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20020916 raf <raf@raf.org>
+* 20040102 raf <raf@raf.org>
 */
 
 /*
@@ -87,16 +87,24 @@ void (funlockfile)(FILE *stream);
 
 =item C<char *fgetline(char *line, size_t size, FILE *stream)>
 
-Similar to I<fgets(3)> except that it recognises UNIX ("\n"), DOS ("\r\n")
-and Macintosh ("\r") line endings (even different line ending in the same
-file). Reads in at most C<size - 1> characters from C<stream> and stores
-them into the buffer pointed to by C<line>. Reading stops after an C<EOF> or
-the end of the line. If the end of the line was read, a newline is stored
-into the buffer. A C<null> is stored after the last character in the buffer.
-On success, returns C<line>. On error, or when the end of file occurs while
-no characters have been read, returns C<null>. Calls to this function can be
-mixed with calls to other input functions from the I<stdio> library for the
-same input stream.
+Similar to I<fgets(3)> except that it recognises UNIX (C<"\n">), DOS
+(C<"\r\n">) and Macintosh (C<"\r">) line endings (even different line
+endings in the same file). Reads characters from C<stream> and stores them
+in the buffer pointed to by C<line>. Reading stops after an C<EOF> or the
+end of the line is reached or when C<size - 1> characters have been stored.
+If the end of the line was reached, it is stored as a C<"\n"> character. A
+C<null> is stored after the last character in the buffer. On success,
+returns C<line>. On error, or when the end of file occurs while no
+characters have been read, returns C<null>. Note that even when C<null> is
+returned, C<line> is modified and will always be C<nul>-terminated. So it is
+safe to examine C<line> even when this function returns C<null>. Calls to
+this function can be mixed with calls to other input functions from the
+I<stdio> library for the same input stream. This is a drop-in replacement
+for I<fgets(3)>.
+
+    char line[BUFSIZ];
+    while (fgetline(line, BUFSIZ, stdin))
+        printf("%s", line);
 
 =cut
 
@@ -153,16 +161,10 @@ char *fgetline_unlocked(char *line, size_t size, FILE *stream)
 			*s++ = c;
 	}
 
-	if (s < end && c == EOF)
-	{
-		if (ferror(stream))
-			return NULL;
-
-		if (s == line && feof(stream))
-			return NULL;
-	}
-
 	*s = '\0';
+
+	if (c == EOF && (s == line || ferror(stream)))
+		return NULL;
 
 	return line;
 }
@@ -180,8 +182,8 @@ I<alarm(3)> and C<SIGALRM> signals (best avoided). On success, returns C<0>.
 On error, returns C<-1> with C<errno> set appropriately (C<ETIMEDOUT> if it
 timed out, otherwise set by I<select(2)>). Usage:
 
-	if (read_timeout(fd, 5, 0) == -1 || (bytes = read(fd, buf, count)) == -1)
-		return -1;
+    if (read_timeout(fd, 5, 0) == -1 || (bytes = read(fd, buf, count)) == -1)
+        return -1;
 
 =cut
 
@@ -225,8 +227,8 @@ I<alarm(3)> and C<SIGALRM> signals (best avoided). On success, returns C<0>.
 On error, returns C<-1> with C<errno> set appropriately (C<ETIMEDOUT> if it
 timed out, otherwise set by I<select(2)>). Usage:
 
-	if (write_timeout(fd, 5, 0) == -1 || (bytes = write(fd, buf, count)) == -1)
-		return -1;
+    if (write_timeout(fd, 5, 0) == -1 || (bytes = write(fd, buf, count)) == -1)
+        return -1;
 
 =cut
 
@@ -269,6 +271,15 @@ mask indicating whether C<fd> is readable (C<R_OK>), writable (C<W_OK>)
 and/or has urgent data available (C<X_OK>). On error, returns C<-1> with
 C<errno> set appropriately (C<ETIMEDOUT> if it timed out, otherwise set by
 I<select(2)>).
+
+    if ((mask = rw_timeout(fd, 5, 0)) == -1)
+        return -1;
+
+    if ((mask & W_OK) && (bytes = write(fd, buf, count)) == -1)
+        return -1;
+
+    if ((mask & R_OK) && (bytes = read(fd, buf, count)) == -1)
+        return -1;
 
 =cut
 
@@ -319,6 +330,9 @@ int rw_timeout(int fd, long sec, long usec)
 Puts the process to sleep for C<sec> seconds and C<usec> microseconds. Note,
 however, that many systems' timers only have 10ms resolution. On success,
 returns C<0>. On error, returns C<-1> with C<errno> set appropriately.
+
+    nap(1, 500000); // Sleep for 1.5 seconds
+    nap(0, 100000); // Sleep for 0.1 seconds
 
 =cut
 
@@ -392,6 +406,9 @@ descriptor, C<fd>. C<cmd> is the locking command and is passed to
 I<fcntl(2)>. C<type>, C<whence>, C<start> and C<len> are used to fill a
 I<flock> structure which is passed to I<fcntl(2)>. Returns the same as
 I<fcntl(2)> with C<cmd> as the command.
+
+    if (fcntl_lock(fd, F_SETLK, F_WRLCK, SEEK_SET, 0, 0) == -1)
+        return -1;
 
 =cut
 
@@ -553,6 +570,18 @@ non-zero, the fifo is exclusively locked. If C<writefd> is not C<null>, the
 write descriptor is stored there. On error, returns C<-1> with C<errno> set
 by I<stat(2)>, I<open(2)>, I<mkfifo(2)>, I<fstat(2)> or I<fcntl(2)>.
 
+    char *fifopath = "/tmp/fifo";
+    int fd, wfd;
+
+    if ((fd = fifo_open(fifopath, S_IRUSR | S_IWUSR | S_IWGRP | S_IWOTH, 1, &wfd)) == -1)
+        return -1;
+
+    // Read from fd...
+
+    close(fd);
+    close(wfd);
+    unlink(fifopath);
+
 =cut
 
 */
@@ -707,6 +736,144 @@ I<getc_unlocked(3)> so I<fgetline(3)> is not MT-Safe on such platforms. You
 must guard all stdio calls in multi threaded programs with explicit
 synchronisation variables.
 
+=head1 EXAMPLES
+
+A paranoid I<fgetline()> example:
+
+    #include <slack/std.h>
+    #include <slack/fio.h>
+
+    int main()
+    {
+        char line[BUFSIZ];
+
+        while (fgetline(line, BUFSIZ, stdin))
+            printf("%s", line);
+
+        if (ferror(stdin))
+        {
+            if (!*line)
+                printf("%s\n", line);
+
+            return EXIT_FAILURE;
+        }
+
+        return EXIT_SUCCESS;
+    }
+
+Read from stdin but give up after 5 seconds:
+
+    #include <slack/std.h>
+    #include <slack/fio.h>
+
+    int main()
+    {
+        char buf[BUFSIZ];
+        ssize_t bytes;
+
+        if (read_timeout(STDIN_FILENO, 5, 0) == -1 ||
+            (bytes = read(STDIN_FILENO, buf, BUFSIZ)) == -1 ||
+            write(STDOUT_FILENO, buf, bytes) != bytes)
+            return EXIT_FAILURE;
+
+        return EXIT_SUCCESS;
+    }
+
+A command line sub-second sleep command:
+
+    #include <slack/std.h>
+    #include <slack/fio.h>
+
+    int main(int ac, char **av)
+    {
+        if (ac != 3)
+            return EXIT_FAILURE;
+
+        nap(atoi(av[1]), atoi(av[2]));
+
+        return EXIT_SUCCESS;
+    }
+
+Setting file flags:
+
+    #include <slack/std.h>
+    #include <slack/fio.h>
+
+    int main()
+    {
+        if (fcntl_set_flag(STDIN_FILENO, O_NONBLOCK | O_ASYNC) == -1)
+            return EXIT_FAILURE;
+
+        if (fcntl_set_flag(STDOUT_FILENO, O_APPEND) == -1)
+            return EXIT_FAILURE;
+
+        if (nonblock_on(STDOUT_FILENO) == -1)
+            return EXIT_FAILURE;
+
+        if (fcntl_clear_flag(STDIN_FILENO, O_NONBLOCK | O_ASYNC) == -1)
+            return EXIT_FAILURE;
+
+        if (fcntl_clear_flag(STDOUT_FILENO, O_APPEND) == -1)
+            return EXIT_FAILURE;
+
+        if (nonblock_off(STDOUT_FILENO) == -1)
+            return EXIT_FAILURE;
+
+        return EXIT_SUCCESS;
+    }
+
+File locking:
+
+    #include <slack/std.h>
+    #include <slack/fio.h>
+
+    int main(int ac, char **av)
+    {
+        int fd;
+
+        if ((fd = open(av[1], O_RDWR)) == -1)
+            return EXIT_FAILURE;
+
+        if (fcntl_lock(fd, F_SETLK, F_WRLCK, SEEK_SET, 0, 0) == -1)
+            return close(fd), EXIT_FAILURE;
+
+        // Write to the file...
+
+        if (fcntl_lock(fd, F_SETLK, F_UNLCK, SEEK_SET, 0, 0) == -1)
+            return close(fd), EXIT_FAILURE;
+
+        close(fd);
+
+        return EXIT_SUCCESS;
+    }
+
+Turn a logfile into a fifo that sends log messages to syslog instead:
+
+	#include <slack/std.h>
+	#include <slack/fio.h>
+	#include <syslog.h>
+
+	int main()
+	{
+		char *fifopath = "/tmp/log2syslog";
+		char buf[BUFSIZ];
+		ssize_t bytes;
+		int fd, wfd;
+
+		if ((fd = fifo_open(fifopath, S_IRUSR | S_IWUSR | S_IWGRP | S_IWOTH, 1, &wfd)) == -1)
+			return EXIT_FAILURE;
+
+		while ((bytes = read(fd, buf, BUFSIZ)) > 0)
+		{
+			buf[bytes] = '\0';
+			syslog(LOG_DAEMON | LOG_ERR, "%s", buf);
+		}
+
+		close(fd);
+		close(wfd);
+		unlink(fifopath);
+	}
+
 =head1 BUGS
 
 Some systems, such as Mac OS X, can't lock fifos. On these systems,
@@ -728,7 +895,7 @@ L<mkfifo(2)|mkfifo(2)>
 
 =head1 AUTHOR
 
-20020916 raf <raf@raf.org>
+20040102 raf <raf@raf.org>
 
 =cut
 
@@ -771,7 +938,7 @@ int main(int ac, char **av)
 	else
 	{
 		if ((fcntl_lock(fd, F_SETLK, F_WRLCK, SEEK_SET, 0, 0)) != -1)
-			++errors, printf("Test2: fcntl_lock() failed\n");
+			++errors, printf("Test2: fcntl_lock(wrlock) failed\n");
 
 		/* Should really test that the following non-blocking changes do occur */
 
@@ -838,7 +1005,7 @@ int main(int ac, char **av)
 	/* Test read_timeout() and write_timeout() */
 
 	if ((fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC | O_NONBLOCK, S_IRUSR | S_IWUSR)) == -1)
-		++errors, printf("Test18: failed to create %s (%s)\n", filename, strerror(errno));
+		++errors, printf("Test19: failed to create %s (%s)\n", filename, strerror(errno));
 	else
 	{
 		char buf[12] = "0123456789\n";
@@ -891,7 +1058,7 @@ int main(int ac, char **av)
 
 #ifndef HAVE_FCNTL_THAT_CAN_LOCK_FIFOS
 	printf("\n");
-	printf("    Note: Some systems (e.g. FreeBSD, Mac OS X) can't lock fifos so fifo_open()\n");
+	printf("    Note: Some systems (e.g. FreeBSD) can't lock fifos so fifo_open()\n");
 	printf("    can't guarantee a unique reader.\n");
 #endif
 

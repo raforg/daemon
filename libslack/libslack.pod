@@ -1,7 +1,7 @@
 #
 # libslack - http://libslack.org/
 #
-# Copyright (C) 1999-2001 raf <raf@raf.org>
+# Copyright (C) 1999-2004 raf <raf@raf.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
-# 20020916 raf <raf@raf.org>
+# 20040102 raf <raf@raf.org>
 
 =head1 NAME
 
@@ -30,17 +30,26 @@ I<libslack> - A UNIX/C library of general utilities for programmers with Slack
 
 =head1 SYNOPSIS
 
+Compiling:
+
     gcc -o app app.c `libslack-config --cflags --libs`
 
-    #include <slack/std.h>
+Headers:
+
+    /* Include this before all other header files */
     #include <slack/lib.h>
 
+or
+
+    /* Include this before all other header files */
+    #include <slack/std.h>
+
+    /* Then select what you want from the rest */
     #include <slack/agent.h>
     #include <slack/coproc.h>
     #include <slack/daemon.h>
     #include <slack/err.h>
     #include <slack/fio.h>
-    #include <slack/getopt.h>
     #include <slack/hsort.h>
     #include <slack/lim.h>
     #include <slack/link.h>
@@ -54,10 +63,15 @@ I<libslack> - A UNIX/C library of general utilities for programmers with Slack
     #include <slack/prop.h>
     #include <slack/pseudo.h>
     #include <slack/sig.h>
-    #include <slack/snprintf.h>
-    #include <slack/socks.h>
     #include <slack/str.h>
+
+    #ifndef HAVE_SNPRINTF
+    #include <slack/snprintf.h>
+    #endif
+
+    #ifndef HAVE_VSSCANF
     #include <slack/vsscanf.h>
+    #endif
 
 =head1 DESCRIPTION
 
@@ -78,25 +92,25 @@ should always be easy to read.
 
 The "framework" parts of I<libslack> are bound to be the most objectionable.
 Nobody likes frameworks. Don't worry, there isn't much to it. If you don't
-like it, pretend it's not there. 
+like it, pretend it's not there.
 
 I<Libslack> provides the ability for programs to identify themselves,
 perform command line option processing in a single line of code and produce
 "standard" GNU style C<--help>, C<--version> and usage messages. Debug and
 verbose messaging is also provided and is enabled by the use of "standard"
-C<--debug> and C<--verbose> command line options. 
+C<--debug> and C<--verbose> command line options.
 
 Messages (including error, debug and verbose messages) are provided with
 clean call syntax and flexible semantics. Messages can be directed to log
 files, file descriptors, syslog or multiplexed to any of the above (and to
 anywhere else (e.g. dialog boxes) if you implement your own message
-handlers) without complicating the call syntax. 
+handlers) without complicating the call syntax.
 
 ISO C imposes extreme restrictions on signal handlers. POSIX imposes less
 extreme but still annoying restrictions. I<Libslack> contains functions that
 provide a level of abstraction between the signal handlers that you write
 and the real (ISO C compliant) signal handlers. This allows you to write
-unrestricted signal handlers. 
+unrestricted signal handlers.
 
 Coarse grained persistence of simple configuration information is provided
 by the use of Java style properties files in "well-known" locations.
@@ -165,6 +179,12 @@ are also debug versions that print messages to standard output to help
 clients locate deadlocks. See
 L<http://raf.org/papers/mt-disciplined.html|http://raf.org/papers/mt-disciplined.html>.
 
+=item Coprocesses and Pseudo Terminals
+
+I<Libslack> provides functions for creating pseudo terminals portably and
+for creating coprocesses that use either pipes or a pseudo terminal for
+communication with the client process.
+
 =item Miscellaneous
 
 I<Libslack> contains convenience/shorthand functions for random things such
@@ -174,10 +194,58 @@ facility/priority pairs, dynamic allocation of multi-dimensional arrays,
 memory pools, secure memory, secure memory pools, There's also a heap sort
 function. And there are also implementations of GNU I<getopt_long()>,
 I<strlcat()>, I<strlcpy()>, I<snprintf()>, I<vsnprintf()>, I<vsscanf()>,
-I<asprinf()> and I<vasprintf()> for systems that don't have them. There are
-also functions for creating pseudo terminals portably and for creating
-coprocesses that use either pipes or pseudo terminals for communication with
-the client process.
+I<asprinf()> and I<vasprintf()> for systems that don't have them.
+
+=item Low Level API
+
+Although there is a lot of functionality in I<libslack>, the API itself is
+as low-level as possible. There are no gratuitous data structures that wrap
+around perfectly acceptable data structures that are provided by the system.
+For instance, the networking functions do not return some home grown
+I<Socket> object. They return file descriptors just like underlying system
+calls. The coprocess API is similar in spirit to I<popen(3)> and
+I<pclose(3)>. The I<fgetline(3)> function interoperates perfectly with
+standard I/O. Errors are returned via C<errno> just like system calls and
+some standard library functions. You may not like C<errno> if you write
+threaded programs but I figured that until C<errno> goes away, it's best to
+accept it and find a way to benefit from it. Unavoidably, the string module
+does wrap an object around perfectly good char pointers but the underlying
+char pointer is always accessible and many of the string functions have
+versions that work on ordinary C strings.
+
+The purpose of this design is Laziness. It means I don't have to wrap every
+net related system call or standard string function in an extra function and
+you don't have to learn a load of new identifiers for functionality that you
+already know how to access. The same goes for error codes. I don't want to
+re-invent them and you don't need to re-learn them. It also means that
+I<libslack> functions can be more easily incorporated into existing programs
+to enhance their functionality without huge code rewrites and without the
+need for a steep learning curve.
+
+=item Accurate Documentation
+
+Every module has a manpage that explains every function in detail. The
+function signatures in the manpages are systematically checked against the
+source code to make sure that they never get out of sync.
+
+There are plenty of examples in the manpages. Most of them are
+systematically compiled and executed to make sure that they never get out of
+sync with the source code.
+
+The actual text of the manpages can't be systematically checked but it does
+get proofread regularly. If you find any errors of any kind in the
+documentation, please let me know.
+
+All of the documentation takes the form of manpages because manpages are
+faster and more accessible than anything else.
+
+=item Thorough Testing
+
+I<Libslack> is thoroughly tested. This doesn't mean that there are no bugs
+but it does mean that there is a large list of bugs that it doesn't have.
+Excluding the snprintf module, there are nearly 2,800 tests. Including the
+snprintf module, there are nearly 150,000 tests. These tests also serve as
+extra examples.
 
 =back
 
@@ -215,7 +283,9 @@ Each module, as well as each function, has its own section 3 manpage.
 Each module has its own header file (see SYNOPSIS). If you want to include
 these header files individually, you must first include the <slack/std.h>
 header file. Alternatively, you can just include the <slack/lib.h> header
-file and get everything.
+file and get everything. B<Note:> Make sure that <slack/lib.h> or
+<slack/std.h> is included before any system header files. Otherwise, the
+system headers won't be set up properly.
 
 If I<libslack> was installed on your system with a prefix added to each
 identifier, you may also want to include <slack/prefix.h> which allows you
@@ -224,15 +294,23 @@ automatically translated into the prefixed identifiers.
 
 Alternatively, if I<libslack> was installed on your system with the original
 names and you wish to compile client code that does use a prefix, you can
-include "remove_prefix.h" which allows you to continue to use the prefixed
-identifiers and have them automatically translated into the original
-identifiers. Note that you will probably have to generate this header file
-yourself (see the prefix program in the tools directory).
+include I<"remove_prefix.h"> which allows you to continue to use the
+prefixed identifiers and have them automatically translated into the
+original identifiers. Note that you will probably have to generate this
+header file yourself (see the prefix program in the tools directory).
 
 If your client code uses one prefix and the I<libslack> installed on your
 current system uses a different prefix, you will need to include both of
-these header files. First include "remove_prefix.h". Then include
+these header files. First include I<"remove_prefix.h">. Then include
 <slack/prefix.h>.
+
+=head1 EXAMPLES
+
+There are examples in all of the module manpages. If you can't find what
+you're looking for there, look at the test code which can be found at the
+bottom of each module's source file. The test code executes every function
+and thus serves as a treasure trove of examples. If you think of an example
+that really needs to be in the manpages, don't hesitate to let me know.
 
 =head1 MAILING LISTS
 
@@ -304,5 +382,6 @@ L<vsscanf(3)|vsscanf(3)>
 
 =head1 AUTHOR
 
-20020916 raf <raf@raf.org>
+20040102 raf <raf@raf.org>
 
+=cut

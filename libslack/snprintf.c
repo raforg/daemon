@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 2001 raf <raf@raf.org>
+* Copyright (C) 2001-2003 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20020916 raf <raf@raf.org>
+* 20040102 raf <raf@raf.org>
 */
 
 /*
@@ -88,10 +88,13 @@
  *    added ability to mimic glibc or solaris behaviour
  *    now ISO C 89 compliant formatting except format is not an mbstr
  *    added manpage in pod format (perldoc -F snprintf.c)
- *    added rigorous testing
+ *    added rigorous testing (145893 tests)
  *
  *  raf (raf@raf.org) May 2002
  *    added solaris 8 bug compatibility
+ *
+ *  raf (raf@raf.org) Dec 2003
+ *    added examples to the manpage
  *
  **************************************************************/
 
@@ -104,7 +107,9 @@ I<snprintf(3)> - safe sprintf
 =head1 SYNOPSIS
 
     #include <slack/std.h>
+    #ifndef HAVE_SNPRINTF
     #include <slack/snprintf.h>
+    #endif
 
     int snprintf(char *str, size_t size, const char *format, ...);
     int vsnprintf(char *str, size_t size, const char *format, va_list args);
@@ -996,6 +1001,84 @@ int vsnprintf(char *str, size_t size, const char *format, va_list args)
 
 MT-Safe - provided that the locale is only set by the main thread before
 starting any other threads.
+
+=head1 EXAMPLES
+
+How long is a piece of string?
+
+    #include <slack/std.h>
+    #ifndef HAVE_SNPRINTF
+    #include <slack/snprintf.h>
+    #endif
+
+    int main(int ac, char **av)
+    {
+        char *str;
+        int len;
+
+        len = snprintf(NULL, 0, "%s %d", *av, ac);
+        printf("this string has length %d\n", len);
+
+        if (!(str = malloc((len + 1) * sizeof(char))))
+            return EXIT_FAILURE;
+
+        len = snprintf(str, len + 1, "%s %d", *av, ac);
+        printf("%s %d\n", str, len);
+
+        free(str);
+
+        return EXIT_SUCCESS;
+    }
+
+Check if truncation occurred:
+
+    #include <slack/std.h>
+    #ifndef HAVE_SNPRINTF
+    #include <slack/snprintf.h>
+    #endif
+
+    int main()
+    {
+        char str[16];
+        int len;
+
+        len = snprintf(str, 16, "%s %d", "hello world", 1000);
+        printf("%s\n", str);
+
+        if (len >= 16)
+            printf("length truncated (from %d)\n", len);
+
+        return EXIT_SUCCESS;
+    }
+
+Allocate memory only when needed to prevent truncation:
+
+    #include <slack/std.h>
+    #ifndef HAVE_SNPRINTF
+    #include <slack/snprintf.h>
+    #endif
+
+    int main(int ac, char **av)
+    {
+        char buf[16];
+        char *str = buf;
+        char *extra = NULL;
+        int len;
+
+        if (!av[1])
+            return EXIT_FAILURE;
+
+        if ((len = snprintf(buf, 16, "%s", av[1])) >= 16)
+            if (extra = malloc((len + 1) * sizeof(char)))
+                snprintf(str = extra, len + 1, "%s", av[1]);
+
+        printf("%s\n", str);
+
+        if (extra)
+            free(extra);
+
+        return EXIT_SUCCESS;
+    }
 
 =head1 BUGS
 

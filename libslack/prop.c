@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2002 raf <raf@raf.org>
+* Copyright (C) 1999-2004 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20020916 raf <raf@raf.org>
+* 20040102 raf <raf@raf.org>
 */
 
 /*
@@ -69,11 +69,18 @@ file).
 
 Program names (as returned by I<prog_name(3)>) are converted into file name
 suffixes by replacing every occurrence of the file path separator (C<'/'>)
-with a C<'-'>. Properties files consist of one property per line. Each
-property is specified by its name, followed by C<'='> followed by its value.
-The name must not have a C<'='> in it unless it is quoted with a C<'\'>. The
+with a C<'-'>. Properties files consist of one property per line.
+
+Each property is specified by its name, followed by C<'='> followed by its
+value. The name must not have a C<'='> in it unless it is quoted with a
+preceding C<'\'>. Special characters are expressed in C string literal
+notation (e.g. C<\a\b\f\n\r\t\v\x1b>). Spaces immediately before and after
+the C<'='> are stripped unless they are quoted with a preceding C<'\'>. The
 properties files may also contain blank lines and comments (C<'#'> until the
 end of the line).
+
+Boolean property values can be expressed as C<0> or C<1>, C<true> or
+C<false>, C<yes> or C<no>, C<on> or C<off> (case insensitive).
 
 =over 4
 
@@ -103,6 +110,10 @@ end of the line).
 
 #ifndef isodigit
 #define isodigit(c) (isdigit((int)(unsigned char)c) && (unsigned char)(c) < '8')
+#endif
+
+#ifndef is_space
+#define is_space(c) isspace((int)(unsigned char)(c))
 #endif
 
 typedef struct Prop Prop;
@@ -297,7 +308,7 @@ static void prop_parse(Map *map, const char *path, char *line, size_t lineno)
 	/* Find first unquoted '=' */
 
 	for (p = cstr(prop), eq = strchr(p, '='); eq; eq = strchr(eq + 1, '='))
-		if (eq != p && eq[-1] != '\\')
+		if (eq == p || eq[-1] != '\\')
 			break;
 
 	if (!eq)
@@ -311,9 +322,22 @@ static void prop_parse(Map *map, const char *path, char *line, size_t lineno)
 	/* Identify and separate the name and value */
 
 	value = eq + 1;
-	while (eq > p && isspace((int)(unsigned char)eq[-1]))
+
+	while (is_space(value[0]))
+		++value;
+
+	while (eq > p && is_space(eq[-1]) && (eq == p + 1 || eq[-2] != '\\'))
 		--eq;
+
 	*eq = nul;
+
+	/* Unquote any quoted trailing space in the key */
+
+	if (eq > p + 1 && is_space(eq[-1]) && eq[-2] == '\\')
+	{
+		eq[-2] = eq[-1];
+		eq[-1] = nul;
+	}
 
 	/* Unquote any quoted '=' in the name */
 
@@ -324,18 +348,14 @@ static void prop_parse(Map *map, const char *path, char *line, size_t lineno)
 		return;
 	}
 
-	/* Add this property to the map */
-
-	if (str_length(name) <= 0)
-	{
-		error("prop: %s line %d: Empty name\n%s", path, lineno, line);
-		str_release(prop);
-		str_release(name);
-		set_errno(EINVAL);
-		return;
-	}
-
 	key = cstr(name);
+
+	/* Unquote any quoted leading space in the value */
+
+	if (*value == '\\')
+		++value;
+
+	/* Add this property to the map */
 
 	if (!(val = mem_strdup(value)))
 	{
@@ -346,7 +366,10 @@ static void prop_parse(Map *map, const char *path, char *line, size_t lineno)
 	}
 
 	if (map_add(map, key, val) == -1)
+	{
 		error("prop: %s line %d: Property %s already defined\n%s", path, lineno, name, line);
+		mem_release(val);
+	}
 
 	str_release(prop);
 	str_release(name);
@@ -1022,6 +1045,21 @@ int prop_save(void)
 		str_release(lhs);
 		lhs = lhs2;
 
+		/* Quote any trailing space in the key */
+
+		if (is_space(cstr(lhs)[str_length(lhs) - 1]))
+		{
+			if (!str_insert(lhs, str_length(lhs) - 1, "\\"))
+			{
+				fclose(file);
+				lister_release(k);
+				list_release(keys);
+				str_release(lhs);
+				locker_unlock(g.locker);
+				return -1;
+			}
+		}
+
 		/* Quote any special chars in the value */
 
 		if (!(rhs = quote_special(value)))
@@ -1032,6 +1070,21 @@ int prop_save(void)
 			str_release(lhs);
 			locker_unlock(g.locker);
 			return -1;
+		}
+
+		/* Quote any leading space in the value */
+
+		if (is_space(cstr(rhs)[0]))
+		{
+			if (!str_insert(rhs, 0, "\\"))
+			{
+				fclose(file);
+				lister_release(k);
+				list_release(keys);
+				str_release(lhs);
+				locker_unlock(g.locker);
+				return -1;
+			}
 		}
 
 		fprintf(file, "%s=%s\n", cstr(lhs), cstr(rhs));
@@ -1165,7 +1218,9 @@ MT-Disciplined
 =head1 BUGS
 
 This only provides coarse grained persistence. If multiple instances of the
-same program are setting properties, the last to exit wins.
+same program are setting properties, the last to exit wins. This can be
+ovecome by calling I<prop_save()> after setting any property and
+I<prop_clear()> before getting any property.
 
 =head1 SEE ALSO
 
@@ -1174,7 +1229,7 @@ L<prog(3)|prog(3)>
 
 =head1 AUTHOR
 
-20020916 raf <raf@raf.org>
+20040102 raf <raf@raf.org>
 
 =cut
 
@@ -1271,10 +1326,11 @@ int main(int ac, char **av)
 	data[] =
 	{
 		{ "key", "value" },
-		{ "key with spaces", "value with spaces" },
+		{ " key with spaces ", "value with spaces" },
 		{ "key with = sign", " value with leading space" },
 		{ "key with newline\n and = two = signs", "value with newline\n!" },
 		{ "key with newline,\n = two = signs and an Escape\033!", "value with newline\n and two non printables\001!\002!" },
+		{ "", "" },
 		{ NULL, NULL }
 	};
 
@@ -1302,8 +1358,8 @@ int main(int ac, char **av)
 	if (strcmp(val, value))
 		++errors, printf("Test1: prop_set(key, value) failed (%s not %s)\n", val, value);
 	val = prop_get(key);
-	if (strcmp(val, value))
-		++errors, printf("Test2: prop_get(key) failed (%s not %s)\n", val, value);
+	if (!val || strcmp(val, value))
+		++errors, printf("Test2: prop_get(key) failed (%s not %s)\n", val ? val : "null", value);
 	val = prop_get_or(key, NULL);
 	if (strcmp(val, value))
 		++errors, printf("Test3: prop_get_or(key, NULL) failed (%s not %s)\n", val, value);
@@ -1346,66 +1402,66 @@ int main(int ac, char **av)
 	{
 		val = prop_set(data[i].key, data[i].value);
 		if (strcmp(val, data[i].value))
-			++errors, printf("Test%d: prop_set('%s', '%s') failed ('%s' not '%s')\n", 13 + 2 * i, data[i].key, data[i].value, val, value);
+			++errors, printf("Test%d: prop_set('%s', '%s') failed ('%s' not '%s')\n", 13 + 2 * i, data[i].key, data[i].value, val, data[i].value);
 		val = prop_get(data[i].key);
-		if (strcmp(val, data[i].value))
-			++errors, printf("Test%d: prop_get('%s') failed ('%s' not '%s')\n", 14 + 2 * i, data[i].key, val, value);
+		if (!val || strcmp(val, data[i].value))
+			++errors, printf("Test%d: prop_get('%s') failed ('%s' not '%s')\n", 14 + 2 * i, data[i].key, val ? val : "null", data[i].value);
 	}
 
 	ival = prop_save();
 	if (ival != 0)
-		++errors, printf("Test21: prop_save() (with progname) failed (%d not 0)\n", ival);
+		++errors, printf("Test25: prop_save() (with progname) failed (%d not 0)\n", ival);
 
 	prop_clear();
 
 	for (i = 0; data[i].key; ++i)
 	{
 		val = prop_get(data[i].key);
-		if (strcmp(val, data[i].value))
-			++errors, printf("Test%d: prop_get('%s') failed ('%s' not '%s')\n", 22 + i, data[i].key, val, data[i].value);
+		if (!val || strcmp(val, data[i].value))
+			++errors, printf("Test%d: prop_get('%s') failed ('%s' not '%s')\n", 26 + i, data[i].key, val ? val : "null", data[i].value);
 	}
 
 	clean(has_props);
 	prop_clear();
 
 	if ((int_val = prop_set_int("i", 37)) != 37)
-		++errors, printf("Test26: prop_set_int() failed (%d not 37)\n", int_val);
+		++errors, printf("Test32: prop_set_int() failed (%d not 37)\n", int_val);
 
 	if ((int_val = prop_get_int("i")) != 37)
-		++errors, printf("Test27: prop_get_int() failed (%d not 37)\n", int_val);
+		++errors, printf("Test33: prop_get_int() failed (%d not 37)\n", int_val);
 
 	if ((int_val = prop_get_int_or("i", 13)) != 37)
-		++errors, printf("Test28: prop_get_int_or() failed (%d not 37)\n", int_val);
+		++errors, printf("Test34: prop_get_int_or() failed (%d not 37)\n", int_val);
 
 	if ((int_val = prop_get_int_or("j", 13)) != 13)
-		++errors, printf("Test29: prop_get_int_or() failed (%d not 13)\n", int_val);
+		++errors, printf("Test35: prop_get_int_or() failed (%d not 13)\n", int_val);
 
 	if ((double_val = prop_set_double("d", 37.0)) != 37.0)
-		++errors, printf("Test30: prop_set_double() failed (%g not 37.0)\n", double_val);
+		++errors, printf("Test36: prop_set_double() failed (%g not 37.0)\n", double_val);
 
 	if ((double_val = prop_get_double("d")) != 37)
-		++errors, printf("Test31: prop_get_double() failed (%g not 37.0)\n", double_val);
+		++errors, printf("Test37: prop_get_double() failed (%g not 37.0)\n", double_val);
 
 	if ((double_val = prop_get_double_or("d", 13.0)) != 37)
-		++errors, printf("Test32: prop_get_double_or() failed (%g not 37.0)\n", double_val);
+		++errors, printf("Test38: prop_get_double_or() failed (%g not 37.0)\n", double_val);
 
 	if ((double_val = prop_get_double_or("e", 13.0)) != 13.0)
-		++errors, printf("Test33: prop_get_double_or() failed (%g not 13.0)\n", double_val);
+		++errors, printf("Test39: prop_get_double_or() failed (%g not 13.0)\n", double_val);
 
 	if ((bool_val = prop_set_bool("b", 1)) != 1)
-		++errors, printf("Test34: prop_set_bool() failed (%d not 1)\n", bool_val);
+		++errors, printf("Test40: prop_set_bool() failed (%d not 1)\n", bool_val);
 
 	if ((bool_val = prop_get_bool("b")) != 1)
-		++errors, printf("Test35: prop_get_bool() failed (%d not 1)\n", bool_val);
+		++errors, printf("Test41: prop_get_bool() failed (%d not 1)\n", bool_val);
 
 	if ((bool_val = prop_get_bool_or("b", 0)) != 1)
-		++errors, printf("Test36: prop_get_bool_or() failed (%d not 1)\n", bool_val);
+		++errors, printf("Test42: prop_get_bool_or() failed (%d not 1)\n", bool_val);
 
 	if ((bool_val = prop_get_bool_or("c", 1)) != 1)
-		++errors, printf("Test37: prop_get_bool_or() failed (%d not 1)\n", bool_val);
+		++errors, printf("Test43: prop_get_bool_or() failed (%d not 1)\n", bool_val);
 
 	if (errors)
-		printf("%d/37 tests failed\n", errors);
+		printf("%d/43 tests failed\n", errors);
 	else
 		printf("All tests passed\n");
 

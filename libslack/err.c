@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2002 raf <raf@raf.org>
+* Copyright (C) 1999-2004 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20020916 raf <raf@raf.org>
+* 20040102 raf <raf@raf.org>
 */
 
 /*
@@ -245,7 +245,7 @@ I<printf(3)>. The message is followed by a newline.
 static int debug_level_match(size_t level)
 {
 	size_t debug_level, debug_section, section;
-	
+
 	debug_level = prog_debug_level();
 	debug_section = debug_level & 0xffffff00;
 	debug_level &= 0x000000ff;
@@ -285,7 +285,7 @@ void vdebugf(size_t level, const char *format, va_list args)
 		vsnprintf(mesg, MSG_SIZE, format, args);
 
 		if (level & 0xffffff00)
-			snprintf(prefix, 32, " [%d]", (level & 0xffffff00) >> 8);
+			snprintf(prefix, 32, " [%d]", (int)((level & 0xffffff00) >> 8));
 
 		if (prog_name())
 			msg_out(prog_dbg(), "%s: debug:%s%*s%s\n", prog_name(), prefix, level & 0xff, "", mesg);
@@ -774,6 +774,34 @@ place.
 =head1 MT-Level
 
 MT-Safe
+
+=head1 EXAMPLES
+
+Send a range of messages to default locations:
+
+    #include <slack/std.h>
+    #include <slack/prog.h>
+    #include <slack/err.h>
+
+    int main(int ac, char **av)
+    {
+        prog_init();
+        prog_set_debug_level(1);
+        prog_set_verbosity_level(1);
+
+        msg("This is a %s\n", "message");
+        verbose(0, "This is a %s message (level %d)", "verbose", 0);
+        verbose(1, "This is a %s message (level %d)", "verbose", 1);
+        verbose(2, "This is a %s message (level %d)", "verbose", 2);
+        debug((0, "This is a %s message (level %d)", "debug", 0))
+        debug((1, "This is a %s message (level %d)", "debug", 1))
+        debug((2, "This is a %s message (level %d)", "debug", 2))
+        alert(LOG_ERR, "This is an %s message", "alert");
+        error("This is an %s message", "error");
+        fatal("This is a %s message", "fatal error");
+
+        return EXIT_SUCCESS;
+    }
 
 =head1 SEE ALSO
 

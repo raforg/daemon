@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2002 raf <raf@raf.org>
+* Copyright (C) 1999-2004 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20020916 raf <raf@raf.org>
+* 20040102 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_DAEMON_H
@@ -57,20 +57,20 @@
 typedef void daemon_config_parser_t(void *obj, const char *path, char *line, size_t lineno);
 
 _begin_decls
-int daemon_started_by_init _args ((void));
-int daemon_started_by_inetd _args ((void));
-int daemon_prevent_core _args ((void));
-int daemon_revoke_privileges _args ((void));
-int daemon_become_user _args ((uid_t uid, gid_t gid, char *user));
-char *daemon_absolute_path _args ((const char *path));
-int daemon_path_is_safe _args ((const char *path));
-void *daemon_parse_config _args ((const char *path, void *obj, daemon_config_parser_t *parser));
-int daemon_pidfile _args ((const char *name));
-int daemon_init _args ((const char *name));
-int daemon_close _args ((void));
-pid_t daemon_getpid _args ((const char *name));
-int daemon_is_running _args ((const char *name));
-int daemon_stop _args ((const char *name));
+int daemon_started_by_init(void);
+int daemon_started_by_inetd(void);
+int daemon_prevent_core(void);
+int daemon_revoke_privileges(void);
+int daemon_become_user(uid_t uid, gid_t gid, char *user);
+char *daemon_absolute_path(const char *path);
+int daemon_path_is_safe(const char *path, char *explanation, size_t explanation_size);
+void *daemon_parse_config(const char *path, void *obj, daemon_config_parser_t *parser);
+int daemon_pidfile(const char *name);
+int daemon_init(const char *name);
+int daemon_close(void);
+pid_t daemon_getpid(const char *name);
+int daemon_is_running(const char *name);
+int daemon_stop(const char *name);
 _end_decls
 
 #endif

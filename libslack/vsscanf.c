@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2002 raf <raf@raf.org>
+* Copyright (C) 1999-2004 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20020916 raf <raf@raf.org>
+* 20040102 raf <raf@raf.org>
 */
 
 /*
@@ -30,7 +30,9 @@ I<vsscanf(3)> - I<sscanf(3)> with a I<va_list> parameter
 =head1 SYNOPSIS
 
     #include <slack/std.h>
+    #ifndef HAVE_VSSCANF
     #include <slack/vsscanf.h>
+    #endif
 
     int vsscanf(const char *str, const char *format, va_list args);
 
@@ -56,7 +58,7 @@ C<format> may not be a multibyte character string; and
 
 Scanning a pointer (C<"%p">) may not exactly match the format that your
 I<printf(3)> uses to print pointers on your system. This version accepts
-pointers as a hexadecimal number with or without a preceeded C<0x>.
+pointers as a hexadecimal number with or without a preceeding C<0x>.
 
 =back
 
@@ -68,6 +70,42 @@ problem. Just call C<setlocale(LC_ALL, "")> once after program
 initialisation and never again (at least not after creating any threads). If
 it is a problem, just change C<localeconv()->decimal_point[0]> in the source
 to C<'.'> and it will be MT-Safe at the expense of losing locale support.
+
+=head1 EXAMPLE
+
+    #include <slack/std.h>
+    #ifndef HAVE_VSSCANF
+    #include <slack/vsscanf.h>
+    #endif
+
+    int fdscanf(int fd, const char *format, ...)
+    {
+        va_list args;
+        char buf[BUFSIZ];
+        ssize_t bytes;
+        int rc;
+        
+        if ((bytes = read(fd, buf, BUFSIZ)) <= 0)
+            return bytes;
+
+        buf[bytes] = '\0';
+
+        va_start(args, format);
+        rc = vsscanf(buf, format, args);
+        va_end(args);
+
+        return rc;
+    }
+
+    int main()
+    {
+        int rc, a = 0, b = 0;
+
+        rc = fdscanf(STDIN_FILENO, "%d %d", &a, &b);
+        printf("rc = %d a = %d b = %d\n", rc, a, b);
+
+        return (rc == 2) ? EXIT_SUCCESS : EXIT_FAILURE;
+    }
 
 =head1 NOTE
 

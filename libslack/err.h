@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2002 raf <raf@raf.org>
+* Copyright (C) 1999-2004 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20020916 raf <raf@raf.org>
+* 20040102 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_ERR_H
@@ -56,32 +56,32 @@
 #endif
 
 _begin_decls
-void msg _args ((const char *format, ...));
-void vmsg _args ((const char *format, va_list args));
-void verbose _args ((size_t level, const char *format, ...));
-void vverbose _args ((size_t level, const char *format, va_list args));
-void debugf _args ((size_t level, const char *format, ...));
-void vdebugf _args ((size_t level, const char *format, va_list args));
-int error _args ((const char *format, ...));
-int verror _args ((const char *format, va_list args));
-void fatal _args ((const char *format, ...));
-void vfatal _args ((const char *format, va_list args));
-void dump _args ((const char *format, ...));
-void vdump _args ((const char *format, va_list args));
-void alert _args ((int priority, const char *format, ...));
-void valert _args ((int priority, const char *format, va_list args));
-void debugsysf _args ((size_t level, const char *format, ...));
-void vdebugsysf _args ((size_t level, const char *format, va_list args));
-int errorsys _args ((const char *format, ...));
-int verrorsys _args ((const char *format, va_list args));
-void fatalsys _args ((const char *format, ...));
-void vfatalsys _args ((const char *format, va_list args));
-void dumpsys _args ((const char *format, ...));
-void vdumpsys _args ((const char *format, va_list args));
-void alertsys _args ((int priority, const char *format, ...));
-void valertsys _args ((int priority, const char *format, va_list args));
-int set_errno _args ((int errnum));
-void *set_errnull _args ((int errnum));
+void msg(const char *format, ...);
+void vmsg(const char *format, va_list args);
+void verbose(size_t level, const char *format, ...);
+void vverbose(size_t level, const char *format, va_list args);
+void debugf(size_t level, const char *format, ...);
+void vdebugf(size_t level, const char *format, va_list args);
+int error(const char *format, ...);
+int verror(const char *format, va_list args);
+void fatal(const char *format, ...);
+void vfatal(const char *format, va_list args);
+void dump(const char *format, ...);
+void vdump(const char *format, va_list args);
+void alert(int priority, const char *format, ...);
+void valert(int priority, const char *format, va_list args);
+void debugsysf(size_t level, const char *format, ...);
+void vdebugsysf(size_t level, const char *format, va_list args);
+int errorsys(const char *format, ...);
+int verrorsys(const char *format, va_list args);
+void fatalsys(const char *format, ...);
+void vfatalsys(const char *format, va_list args);
+void dumpsys(const char *format, ...);
+void vdumpsys(const char *format, va_list args);
+void alertsys(int priority, const char *format, ...);
+void valertsys(int priority, const char *format, va_list args);
+int set_errno(int errnum);
+void *set_errnull(int errnum);
 _end_decls
 
 /* Don't look below here - optimisations only */

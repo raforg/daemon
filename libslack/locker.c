@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2002 raf <raf@raf.org>
+* Copyright (C) 1999-2004 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20020916 raf <raf@raf.org>
+* 20040102 raf <raf@raf.org>
 */
 
 /*
@@ -901,6 +901,126 @@ Arguments are C<null> or invalid.
 =head1 MT-Level
 
 MT-Safe
+
+=head1 EXAMPLES
+
+A mutex example:
+
+    #include <slack/std.h>
+    #include <slack/locker.h>
+
+    int main(int ac, char **av)
+    {
+        pthread_mutex_t mutex[1];
+        Locker *locker;
+
+        errno = pthread_mutex_init(mutex, NULL);
+        locker = locker_create_mutex(mutex);
+
+        errno = locker_rdlock(locker);
+        errno = locker_unlock(locker);
+
+        errno = locker_wrlock(locker);
+        errno = locker_unlock(locker);
+
+        locker_destroy(&locker);
+        pthread_mutex_destroy(mutex);
+
+        return EXIT_SUCCESS;
+    }
+
+A rwlock example:
+
+    #include <slack/std.h>
+    #include <slack/locker.h>
+
+    int main(int ac, char **av)
+    {
+        pthread_rwlock_t rwlock[1];
+        Locker *locker;
+
+        errno = pthread_rwlock_init(rwlock, NULL);
+        locker = locker_create_rwlock(rwlock);
+
+        errno = locker_rdlock(locker);
+        errno = locker_unlock(locker);
+
+        errno = locker_wrlock(locker);
+        errno = locker_unlock(locker);
+
+        locker_destroy(&locker);
+        pthread_rwlock_destroy(rwlock);
+
+        return EXIT_SUCCESS;
+    }
+
+A debug mutex example:
+
+    #include <slack/std.h>
+    #include <slack/locker.h>
+
+    int main(int ac, char **av)
+    {
+        pthread_mutex_t mutex[1];
+        Locker *locker;
+
+        errno = pthread_mutex_init(mutex, NULL);
+        locker = locker_create_debug_mutex(mutex);
+
+        errno = locker_rdlock(locker);
+        errno = locker_unlock(locker);
+
+        errno = locker_wrlock(locker);
+        errno = locker_unlock(locker);
+
+        locker_destroy(&locker);
+        pthread_mutex_destroy(mutex);
+
+        return EXIT_SUCCESS;
+    }
+
+A debug rwlock example:
+
+    #include <slack/std.h>
+    #include <slack/locker.h>
+
+    int main(int ac, char **av)
+    {
+        pthread_rwlock_t rwlock[1];
+        Locker *locker;
+
+        errno = pthread_rwlock_init(rwlock, NULL);
+        locker = locker_create_debug_rwlock(rwlock);
+
+        errno = locker_rdlock(locker);
+        errno = locker_unlock(locker);
+
+        errno = locker_wrlock(locker);
+        errno = locker_unlock(locker);
+
+        locker_destroy(&locker);
+        pthread_rwlock_destroy(rwlock);
+
+        return EXIT_SUCCESS;
+    }
+
+A non-locking example:
+
+    #include <slack/std.h>
+    #include <slack/locker.h>
+
+    int main(int ac, char **av)
+    {
+        Locker *locker = NULL;
+
+        errno = locker_rdlock(locker);
+        errno = locker_unlock(locker);
+
+        errno = locker_wrlock(locker);
+        errno = locker_unlock(locker);
+
+        return EXIT_SUCCESS;
+    }
 
 =head1 SEE ALSO
 

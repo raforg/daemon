@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20020916 raf <raf@raf.org>
+* 20040102 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_SNPRINTF_H
@@ -30,8 +30,8 @@
 #include <slack/hdr.h>
 
 _begin_decls
-int snprintf _args ((char *str, size_t size, const char *format, ...));
-int vsnprintf _args ((char *str, size_t size, const char *format, va_list args));
+int snprintf(char *str, size_t size, const char *format, ...);
+int vsnprintf(char *str, size_t size, const char *format, va_list args);
 _end_decls
 
 #endif

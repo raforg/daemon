@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2002 raf <raf@raf.org>
+* Copyright (C) 1999-2004 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20020916 raf <raf@raf.org>
+* 20040102 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_MEM_H
@@ -42,21 +42,21 @@ typedef struct Pool Pool;
 _begin_decls
 #define mem_new(type) malloc(sizeof(type))
 #define mem_create(size, type) malloc((size) * sizeof(type))
-#define mem_resize(mem, size) mem_resize_fn((void **)(mem), (size) * sizeof(*(mem)))
-void *mem_resize_fn _args ((void **mem, size_t size));
+#define mem_resize(mem, size) mem_resize_fn((void **)(mem), (size) * sizeof(**(mem)))
+void *mem_resize_fn(void **mem, size_t size);
 #define mem_release(mem) free(mem)
+void *mem_destroy(void **mem);
 #define mem_destroy(mem) (mem_destroy)((void **)(mem))
-void *mem_destroy _args ((void **mem));
-void *mem_create_secure _args ((size_t size));
-void mem_release_secure _args ((void *mem));
+void *mem_create_secure(size_t size);
+void mem_release_secure(void *mem);
+void *mem_destroy_secure(void **mem);
 #define mem_destroy_secure(mem) (mem_destroy_secure)((void **)(mem))
-void *mem_destroy_secure _args ((void **mem));
-char *mem_strdup _args ((const char *str));
+char *mem_strdup(const char *str);
 #define mem_create2d(i, j, type) ((type **)mem_create_space(sizeof(type), (i), (j), 0))
 #define mem_create3d(i, j, k, type) ((type ***)mem_create_space(sizeof(type), (i), (j), (k), 0))
 #define mem_create4d(i, j, k, l, type) ((type ****)mem_create_space(sizeof(type), (i), (j), (k), (l), 0))
-void *mem_create_space _args ((size_t size, ...));
-size_t mem_space_start _args ((size_t size, ...));
+void *mem_create_space(size_t size, ...);
+size_t mem_space_start(size_t size, ...);
 #define mem_release2d(space) mem_release_space(space)
 #define mem_release3d(space) mem_release_space(space)
 #define mem_release4d(space) mem_release_space(space)
@@ -65,19 +65,19 @@ size_t mem_space_start _args ((size_t size, ...));
 #define mem_destroy3d(space) mem_destroy_space(space)
 #define mem_destroy4d(space) mem_destroy_space(space)
 #define mem_destroy_space(space) mem_destroy(space)
-Pool *pool_create _args ((size_t size));
-Pool *pool_create_with_locker _args ((Locker *locker, size_t size));
-void pool_release _args ((Pool *pool));
-void *pool_destroy _args ((Pool **pool));
-Pool *pool_create_secure _args ((size_t size));
-Pool *pool_create_secure_with_locker _args ((Locker *locker, size_t size));
-void pool_release_secure _args ((Pool *pool));
-void *pool_destroy_secure _args ((Pool **pool));
-void pool_clear_secure _args ((Pool *pool));
+Pool *pool_create(size_t size);
+Pool *pool_create_with_locker(Locker *locker, size_t size);
+void pool_release(Pool *pool);
+void *pool_destroy(Pool **pool);
+Pool *pool_create_secure(size_t size);
+Pool *pool_create_secure_with_locker(Locker *locker, size_t size);
+void pool_release_secure(Pool *pool);
+void *pool_destroy_secure(Pool **pool);
+void pool_clear_secure(Pool *pool);
 #define pool_new(pool, type) pool_alloc((pool), sizeof(type))
 #define pool_newsz(pool, size, type) pool_alloc((pool), (size) * sizeof(type))
-void *pool_alloc _args ((Pool *pool, size_t size));
-void pool_clear _args ((Pool *pool));
+void *pool_alloc(Pool *pool, size_t size);
+void pool_clear(Pool *pool);
 _end_decls
 
 #endif

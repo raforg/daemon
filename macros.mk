@@ -1,7 +1,7 @@
 #
 # daemon - http://libslack.org/daemon/
 #
-# Copyright (C) 1999-2001 raf <raf@raf.org>
+# Copyright (C) 1999-2004 raf <raf@raf.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
 
-# 20030901 raf <raf@raf.org>
+# 20040102 raf <raf@raf.org>
 
 # Uncomment this to override the default value of 600 seconds
 # as the minimum amount of time that a client can live if it
@@ -36,8 +36,8 @@
 # DAEMON_DEFINES += -DNDEBUG
 
 DAEMON_NAME := daemon
-DAEMON_VERSION := 0.6.1
-DAEMON_DATE := 20030901
+DAEMON_VERSION := 0.6.2
+DAEMON_DATE := 20040102
 DAEMON_URL := http://libslack.org/daemon/
 DAEMON_ID := $(DAEMON_NAME)-$(DAEMON_VERSION)
 DAEMON_DIST := $(DAEMON_ID).tar.gz
@@ -98,6 +98,7 @@ DEB_TARGETS += deb-daemon
 SOL_TARGETS += sol-daemon
 OBSD_TARGETS += obsd-daemon
 FBSD_TARGETS += fbsd-daemon
+OSX_TARGETS += osx-daemon
 
 CLEAN_FILES += $(DAEMON_OFILES) $(DAEMON_MANFILES) $(DAEMON_HTMLFILES) $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE)
 CLOBBER_FILES += $(DAEMON_TARGET) $(DAEMON_SRCDIR)/tags $(DAEMON_SRCDIR)/debian configure-stamp build-stamp

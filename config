@@ -1,8 +1,8 @@
 #!/bin/sh
 #
-# libslack - http://libslack.org/
+# daemon - http://libslack.org/daemon/
 #
-# Copyright (C) 1999-2001 raf <raf@raf.org>
+# Copyright (C) 1999-2004 raf <raf@raf.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,20 +20,23 @@
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
 
-# 20030901 raf <raf@raf.org>
+# 20040102 raf <raf@raf.org>
 
 die() { echo "$0: $@" >&2; exit 1; }
 
 case "`uname -a`" in
 	Linux*)
+		echo "Configuring for linux"
 		conf/linux
 		;;
 
 	FreeBSD*)
+		echo "Configuring for freebsd"
 		conf/freebsd
 		;;
 
 	OpenBSD*)
+		echo "Configuring for openbsd"
 		conf/openbsd
 		;;
 
@@ -41,10 +44,22 @@ case "`uname -a`" in
 		cc=""
 		solaris="solaris8"
 		[ "x`uname -r`" = "x5.6" ] && solaris="solaris6"
-		[ "x`which gcc 2>/dev/null`" != "x" ] && cc="gcc"
-		[ "x`which cc 2>/dev/null`"  != "x" ] && cc="cc"
+		if [ "`uname -m`" = sun4u ]
+		then
+			[ "x`which gcc 2>&-`" != "x" ] && cc="gcc"
+			[ "x`which cc 2>&-`"  != "x" ] && cc="cc"
+		else
+			[ "x`which cc 2>&-`"  != "x" ] && cc="cc"
+			[ "x`which gcc 2>&-`" != "x" ] && cc="gcc"
+		fi
 		[ "$cc" = "" ] && die "Failed to find a compiler"
+		echo "Configuring for $solaris (with $cc)"
 		conf/$solaris-$cc
+		;;
+
+	Darwin*)
+		echo "Configuring for macosx"
+		conf/macosx
 		;;
 
 	*)
@@ -54,4 +69,4 @@ esac
 
 exit 0
 
-# vi:set ts=4 sw=4
+# vi:set ts=4 sw=4:

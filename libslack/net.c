@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2002 raf <raf@raf.org>
+* Copyright (C) 1999-2004 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20020916 raf <raf@raf.org>
+* 20040102 raf <raf@raf.org>
 */
 
 /*
@@ -973,7 +973,7 @@ int net_multicast_sender(const char *group, const char *service, sockport_t port
 {
 	int sockfd;
 	unsigned int loopback = 0;
-	
+
 	if ((sockfd = net_create_client(group, service, port, 0, SOCK_DGRAM, 0, 0, sockopts, addr, addrsize)) == -1)
 		return -1;
 
@@ -1380,7 +1380,7 @@ int net_multicast_get_interface(int sockfd)
 			unsigned int index = 0;
 			List *ifaces;
 
-			if (getsockopt(sockfd, IPPROTO_IP, IP_MULTICAST_IF, &inaddr, &size) == -1)
+			if (getsockopt(sockfd, IPPROTO_IP, IP_MULTICAST_IF, &inaddr, (void *)&size) == -1)
 				return -1;
 
 			if (!(ifaces = net_interfaces_by_family(AF_INET)))
@@ -1412,7 +1412,7 @@ int net_multicast_get_interface(int sockfd)
 			unsigned int index;
 			size_t size = sizeof index;
 
-			if (getsockopt(sockfd, IPPROTO_IPV6, IPV6_MULTICAST_IF, &index, &size) == -1)
+			if (getsockopt(sockfd, IPPROTO_IPV6, IPV6_MULTICAST_IF, &index, (void *)&size) == -1)
 				return -1;
 
 			return index;
@@ -1498,7 +1498,7 @@ int net_multicast_get_loopback(int sockfd)
 			unsigned char flag;
 			size_t size = sizeof flag;
 
-			if (getsockopt(sockfd, IPPROTO_IP, IP_MULTICAST_LOOP, &flag, &size) == -1)
+			if (getsockopt(sockfd, IPPROTO_IP, IP_MULTICAST_LOOP, &flag, (void *)&size) == -1)
 				return -1;
 
 			return (int)flag;
@@ -1510,7 +1510,7 @@ int net_multicast_get_loopback(int sockfd)
 			unsigned int flag;
 			size_t size = sizeof flag;
 
-			if (getsockopt(sockfd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP, &flag, &size) == -1)
+			if (getsockopt(sockfd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP, &flag, (void *)&size) == -1)
 				return -1;
 
 			return (int)flag;
@@ -1592,7 +1592,7 @@ int net_multicast_get_ttl(int sockfd)
 			unsigned char hops;
 			size_t size = sizeof hops;
 
-			if (getsockopt(sockfd, IPPROTO_IP, IP_MULTICAST_TTL, &hops, &size) == -1)
+			if (getsockopt(sockfd, IPPROTO_IP, IP_MULTICAST_TTL, &hops, (void *)&size) == -1)
 				return -1;
 
 			return (int)hops;
@@ -1604,7 +1604,7 @@ int net_multicast_get_ttl(int sockfd)
 			int hops;
 			size_t size = sizeof hops;
 
-			if (getsockopt(sockfd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, &hops, &size) == -1)
+			if (getsockopt(sockfd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, &hops, (void *)&size) == -1)
 				return -1;
 
 			return hops;
@@ -1768,7 +1768,7 @@ struct hostent *net_gethostbyname(const char *name, struct hostent *hostbuf, voi
 			return NULL;
 
 		while ((err = gethostbyname_r(name, hostbuf, *buf, *size, &ret, herrno)) && errno == ERANGE)
-			if (!mem_resize(buf, *size <<= 1))
+			if (!mem_resize((char **)buf, *size <<= 1))
 				return NULL;
 
 		return (err) ? NULL : ret;
@@ -1783,7 +1783,7 @@ struct hostent *net_gethostbyname(const char *name, struct hostent *hostbuf, voi
 			return NULL;
 
 		while (!(ret = gethostbyname_r(name, hostbuf, *buf, *size, herrno)) && errno == ERANGE)
-			if (!mem_resize(buf, *size <<= 1))
+			if (!mem_resize((char **)buf, *size <<= 1))
 				return NULL;
 
 		return ret;
@@ -1801,10 +1801,10 @@ struct hostent *net_gethostbyname(const char *name, struct hostent *hostbuf, voi
 		{
 			size_t oldsize = *size;
 
-			if (!mem_resize(*buf, *size = sizeof(struct hostent_data)))
+			if (!mem_resize((char **)buf, *size = sizeof(struct hostent_data)))
 				return NULL;
 
-			memset(*buf + olden, 0, *size - oldsize);
+			memset((char *)*buf + oldsize, 0, *size - oldsize);
 		}
 
 		if (gethostbyname_r(name, hostbuf, (struct hostent_data *)*buf) == -1)
@@ -1884,7 +1884,7 @@ struct servent *net_getservbyname(const char *name, const char *proto, struct se
 			return NULL;
 
 		while ((err = getservbyname_r(name, proto, servbuf, *buf, *size, &ret)) && errno == ERANGE)
-			if (!mem_resize(buf, *size <<= 1))
+			if (!mem_resize((char **)buf, *size <<= 1))
 				return NULL;
 
 		return (err) ? NULL : ret;
@@ -1899,7 +1899,7 @@ struct servent *net_getservbyname(const char *name, const char *proto, struct se
 			return NULL;
 
 		while (!(ret = getservbyname_r(name, proto, servbuf, *buf, *size)) && errno == ERANGE)
-			if (!mem_resize(buf, *size <<= 1))
+			if (!mem_resize((char **)buf, *size <<= 1))
 				return NULL;
 
 		return ret;
@@ -1917,10 +1917,10 @@ struct servent *net_getservbyname(const char *name, const char *proto, struct se
 		{
 			size_t oldsize = *size;
 
-			if (!mem_resize(*buf, *size = sizeof(struct servent_data)))
+			if (!mem_resize((char **)buf, *size = sizeof(struct servent_data)))
 				return NULL;
 
-			memset(*buf + olden, 0, *size - oldsize);
+			memset((char *)*buf + oldsize, 0, *size - oldsize);
 		}
 
 		if (getservbyname_r(name, proto, servbuf, (struct servent_data *)*buf) == -1)
@@ -2598,7 +2598,7 @@ ssize_t net_rudp_transactwith(int sockfd, rudp_t *rudp, const void *obuf, size_t
 		return -1;
 
 	ohdr->sequence = sequence;
-	
+
 sendagain:
 
 	if ((timestamp = rudp_timestamp(rudp)) == -1)
@@ -4627,7 +4627,7 @@ A TCP server:
     #include <slack/std.h>
     #include <slack/net.h>
 
-    void provide_service(int fd) { ... }
+    void provide_service(int fd) { write(fd, "ok\n", 3); }
 
     int main()
     {
@@ -4656,16 +4656,18 @@ A TCP client:
     #include <slack/std.h>
     #include <slack/net.h>
 
-    void request_service(int fd) { ... }
+    void request_service(int fd) {} // Do aomething here
+    void process_response(int fd) {} // Do something here
 
     int main()
     {
         int sockfd;
 
-        if ((sockfd = net_client("localhost", "service", 30000, 0, 5, 0, 0, NULL, NULL)) == -1)
+        if ((sockfd = net_client("localhost", "service", 30000, 5, 0, 0, NULL, NULL)) == -1)
             return EXIT_FAILURE;
 
         request_service(sockfd);
+        process_response(sockfd);
         close(sockfd);
         return EXIT_SUCCESS;
     }
@@ -4675,7 +4677,7 @@ A UDP server:
     #include <slack/std.h>
     #include <slack/net.h>
 
-    void provide_service(char *pkt) { ... }
+    void provide_service(char *pkt) {} // Do something here
 
     int main()
     {
@@ -4689,7 +4691,7 @@ A UDP server:
 
         for (;;)
         {
-		    addrsize = sizeof addr;
+    	    addrsize = sizeof addr;
 
             if (recvfrom(servfd, pkt, 8, 0, &addr.any, &addrsize) == -1)
                 return EXIT_FAILURE;
@@ -4708,8 +4710,8 @@ A UDP client:
     #include <slack/std.h>
     #include <slack/net.h>
 
-    void build_request(char *pkt) { ... }
-    void process_response(char *pkt) { ... }
+    void build_request(char *pkt) {} // Do something here
+    void process_response(char *pkt) {} // Do something here
 
     int main()
     {
@@ -4738,8 +4740,8 @@ A reliable UDP client:
     #include <slack/std.h>
     #include <slack/net.h>
 
-    void build_request(char *pkt) { ... }
-    void process_response(char *pkt) { ... }
+    void build_request(char *pkt) {} // Do something here
+    void process_response(char *pkt) {} // Do something here
 
     int main()
     {
@@ -4752,16 +4754,16 @@ A reliable UDP client:
 
         if (!(rudp = rudp_create()))
             return EXIT_FAILURE;
-    
+
         build_request(opkt);
 
         if (net_rudp_transact(sockfd, rudp, opkt, 8, ipkt, 8) == -1)
             return EXIT_FAILURE;
-    
+
         process_response(ipkt);
 
         rudp_release(rudp);
-        close(servfd);
+        close(sockfd);
 
         return EXIT_SUCCESS;
     }
@@ -4773,7 +4775,7 @@ Expect/Send SMTP protocol:
 
     int tinymail(char *sender, char *recipient, char *subject, char *message)
     {
-        int smtp = net_client("localhost", "smtp", 25, 0, 5, 0, 0, NULL, NULL);
+        int smtp = net_client("localhost", "smtp", 25, 5, 0, 0, NULL, NULL);
         int code;
         int rc =
             smtp != -1 &&
@@ -4802,9 +4804,10 @@ Expect/Send SMTP protocol:
 
     int main(int ac, char **av)
     {
-        int rc = tinymail("raf@raf.org", "raf@raf.org", "This is a test", "Are you receiving me?\n");
+        if (tinymail("raf@raf.org", "raf@raf.org", "This is a test", "Are you receiving me?\n") == -1)
+            return EXIT_FAILURE;
 
-        return (rc == -1) ? EXIT_FAILURE : EXIT_SUCCESS;
+        return EXIT_SUCCESS;
     }
 
 Unpack the size of a gif image:
@@ -4974,7 +4977,7 @@ L<printf(3)|printf(3)>
 
 =head1 AUTHOR
 
-20020916 raf <raf@raf.org>
+20040102 raf <raf@raf.org>
 
 =cut
 
@@ -5220,7 +5223,7 @@ int main(int ac, char **av)
 				sockaddr_any_t addr;
 				size_t addrsize = sizeof addr;
 
-				if (read_timeout(server, 5, 0) == -1 || (s = accept(server, (sockaddr_t *)&addr, &addrsize)) == -1)
+				if (read_timeout(server, 5, 0) == -1 || (s = accept(server, (sockaddr_t *)&addr, (void *)&addrsize)) == -1)
 					++errors, printf("Test2: accept() failed (%s)\n", strerror(errno));
 				else
 				{
@@ -5291,7 +5294,7 @@ int main(int ac, char **av)
 				sockaddr_any_t addr;
 				size_t addrsize = sizeof addr;
 
-				if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 4, 0, (sockaddr_t *)&addr, &addrsize) == -1)
+				if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 4, 0, (sockaddr_t *)&addr, (void *)&addrsize) == -1)
 					++errors, printf("Test14: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 				else if (memcmp(test, "HELO", 4))
 					++errors, printf("Test15: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
@@ -5350,7 +5353,7 @@ int main(int ac, char **av)
 				sockaddr_any_t addr;
 				size_t addrsize = sizeof addr;
 
-				if (read_timeout(server, 5, 0) == -1 || (s = accept(server, (sockaddr_t *)&addr, &addrsize)) == -1)
+				if (read_timeout(server, 5, 0) == -1 || (s = accept(server, (sockaddr_t *)&addr, (void *)&addrsize)) == -1)
 					++errors, printf("Test24: accept() failed (%s)\n", strerror(errno));
 				else
 				{
@@ -5423,7 +5426,7 @@ int main(int ac, char **av)
 				sockaddr_any_t addr;
 				size_t addrsize = sizeof addr;
 
-				if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 4, 0, (sockaddr_t *)&addr, &addrsize) == -1)
+				if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 4, 0, (sockaddr_t *)&addr, (void *)&addrsize) == -1)
 					++errors, printf("Test36: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 				else if (memcmp(test, "HELO", 4))
 					++errors, printf("Test37: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
@@ -5455,7 +5458,7 @@ int main(int ac, char **av)
 					if (close(client) == -1)
 						++errors, printf("Test43: close(client) failed (%s)\n", strerror(errno));
 
-					if (getsockname(client, (sockaddr_t *)&any, &size) != -1)
+					if (getsockname(client, (sockaddr_t *)&any, (void *)&size) != -1)
 						if (*any.un.sun_path)
 							unlink(any.un.sun_path);
 				}
@@ -5790,10 +5793,10 @@ int main(int ac, char **av)
 	z2 = malloc(strlen(z) + 1);
 	b2 = malloc(strlen(b) + 1);
 	h2 = malloc(strlen(h) + 1);
-	length = 10; TEST_VARSIZE(123, "ia*", "ia?", 14, 10, a, &length, 10, a2)
-	length = 11; TEST_VARSIZE(124, "iz*", "iz?", 15, 11, z, &length, 11, z2)
-	length = 18; TEST_VARSIZE(125, "ib*", "ib?", 7, 18, b, &length, 18, b2)
-	length = 16; TEST_VARSIZE(126, "ih*", "ih?", 12, 16, h, &length, 16, h2)
+	length = 10; TEST_VARSIZE(123, "ia*", "ia?", 14, 10, a, (int *)&length, 10, a2)
+	length = 11; TEST_VARSIZE(124, "iz*", "iz?", 15, 11, z, (int *)&length, 11, z2)
+	length = 18; TEST_VARSIZE(125, "ib*", "ib?", 7, 18, b, (int *)&length, 18, b2)
+	length = 16; TEST_VARSIZE(126, "ih*", "ih?", 12, 16, h, (int *)&length, 16, h2)
 	free(a2);
 	free(z2);
 	free(b2);
@@ -6257,7 +6260,7 @@ int main(int ac, char **av)
 				sockaddr_any_t addr;
 				size_t addrsize = sizeof addr;
 
-				if (read_timeout(server, 5, 0) == -1 || (s = accept(server, (sockaddr_t *)&addr, &addrsize)) == -1)
+				if (read_timeout(server, 5, 0) == -1 || (s = accept(server, (sockaddr_t *)&addr, (void *)&addrsize)) == -1)
 					++errors, printf("Test491: accept() failed (%s)\n", strerror(errno));
 				else
 				{
@@ -6439,7 +6442,7 @@ int main(int ac, char **av)
 				sockaddr_any_t addr;
 				size_t addrsize = sizeof addr;
 
-				if (read_timeout(server, 5, 0) == -1 || (s = accept(server, (sockaddr_t *)&addr, &addrsize)) == -1)
+				if (read_timeout(server, 5, 0) == -1 || (s = accept(server, (sockaddr_t *)&addr, (void *)&addrsize)) == -1)
 					++errors, printf("Test520: failed to perform test: accept() failed (%s)\n", strerror(errno));
 				else
 				{
@@ -6451,7 +6454,7 @@ int main(int ac, char **av)
 					if (read_timeout(s, 5, 0) == -1 || (bytes = recvfd(s, test, BUFSIZ, 0, &fd)) == -1)
 						++errors, printf("Test521: recvfd(s, test, BUFSIZ, 0, &fd) failed (%s)\n", strerror(errno));
 					else if (bytes != strlen(text))
-						++errors, printf("Test522: recvfd(s, test, BUFSIZ, 0, &fd) failed (read %d bytes, not %d bytes)\n", bytes, strlen(text));
+						++errors, printf("Test522: recvfd(s, test, BUFSIZ, 0, &fd) failed (read %d bytes, not %d bytes)\n", bytes, (int)strlen(text));
 					else if (memcmp(test, text, strlen(text)))
 						++errors, printf("Test523: recvfd(s, test, BUFSIZ, 0, &fd) failed (read \"%*.*s\", not \"%s\")\n", bytes, bytes, test, text);
 					else if (fd == -1)
@@ -6459,7 +6462,7 @@ int main(int ac, char **av)
 					else if (read_timeout(fd, 5, 0) == -1 || (bytes = read(fd, test, BUFSIZ)) == -1)
 						++errors, printf("Test525: recvfd(s, test, BUFSIZ, 0, &fd) failed: read(fd) failed (%s)\n", strerror(errno));
 					else if (bytes != strlen(text))
-						++errors, printf("Test526: recvfd(s, test, BUFSIZ, 0, &fd) failed (read %d bytes, not %d bytes)\n", bytes, strlen(text));
+						++errors, printf("Test526: recvfd(s, test, BUFSIZ, 0, &fd) failed (read %d bytes, not %d bytes)\n", bytes, (int)strlen(text));
 					else if (memcmp(test, text, strlen(text)))
 						++errors, printf("Test527: recvfd(s, test, BUFSIZ, 0, &fd) failed: read(fd) failed (read \"%*.*s\", not \"%s\")\n", bytes, bytes, test, text);
 					else if (close(fd) == -1)
@@ -6489,7 +6492,7 @@ int main(int ac, char **av)
 					else if ((fd = open(pass, O_RDONLY)) == -1)
 						++errors, printf("Test531: failed to perform test: open(\"%s\") failed (%s)\n", pass, strerror(errno));
 					else if (write_timeout(client, 5, 0) == -1 || sendfd(client, text, strlen(text), 0, fd) == -1)
-						++errors, printf("Test532: sendfd(client, text, %d, fd) failed (%s)\n", strlen(text), strerror(errno));
+						++errors, printf("Test532: sendfd(client, text, %d, fd) failed (%s)\n", (int)strlen(text), strerror(errno));
 
 					unlink(pass);
 					close(fd);
@@ -6577,7 +6580,7 @@ int main(int ac, char **av)
 
 							if (write_timeout(sync[WR], 5, 0) == -1 || write(sync[WR], "", 1) != 1)
 								++errors, printf("Test538: failed to perform test: write() failed (%s)\n", strerror(errno));
-							else if (read_timeout(client, 5, 0) == -1 || (bytes = recvfrom(client, test, BUFSIZ, 0, &addr->any, &addrsize)) == -1)
+							else if (read_timeout(client, 5, 0) == -1 || (bytes = recvfrom(client, test, BUFSIZ, 0, &addr->any, (void *)&addrsize)) == -1)
 								++errors, printf("Test539: recvfrom(multicast) failed (%s)\n", strerror(errno));
 							else if (bytes != 5)
 								++errors, printf("Test540: recvfrom(multicast) failed (read %d bytes, not %d)\n", bytes, 5);
@@ -6642,7 +6645,7 @@ int main(int ac, char **av)
 
 				/* Respond immediately */
 
-				if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
+				if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, (void *)&addrsize) == -1)
 					++errors, printf("Test553: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 				else if (memcmp(test + 8, "HELO", 4))
 					++errors, printf("Test554: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
@@ -6655,11 +6658,11 @@ int main(int ac, char **av)
 
 					/* Respond after 1 retransmission */
 
-					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
+					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, (void *)&addrsize) == -1)
 						++errors, printf("Test556: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test577: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, (void *)&addrsize) == -1)
 						++errors, printf("Test558: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test559: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
@@ -6668,15 +6671,15 @@ int main(int ac, char **av)
 
 					/* Respond after 2 retransmissions */
 
-					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
+					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, (void *)&addrsize) == -1)
 						++errors, printf("Test561: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test562: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, (void *)&addrsize) == -1)
 						++errors, printf("Test563: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test564: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 20, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 20, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, (void *)&addrsize) == -1)
 						++errors, printf("Test565: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test566: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
@@ -6685,19 +6688,19 @@ int main(int ac, char **av)
 
 					/* Respond after 3 retransmissions */
 
-					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
+					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, (void *)&addrsize) == -1)
 						++errors, printf("Test568: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test569: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, (void *)&addrsize) == -1)
 						++errors, printf("Test570: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test571: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 20, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 20, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, (void *)&addrsize) == -1)
 						++errors, printf("Test572: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test573: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 40, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 40, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, (void *)&addrsize) == -1)
 						++errors, printf("Test574: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test575: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
@@ -6706,19 +6709,19 @@ int main(int ac, char **av)
 
 					/* Don't respond at all */
 
-					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
+					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, (void *)&addrsize) == -1)
 						++errors, printf("Test577: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test578: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, (void *)&addrsize) == -1)
 						++errors, printf("Test579: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test580: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 20, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 20, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, (void *)&addrsize) == -1)
 						++errors, printf("Test581: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test582: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 40, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 40, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, (void *)&addrsize) == -1)
 						++errors, printf("Test583: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test584: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
@@ -6818,7 +6821,7 @@ int main(int ac, char **av)
 
 				/* Respond immediately */
 
-				if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
+				if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, (void *)&addrsize) == -1)
 					++errors, printf("Test601: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 				else if (memcmp(test + 8, "HELO", 4))
 					++errors, printf("Test602: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
@@ -6829,11 +6832,11 @@ int main(int ac, char **av)
 				{
 					/* Respond after 1 retransmission */
 
-					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
+					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, (void *)&addrsize) == -1)
 						++errors, printf("Test604: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test625: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, (void *)&addrsize) == -1)
 						++errors, printf("Test606: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test607: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
@@ -6842,15 +6845,15 @@ int main(int ac, char **av)
 
 					/* Respond after 2 retransmissions */
 
-					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
+					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, (void *)&addrsize) == -1)
 						++errors, printf("Test609: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test610: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, (void *)&addrsize) == -1)
 						++errors, printf("Test611: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test612: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 20, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 20, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, (void *)&addrsize) == -1)
 						++errors, printf("Test613: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test614: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
@@ -6859,19 +6862,19 @@ int main(int ac, char **av)
 
 					/* Respond after 3 retransmissions */
 
-					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
+					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, (void *)&addrsize) == -1)
 						++errors, printf("Test616: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test617: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, (void *)&addrsize) == -1)
 						++errors, printf("Test618: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test619: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 20, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 20, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, (void *)&addrsize) == -1)
 						++errors, printf("Test620: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test621: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 40, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 40, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, (void *)&addrsize) == -1)
 						++errors, printf("Test622: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test623: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
@@ -6880,19 +6883,19 @@ int main(int ac, char **av)
 
 					/* Don't respond at all */
 
-					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
+					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, (void *)&addrsize) == -1)
 						++errors, printf("Test625: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test626: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, (void *)&addrsize) == -1)
 						++errors, printf("Test627: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test628: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 20, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 20, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, (void *)&addrsize) == -1)
 						++errors, printf("Test629: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test630: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 40, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 40, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, (void *)&addrsize) == -1)
 						++errors, printf("Test631: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test632: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
@@ -7016,7 +7019,7 @@ int main(int ac, char **av)
 					sockaddr_any_t addr;
 					size_t addrsize = sizeof addr;
 
-					if (read_timeout(server, 5, 0) == -1 || (s = accept(server, (sockaddr_t *)&addr, &addrsize)) == -1)
+					if (read_timeout(server, 5, 0) == -1 || (s = accept(server, (sockaddr_t *)&addr, (void *)&addrsize)) == -1)
 						++errors, printf("Test649: accept() failed (%s)\n", strerror(errno));
 					else
 					{

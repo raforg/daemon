@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2002 raf <raf@raf.org>
+* Copyright (C) 1999-2004 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20020916 raf <raf@raf.org>
+* 20040102 raf <raf@raf.org>
 */
 
 /*
@@ -573,14 +573,246 @@ This module declares abstract types. They must be used as part of larger
 data structures. It is assumed that the surrounding data structure and its
 functions will provide any locking that is required.
 
+=head1 EXAMPLES
+
+A singly linked example that reads pairs of numbers from stdin (attaching
+more space to the list as necessary), iterates over the items and then
+deletes them:
+
+    #include <slack/std.h>
+    #include <slack/link.h>
+
+    typedef struct spoint_t spoint_t;
+
+    struct spoint_t
+    {
+        slink_t link;
+        int x;
+        int y;
+    };
+
+    #define SLIST_SIZE 10
+    #define MAX_ADDITIONS 100
+    spoint_t sfreespace[SLIST_SIZE];
+    spoint_t *sfreelist = sfreespace;
+    spoint_t *spoints = NULL;
+    spoint_t *additional[MAX_ADDITIONS];
+    int added = 0;
+
+    int main(int ac, char **av)
+    {
+        spoint_t *item, *morespace;
+        int x, y, i;
+
+        // Initialize the singly-linked list of points
+
+        if (slink_freelist_init(sfreespace, SLIST_SIZE, sizeof(spoint_t)) != sfreespace)
+            return EXIT_FAILURE;
+
+        // Read coordinates from stdin and populate the list
+
+        while (scanf("%d %d", &x, &y) == 2)
+        {
+            // Add more space to the list when it runs out
+
+            if (!(item = slink_alloc((void **)&sfreelist)))
+            {
+                if (added == MAX_ADDITIONS)
+                    return EXIT_FAILURE; // or extend additional
+
+                if (!(morespace = malloc(SLIST_SIZE * sizeof(spoint_t))))
+                    return EXIT_FAILURE;
+
+                additional[added++] = morespace; // remember to free this
+
+                if (slink_freelist_init(morespace, SLIST_SIZE, sizeof(spoint_t)) != morespace)
+                    return EXIT_FAILURE;
+
+                if (!(sfreelist = slink_freelist_attach(sfreelist, morespace)))
+                    return EXIT_FAILURE;
+
+                if (!(item = slink_alloc((void **)&sfreelist)))
+                    return EXIT_FAILURE;
+            }
+
+            // Initialize the item
+
+            item->x = x;
+            item->y = y;
+
+            // Insert it into the list
+
+            if (!(spoints = slink_insert(spoints, item)))
+                return EXIT_FAILURE;
+        }
+
+        // Iterate over the list with slink_next()
+
+        for (item = spoints; item; item = slink_next(item))
+            printf("%d %d\n", item->x, item->y);
+
+        // Iterate over the list with slink_has_next()
+
+        for (item = spoints; slink_has_next(item) == 1; item = slink_next(item))
+        {
+            spoint_t *next = slink_next(item);
+            printf("%d %d -> %d %d\n", item->x, item->y, next->x, next->y);
+        }
+
+        if (item)
+            printf("%d %d !\n", item->x, item->y);
+
+        // Remove the items (printing them out)
+
+        while (spoints)
+        {
+            spoints = slink_remove(item = spoints);
+
+            printf("%d %d\n", item->x, item->y);
+
+            slink_free((void **)&sfreelist, item);
+        }
+
+        // Deallocate any attached freelists
+
+        for (i = 0; i < added; ++i)
+            free(additional[i]);
+
+        return EXIT_SUCCESS;
+    }
+
+A doubly linked example that reads pairs of numbers from stdin (attaching
+more space to the list as necessary), iterates over the items and then
+deletes them:
+
+    #include <slack/std.h>
+    #include <slack/link.h>
+
+    typedef struct dpoint_t dpoint_t;
+
+    struct dpoint_t
+    {
+        dlink_t link;
+        int x;
+        int y;
+    };
+
+    #define DLIST_SIZE 10
+    #define MAX_ADDITIONS 100
+    dpoint_t dfreespace[DLIST_SIZE];
+    dpoint_t *dfreelist = dfreespace;
+    dpoint_t *dpoints = NULL;
+    dpoint_t *additional[MAX_ADDITIONS];
+    int added = 0;
+
+    int main(int ac, char **av)
+    {
+        dpoint_t *item, *morespace;
+        dpoint_t *last;
+        int x, y, i;
+
+        // Initialize the doubly-linked list of points
+
+        if (dlink_freelist_init(dfreespace, DLIST_SIZE, sizeof(dpoint_t)) != dfreespace)
+            return EXIT_FAILURE;
+
+        // Read coordinates from stdin and populate the list
+
+        while (scanf("%d %d", &x, &y) == 2)
+        {
+            // Add more space to the list when it runs out
+
+            if (!(item = dlink_alloc((void **)&dfreelist)))
+            {
+                if (added == MAX_ADDITIONS)
+                    return EXIT_FAILURE; // or extend additional
+
+                if (!(morespace = malloc(DLIST_SIZE * sizeof(dpoint_t))))
+                    return EXIT_FAILURE;
+
+                additional[added++] = morespace; // remember to free this
+
+                if (dlink_freelist_init(morespace, DLIST_SIZE, sizeof(dpoint_t)) != morespace)
+                    return EXIT_FAILURE;
+
+                if (!(dfreelist = dlink_freelist_attach(dfreelist, morespace)))
+                    return EXIT_FAILURE;
+
+                if (!(item = dlink_alloc((void **)&dfreelist)))
+                    return EXIT_FAILURE;
+            }
+
+            // Initialize the item
+
+            item->x = x;
+            item->y = y;
+
+            // Insert it into the list
+
+            if (!(dpoints = dlink_insert(dpoints, item)))
+                return EXIT_FAILURE;
+        }
+
+        // Iterate over the list with dlink_next()
+
+        for (item = dpoints; item; item = dlink_next(item))
+        {
+            dpoint_t *prev = dlink_prev(item);
+            dpoint_t *next = dlink_next(item);
+
+            if (prev && next)
+                printf("%d %d -> %d %d -> %d %d\n", prev->x, prev->y, item->x, item->y, next->x, next->y);
+            else if (prev)
+                printf("%d %d -> %d %d -> end\n", prev->x, prev->y, item->x, item->y);
+            else if (next)
+                printf("start -> %d %d -> %d %d\n", item->x, item->y, next->x, next->y);
+        }
+
+        // Iterate backwards with dlink_has_next() and dlink_prev()
+
+        for (item = dpoints; dlink_has_next(item) == 1; item = dlink_next(item))
+        {}
+
+        for (; item; item = dlink_prev(item))
+        {
+            dpoint_t *prev = dlink_prev(item);
+            dpoint_t *next = dlink_next(item);
+
+            if (prev && next)
+                printf("%d %d -> %d %d -> %d %d\n", prev->x, prev->y, item->x, item->y, next->x, next->y);
+            else if (prev)
+                printf("%d %d -> %d %d -> end\n", prev->x, prev->y, item->x, item->y);
+            else if (next)
+                printf("start -> %d %d -> %d %d\n", item->x, item->y, next->x, next->y);
+        }
+
+        // Remove the items (printing them out)
+
+        while (dpoints)
+        {
+            dpoints = dlink_remove(item = dpoints);
+
+            printf("%d %d\n", item->x, item->y);
+
+            dlink_free((void **)&dfreelist, item);
+        }
+
+        // Deallocate any attached freelists
+
+        for (i = 0; i < added; ++i)
+            free(additional[i]);
+
+        return EXIT_SUCCESS;
+    }
+
 =head1 BUGS
 
 These functions only work on structs where the C<next> and C<prev> pointers
 at the first elements. To fix this would require adding an C<offset>
 parameter to each function to tell it where the C<next> and C<prev> pointers
-where within the item. It's probably not worth it.
+were within the item. It's probably not worth it.
 
-Attached free lists can't be detached. To fix this would require more code
+Attached free lists can't be detached. To change this would require more code
 and more metadata. Again, it's probably not worth it.
 
 =head1 SEE ALSO
@@ -593,7 +825,7 @@ L<locker(3)|locker(3)>
 
 =head1 AUTHOR
 
-20020916 raf <raf@raf.org>
+20040102 raf <raf@raf.org>
 
 =cut
 
@@ -679,13 +911,13 @@ int main(int ac, char **av)
 		for (i = SLIST_SIZE - 1, item = spoints; item; --i, item = slink_next(item))
 		{
 			if (item->x != i)
-				++errors, printf("Test6: slink_next() failed (item%d->x == %d (not %d)\n", i, item->x, i);
+				++errors, printf("Test6: slink_next() failed (item%d->x == %d (not %d)\n", (int)i, item->x, (int)i);
 			if (item->y != i + 1)
-				++errors, printf("Test7: slink_next() failed (item%d->y == %d (not %d)\n", i, item->y, i + 1);
+				++errors, printf("Test7: slink_next() failed (item%d->y == %d (not %d)\n", (int)i, item->y, (int)i + 1);
 		}
 
 		if (i != -1)
-			++errors, printf("Test8: slink_next() failed (only %d items, not %d)\n", i + SLIST_SIZE + 1, SLIST_SIZE);
+			++errors, printf("Test8: slink_next() failed (only %d items, not %d)\n", (int)i + SLIST_SIZE + 1, SLIST_SIZE);
 
 		/* Test slink_remove(), slink_free() */
 
@@ -694,10 +926,10 @@ int main(int ac, char **av)
 			spoints = slink_remove(item = spoints);
 
 			if (!spoints && i < SLIST_SIZE - 1)
-				++errors, printf("Test9: slink_remove() failed (i = %d)\n", i);
+				++errors, printf("Test9: slink_remove() failed (i = %d)\n", (int)i);
 
 			if (!slink_free((void **)&sfreelist, item))
-				++errors, printf("Test10: slink_free() failed (i = %d)\n", i);
+				++errors, printf("Test10: slink_free() failed (i = %d)\n", (int)i);
 		}
 
 		if (spoints)
@@ -707,7 +939,7 @@ int main(int ac, char **av)
 
 		if (slink_freelist_init(sfreespace2, SLIST_SIZE, sizeof(spoint_t)) != sfreespace2)
 			++errors, printf("Test12: slink_freelist_init() failed (%s)\n", strerror(errno));
-		else if (!(sfreelist = slink_freelist_attach(sfreespace1, sfreespace2)))
+		else if (!(sfreelist = slink_freelist_attach(sfreelist, sfreespace2)))
 			++errors, printf("Test13: slink_freelist_attach() failed (%s)\n", strerror(errno));
 		{
 			spoint_t *item;
@@ -738,13 +970,13 @@ int main(int ac, char **av)
 			for (i = SLIST_SIZE * 2 - 1, item = spoints; item; --i, item = slink_next(item))
 			{
 				if (item->x != i)
-					++errors, printf("Test18: slink_next() failed (item%d->x == %d (not %d)\n", i, item->x, i);
+					++errors, printf("Test18: slink_next() failed (item%d->x == %d (not %d)\n", (int)i, item->x, (int)i);
 				if (item->y != i + 1)
-					++errors, printf("Test19: slink_next() failed (item%d->y == %d (not %d)\n", i, item->y, i + 1);
+					++errors, printf("Test19: slink_next() failed (item%d->y == %d (not %d)\n", (int)i, item->y, (int)i + 1);
 			}
 
 			if (i != -1)
-				++errors, printf("Test20: slink_next() failed (only %d items, not %d)\n", i + SLIST_SIZE * 2 + 1, SLIST_SIZE * 2);
+				++errors, printf("Test20: slink_next() failed (only %d items, not %d)\n", (int)i + SLIST_SIZE * 2 + 1, SLIST_SIZE * 2);
 
 			/* Test slink_remove(), slink_free() */
 
@@ -753,14 +985,14 @@ int main(int ac, char **av)
 				spoints = slink_remove(item = spoints);
 
 				if (!spoints && i >= -1)
-					++errors, printf("Test21: slink_remove() failed (i = %d)\n", i);
+					++errors, printf("Test21: slink_remove() failed (i = %d)\n", (int)i);
 
 				if (!slink_free((void **)&sfreelist, item))
-					++errors, printf("Test22: slink_free() failed (i = %d)\n", i);
+					++errors, printf("Test22: slink_free() failed (i = %d)\n", (int)i);
 			}
 
 			if (i != -1)
-				++errors, printf("Test23: slink_remove() failed (i = %d, not -1)\n", i);
+				++errors, printf("Test23: slink_remove() failed (i = %d, not -1)\n", (int)i);
 
 			if (spoints)
 				++errors, printf("Test24: slink_remove() failed (spoints = %p, not null)\n", (void *)spoints);
@@ -803,28 +1035,28 @@ int main(int ac, char **av)
 		for (i = DLIST_SIZE - 1, item = dpoints; item; --i, item = dlink_next(item))
 		{
 			if (item->x != i)
-				++errors, printf("Test30: dlink_next() failed (item%d->x == %d (not %d)\n", i, item->x, i);
+				++errors, printf("Test30: dlink_next() failed (item%d->x == %d (not %d)\n", (int)i, item->x, (int)i);
 			if (item->y != i + 1)
-				++errors, printf("Test31: dlink_next() failed (item%d->y == %d (not %d)\n", i, item->y, i + 1);
+				++errors, printf("Test31: dlink_next() failed (item%d->y == %d (not %d)\n", (int)i, item->y, (int)i + 1);
 
 			last = item;
 		}
 
 		if (i != -1)
-			++errors, printf("Test32: dlink_next() failed (only %d items, not %d)\n", i + DLIST_SIZE + 1, DLIST_SIZE);
+			++errors, printf("Test32: dlink_next() failed (only %d items, not %d)\n", (int)i + DLIST_SIZE + 1, DLIST_SIZE);
 
 		/* Test dlink_prev() */
 
 		for (item = last, ++i; item; ++i, item = dlink_prev(item))
 		{
 			if (item->x != i)
-				++errors, printf("Test33: dlink_prev() failed (item%d->x == %d (not %d)\n", i, item->x, i);
+				++errors, printf("Test33: dlink_prev() failed (item%d->x == %d (not %d)\n", (int)i, item->x, (int)i);
 			if (item->y != i + 1)
-				++errors, printf("Test34: dlink_prev() failed (item%d->y == %d (not %d)\n", i, item->y, i + 1);
+				++errors, printf("Test34: dlink_prev() failed (item%d->y == %d (not %d)\n", (int)i, item->y, (int)i + 1);
 		}
 
 		if (i != DLIST_SIZE)
-			++errors, printf("Test35: dlink_prev() failed (only %d items, not %d)\n", i, DLIST_SIZE);
+			++errors, printf("Test35: dlink_prev() failed (only %d items, not %d)\n", (int)i, DLIST_SIZE);
 
 		/* Test dlink_remove(), dlink_free() */
 
@@ -832,10 +1064,10 @@ int main(int ac, char **av)
 		{
 			dpoints = dlink_remove(item = dpoints);
 			if (!dpoints && i < DLIST_SIZE - 1)
-				++errors, printf("Test36: dlink_remove() failed (i = %d)\n", i);
+				++errors, printf("Test36: dlink_remove() failed (i = %d)\n", (int)i);
 
 			if (!dlink_free((void **)&dfreelist, item))
-				++errors, printf("Test37: dlink_free() failed (i = %d)\n", i);
+				++errors, printf("Test37: dlink_free() failed (i = %d)\n", (int)i);
 		}
 
 		if (dpoints)
@@ -845,7 +1077,7 @@ int main(int ac, char **av)
 
 		if (dlink_freelist_init(dfreespace2, DLIST_SIZE, sizeof(dpoint_t)) != dfreespace2)
 			++errors, printf("Test39: dlink_freelist_init() failed (%s)\n", strerror(errno));
-		else if (!(dfreelist = dlink_freelist_attach(dfreespace1, dfreespace2)))
+		else if (!(dfreelist = dlink_freelist_attach(dfreelist, dfreespace2)))
 			++errors, printf("Test40: dlink_freelist_attach() failed (%s)\n", strerror(errno));
 		{
 			dpoint_t *item;
@@ -876,28 +1108,28 @@ int main(int ac, char **av)
 			for (i = 0, item = dpoints; item; ++i, item = dlink_next(item))
 			{
 				if (item->x != DLIST_SIZE * 2 - 1 - i)
-					++errors, printf("Test45: dlink_next() failed (item%d->x == %d (not %d)\n", i, item->x, DLIST_SIZE * 2 - i - 1);
+					++errors, printf("Test45: dlink_next() failed (item%d->x == %d (not %d)\n", (int)i, item->x, DLIST_SIZE * 2 - (int)i - 1);
 				if (item->y != DLIST_SIZE * 2 - 1 - i + 1)
-					++errors, printf("Test46: dlink_next() failed (item%d->y == %d (not %d)\n", i, item->y, DLIST_SIZE * 2 - i);
+					++errors, printf("Test46: dlink_next() failed (item%d->y == %d (not %d)\n", (int)i, item->y, DLIST_SIZE * 2 - (int)i);
 			}
 
 			if (i != DLIST_SIZE * 2)
-				++errors, printf("Test47: dlink_next() failed (only %d items, not %d)\n", i, DLIST_SIZE * 2);
+				++errors, printf("Test47: dlink_next() failed (only %d items, not %d)\n", (int)i, DLIST_SIZE * 2);
 
 			/* Test dlink_prev() */
 
 			for (item = last; item; --i, item = dlink_prev(item))
 			{
 				if (item->x != DLIST_SIZE * 2 - i)
-					++errors, printf("Test48: dlink_prev() failed (item%d->x == %d (not %d)\n", i, item->x, DLIST_SIZE * 2 - i);
+					++errors, printf("Test48: dlink_prev() failed (item%d->x == %d (not %d)\n", (int)i, item->x, DLIST_SIZE * 2 - (int)i);
 				if (item->y != DLIST_SIZE * 2 - i + 1)
-					++errors, printf("Test49: dlink_prev() failed (item%d->y == %d (not %d)\n", i, item->y, DLIST_SIZE * 2 - i + 1);
+					++errors, printf("Test49: dlink_prev() failed (item%d->y == %d (not %d)\n", (int)i, item->y, DLIST_SIZE * 2 - (int)i + 1);
 
 				last = item;
 			}
 
 			if (i != 0)
-				++errors, printf("Test50: dlink_prev() failed (only %d items, not %d)\n", DLIST_SIZE - i, DLIST_SIZE);
+				++errors, printf("Test50: dlink_prev() failed (only %d items, not %d)\n", DLIST_SIZE - (int)i, DLIST_SIZE);
 
 			/* Test dlink_remove(), dlink_free() */
 
@@ -905,10 +1137,10 @@ int main(int ac, char **av)
 			{
 				dpoints = dlink_remove(item = dpoints);
 				if (!dpoints && i < DLIST_SIZE * 2 - 1)
-					++errors, printf("Test51: dlink_remove() failed (i = %d)\n", i);
+					++errors, printf("Test51: dlink_remove() failed (i = %d)\n", (int)i);
 
 				if (!dlink_free((void **)&dfreelist, item))
-					++errors, printf("Test52: dlink_free() failed (i = %d)\n", i);
+					++errors, printf("Test52: dlink_free() failed (i = %d)\n", (int)i);
 			}
 
 			if (dpoints)
@@ -998,15 +1230,15 @@ int main(int ac, char **av)
 	else if (errno != EINVAL)
 		++errors, printf("Test85: dlink_freelist_init(dfreespace1, 1, 0) failed (errno = %s, not %s)\n", strerror(errno), strerror(EINVAL));
 
-	if (slink_freelist_attach(sfreespace1, NULL))
-		++errors, printf("Test86: slink_freelist_attach(dfreespace1, NULL) failed\n");
+	if (slink_freelist_attach(sfreelist, NULL))
+		++errors, printf("Test86: slink_freelist_attach(sfreelist, NULL) failed\n");
 	else if (errno != EINVAL)
-		++errors, printf("Test87: slink_freelist_attach(dfreespace1, NULL) failed (errno = %s, not %s)\n", strerror(errno), strerror(EINVAL));
+		++errors, printf("Test87: slink_freelist_attach(sfreelist, NULL) failed (errno = %s, not %s)\n", strerror(errno), strerror(EINVAL));
 
-	if (dlink_freelist_attach(dfreespace1, NULL))
-		++errors, printf("Test88: dlink_freelist_attach(dfreespace1, NULL) failed\n");
+	if (dlink_freelist_attach(dfreelist, NULL))
+		++errors, printf("Test88: dlink_freelist_attach(dfreelist, NULL) failed\n");
 	else if (errno != EINVAL)
-		++errors, printf("Test89: dlink_freelist_attach(dfreespace1, NULL) failed (errno = %s, not %s)\n", strerror(errno), strerror(EINVAL));
+		++errors, printf("Test89: dlink_freelist_attach(dfreelist, NULL) failed (errno = %s, not %s)\n", strerror(errno), strerror(EINVAL));
 
 	if (slink_alloc(NULL))
 		++errors, printf("Test90: slink_alloc(NULL) failed\n");

@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2002 raf <raf@raf.org>
+* Copyright (C) 1999-2004 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20020916 raf <raf@raf.org>
+* 20040102 raf <raf@raf.org>
 */
 
 /*
@@ -184,10 +184,6 @@ outlive the destination list.
 #define iff(a, b) !xor(a, b)
 #define implies(a, b) (!(a) || (b))
 
-/* Minimum list length: must be a power of 2 */
-
-static const size_t MIN_LIST_SIZE = 4;
-
 struct List
 {
 	size_t size;             /* number of item slots allocated */
@@ -205,6 +201,10 @@ struct Lister
 };
 
 #ifndef TEST
+
+/* Minimum list length: must be a power of 2 */
+
+static const size_t MIN_LIST_SIZE = 4;
 
 /*
 
@@ -540,7 +540,6 @@ C<_unlocked>. On success, returns C<0>. On error, returns an error code.
 =cut
 
 */
-
 
 #define list_rdlock(list) ((list) ? locker_rdlock((list)->locker) : EINVAL)
 #define list_wrlock(list) ((list) ? locker_wrlock((list)->locker) : EINVAL)
@@ -1024,7 +1023,6 @@ C<null> with C<errno> set appropriately.
 =cut
 
 */
-
 
 List *list_remove_range(List *list, ssize_t index, ssize_t range)
 {
@@ -1668,7 +1666,6 @@ appropriately.
 
 */
 
-
 List *list_extract(const List *list, ssize_t index, ssize_t range, list_copy_t *copy)
 {
 	return list_extract_with_locker(NULL, list, index, range, copy);
@@ -1699,7 +1696,6 @@ new list will be synchronised by C<locker>.
 =cut
 
 */
-
 
 List *list_extract_with_locker(Locker *locker, const List *list, ssize_t index, ssize_t range, list_copy_t *copy)
 {
@@ -2871,6 +2867,7 @@ C<errno> appropriately.
 
 void lister_remove(Lister *lister)
 {
+
 	if (!lister)
 	{
 		set_errno(EINVAL);
@@ -3070,7 +3067,433 @@ for each application on a case by case basis.
 I<MT-Disciplined> means that the application developer has a mechanism for
 specifying the synchronisation requirements to be applied to library code.
 
-=head1 BUGS
+=head1 EXAMPLES
+
+Create a list that doesn't own its items, populate it and then iterate over
+its values with the internal iterator to print the values:
+
+    #include <slack/std.h>
+    #include <slack/list.h>
+
+    int main()
+    {
+        List *list;
+
+        if (!(list = list_create(NULL)))
+            return EXIT_FAILURE;
+
+        list_append(list, "123");
+        list_append(list, "456");
+        list_append(list, "789");
+
+        while (list_has_next(list) == 1)
+            printf("%s\n", list_next(list));
+
+        list_destroy(&list);
+
+        return EXIT_SUCCESS;
+    }
+
+The same but create the list and populate it at the same time:
+
+    #include <slack/std.h>
+    #include <slack/list.h>
+
+    int main()
+    {
+        List *list;
+
+        if (!(list = list_make(NULL, "123", "456", "789", NULL)))
+            return EXIT_FAILURE;
+
+        while (list_has_next(list) == 1)
+            printf("%s\n", list_next(list));
+
+        list_destroy(&list);
+
+        return EXIT_SUCCESS;
+    }
+
+Create a map that does own its items, populate it and then iterator over it
+with an external iterator to print its items.
+
+    #include <slack/std.h>
+    #include <slack/list.h>
+
+    int main()
+    {
+        List *list;
+        Lister *lister;
+
+        if (!(list = list_create(NULL)))
+            return EXIT_FAILURE;
+
+        list_append(list, "123");
+        list_append(list, "456");
+        list_append(list, "789");
+
+        if (!(lister = lister_create(list)))
+        {
+            list_destroy(&list);
+            return EXIT_FAILURE;
+        }
+
+        while (lister_has_next(lister) == 1)
+            printf("%s\n", lister_next(lister));
+
+        lister_destroy(&lister);
+        list_destroy(&list);
+
+        return EXIT_SUCCESS;
+    }
+
+The same but with an apply function:
+
+    #include <slack/std.h>
+    #include <slack/list.h>
+
+    void action(void *item, size_t *index, void *data)
+    {
+        printf("%s\n", item);
+    }
+
+    int main()
+    {
+        List *list;
+
+        if (!(list = list_create(free)))
+            return EXIT_FAILURE;
+
+        list_append(list, strdup("123"));
+        list_append(list, strdup("456"));
+        list_append(list, strdup("789"));
+
+        list_apply(list, action, NULL);
+        list_destroy(&list);
+
+        return EXIT_SUCCESS;
+    }
+
+The same but with a list of integers:
+
+    #include <slack/std.h>
+    #include <slack/list.h>
+
+    int main()
+    {
+        List *list;
+
+        if (!(list = list_create(NULL)))
+            return EXIT_FAILURE;
+
+        list_append(list, (void *)123);
+        list_append(list, (void *)456);
+        list_append(list, (void *)789);
+
+        while (list_has_next(list) == 1)
+            printf("%d\n", list_next_int(list));
+
+        list_destroy(&list);
+
+        return EXIT_SUCCESS;
+    }
+
+Create a copy of a list:
+
+    #include <slack/std.h>
+    #include <slack/list.h>
+
+    int main()
+    {
+        List *orig;
+        List *copy;
+
+        if (!(orig = list_make(free, strdup("123"), strdup("456"), strdup("789"), NULL)))
+            return EXIT_FAILURE;
+
+        if (!(copy = list_copy(orig, (list_copy_t *)strdup)))
+        {
+            list_destroy(&orig);
+            return EXIT_FAILURE;
+        }
+
+        list_destroy(&orig);
+
+        while (list_has_next(copy) == 1)
+            printf("%s\n", list_next(copy));
+
+        list_destroy(&copy);
+
+        return EXIT_SUCCESS;
+    }
+
+Transfer ownership from one list to another:
+
+    #include <slack/std.h>
+    #include <slack/list.h>
+
+    int main()
+    {
+        List *donor;
+        List *recipient;
+
+        if (!(donor = list_make(free, strdup("123"), strdup("456"), strdup("789"), NULL)))
+            return EXIT_FAILURE;
+
+        if (!(recipient = list_create(NULL)))
+        {
+            list_destroy(&donor);
+            return EXIT_FAILURE;
+        }
+
+        while (list_has_next(donor) == 1)
+            list_append(recipient, list_next(donor));
+
+        list_own(recipient, list_disown(donor));
+        list_destroy(&donor);
+
+        while (list_has_next(recipient) == 1)
+            printf("%s\n", list_next(recipient));
+
+        list_destroy(&recipient);
+
+        return EXIT_SUCCESS;
+    }
+
+Manipulate a list, examine it, use apply, map, grep and query,
+remove items while iterating:
+
+    #include <slack/std.h>
+    #include <slack/list.h>
+
+    int cmp(const void *a, const void *b)
+    {
+        return strcmp(*(char **)a, *(char **)b);
+    }
+
+    void action(void *item, size_t *index, void *data)
+    {
+        printf("%s\n", item);
+    }
+
+    void *upper(void *item, size_t *index, void *data)
+    {
+        char *uc = strdup(item);
+        if (uc)
+            *uc = toupper(*uc);
+
+        return uc;
+    }
+
+    int even(void *item, size_t *index, void *data)
+    {
+        return item && (*(char *)item & 1) == 0;
+    }
+
+    int main()
+    {
+        Lister *lister;
+        List *list;
+        void *item;
+        List *res;
+        ssize_t i;
+
+        if (!(list = list_create(NULL)))
+            return EXIT_FAILURE;
+
+        // Manipulate a list
+
+        printf("length %d empty %d\n", list_length(list), list_empty(list));
+
+        list_append(list, "a");
+        list_append(list, "b");
+        list_append(list, "c");
+        list_remove(list, 0);
+        list_insert(list, 1, "d");
+        list_prepend(list, "e");
+        list_replace(list, 1, 2, "f");
+        list_push(list, "g");
+        list_push(list, "h");
+        list_push(list, "i");
+        item = list_pop(list);
+        list_unshift(list, list_shift(list));
+        list_release(list_splice(list, 0, 1, NULL));
+        list_sort(list, cmp);
+        printf("last %s\n", list_item(list, list_last(list)));
+
+        // Apply an action to a list
+
+        list_apply(list, action, NULL);
+
+        // Map a list into another list
+
+        res = list_map(list, free, upper, NULL);
+        list_apply(res, action, NULL);
+        list_destroy(&res);
+
+        // Grep a list for items that match some criteria
+
+        res = list_grep(list, even, NULL);
+        list_apply(res, action, NULL);
+        list_destroy(&res);
+
+        // Locate a list's items that match some criteria
+
+        for (i = 0; list_query(list, &i, even, NULL) != -1; ++i)
+            printf("%d %s even\n", i, list_item(list, i));
+
+        // Remove elements via the internal iterator and break out of loop
+
+        while (list_has_next(list) == 1)
+        {
+            item = list_next(list);
+            list_remove_current(list);
+
+            if (!strcmp(item, "f"))
+            {
+                list_break(list);
+                break;
+            }
+        }
+
+        // Remove elements via an external iterator
+
+        for (lister = lister_create(list); lister_has_next(lister) == 1; )
+        {
+            item = lister_next(lister);
+            lister_remove(lister);
+        }
+
+        lister_destroy(&lister);
+        list_destroy(&list);
+
+        return EXIT_SUCCESS;
+    }
+
+Manipulate a list of integers:
+
+    #include <slack/std.h>
+    #include <slack/list.h>
+
+    int main()
+    {
+        Lister *lister;
+        List *list;
+        int item;
+        int i;
+
+        if (!(list = list_create(NULL)))
+            return EXIT_FAILURE;
+
+        // Manipulate a list
+
+        list_append_int(list, 1);
+        list_append_int(list, 2);
+        list_append_int(list, 3);
+        list_remove(list, 0);
+        list_insert_int(list, 1, 4);
+        list_prepend_int(list, 5);
+        list_replace_int(list, 1, 2, 6);
+        list_push_int(list, 7);
+        list_push_int(list, 8);
+        list_push_int(list, 9);
+        item = list_pop_int(list);
+        list_unshift_int(list, list_shift_int(list));
+        list_release(list_splice(list, 0, 1, NULL));
+
+        // Get items as integers
+
+        for (i = 0; i < list_length(list); ++i)
+            printf("%d\n", list_item_int(list, i));
+
+        // Remove elements via the internal iterator
+
+        while (list_has_next(list) == 1)
+        {
+            item = list_next_int(list);
+            list_remove_current(list);
+        }
+
+        // Remove elements via an external iterator
+
+        for (lister = lister_create(list); lister_has_next(lister) == 1; )
+        {
+            item = lister_next_int(lister);
+            lister_remove(lister);
+        }
+
+        list_destroy(&list);
+
+        return EXIT_SUCCESS;
+    }
+
+Append, insert, prepend and replace using another list, not just one item:
+
+    #include <slack/std.h>
+    #include <slack/list.h>
+
+    int main()
+    {
+        List *list;
+        List *src;
+        int i;
+
+        if (!(list = list_create(NULL)))
+            return EXIT_FAILURE;
+
+        if (!(src = list_make(NULL, "a", "b", "c", NULL)))
+        {
+            list_destroy(&list);
+            return EXIT_FAILURE;
+        }
+
+        list_append_list(list, src, NULL);
+        list_insert_list(list, 1, src, NULL);
+        list_prepend_list(list, src, NULL);
+        list_replace_list(list, 1, 2, src, NULL);
+
+        for (i = 0; i < list_length(list); ++i)
+            printf("%s\n", list_item(list, i));
+
+        list_destroy(&list);
+
+        return EXIT_SUCCESS;
+    }
+
+The same as the previous example but with a list that owns its items:
+
+    #include <slack/std.h>
+    #include <slack/list.h>
+
+    int main()
+    {
+        List *list;
+        List *src;
+        int i;
+
+        if (!(list = list_create(free)))
+            return EXIT_FAILURE;
+
+        if (!(src = list_make(NULL, "a", "b", "c", NULL)))
+        {
+            list_destroy(&list);
+            return EXIT_FAILURE;
+        }
+
+        list_append_list(list, src, (list_copy_t *)strdup);
+        list_insert_list(list, 1, src, (list_copy_t *)strdup);
+        list_prepend_list(list, src, (list_copy_t *)strdup);
+        list_replace_list(list, 1, 2, src, (list_copy_t *)strdup);
+
+        for (i = 0; i < list_length(list); ++i)
+            printf("%s\n", list_item(list, i));
+
+        list_destroy(&list);
+
+        return EXIT_SUCCESS;
+    }
+
+=head1 CAVEAT
 
 Little attempt is made to protect the client from sharing items between
 lists with differing ownership policies and getting it wrong. When copying
@@ -3084,6 +3507,8 @@ contain items that point to deallocated memory.
 If you use an internal iterator in a loop that terminates before the end of
 the list, and fail to call I<list_break(3)>, the internal iterator will
 leak.
+
+=head1 BUGS
 
 Uses I<malloc(3)>. The type of memory used and the allocation strategy need
 to be decoupled from this code.
@@ -3145,7 +3570,11 @@ int grepf(int item, size_t *index, int *data)
 List *mtlist = NULL;
 Locker *locker = NULL;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+#ifdef PTHREAD_RWLOCK_INITIALIZER
 pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
+#else
+pthread_rwlock_t rwlock;
+#endif
 int barrier[2];
 int length[2];
 const int lim = 1000;
@@ -4048,6 +4477,10 @@ int main(int ac, char **av)
 	if (debug)
 		setbuf(stdout, NULL);
 
+#ifndef PTHREAD_RWLOCK_INITIALIZER
+	pthread_rwlock_init(&rwlock, NULL);
+#endif
+
 	if (debug)
 		locker = locker_create_debug_rwlock(&rwlock);
 	else
@@ -4077,7 +4510,7 @@ int main(int ac, char **av)
 	/* Test assumption: sizeof(int) <= sizeof(void *) */
 
 	if (sizeof(int) > sizeof(void *))
-		++errors, printf("Test176: assumption failed: sizeof(int) > sizeof(void *): int lists are limited to %d bytes\n", sizeof(void *));
+		++errors, printf("Test176: assumption failed: sizeof(int) > sizeof(void *): int lists are limited to %d bytes\n", (int)sizeof(void *));
 
 	if (errors)
 		printf("%d/176 tests failed\n", errors);

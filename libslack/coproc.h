@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2002 raf <raf@raf.org>
+* Copyright (C) 1999-2004 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20020916 raf <raf@raf.org>
+* 20040102 raf <raf@raf.org>
 */
 
 #ifndef H_COPROC_H
@@ -32,10 +32,10 @@
 #include <slack/hdr.h>
 
 _begin_decls
-pid_t coproc_open _args ((int *to, int *from, int *err, const char *cmd, char * const *argv, char * const *envv, void (*action)(void *data), void *data));
-int coproc_close _args ((pid_t pid, int *to, int *from, int *err));
-pid_t coproc_pty_open _args ((int *masterfd, char *slavename, size_t slavenamesize, const struct termios *slave_termios, const struct winsize *slave_winsize, const char *cmd, char * const *argv, char * const *envv, void (*action)(void *data), void *data));
-int coproc_pty_close _args ((pid_t pid, int *masterfd, const char *slavename));
+pid_t coproc_open(int *to, int *from, int *err, const char *cmd, char * const *argv, char * const *envv, void (*action)(void *data), void *data);
+int coproc_close(pid_t pid, int *to, int *from, int *err);
+pid_t coproc_pty_open(int *masterfd, char *slavename, size_t slavenamesize, const struct termios *slave_termios, const struct winsize *slave_winsize, const char *cmd, char * const *argv, char * const *envv, void (*action)(void *data), void *data);
+int coproc_pty_close(pid_t pid, int *masterfd, const char *slavename);
 _end_decls
 
 #endif

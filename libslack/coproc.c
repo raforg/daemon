@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2002 raf <raf@raf.org>
+* Copyright (C) 1999-2004 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20020916 raf <raf@raf.org>
+* 20040102 raf <raf@raf.org>
 */
 
 /*
@@ -323,7 +323,6 @@ pid_t coproc_open(int *to, int *from, int *err, const char *cmd, char * const *a
 	}
 }
 
-
 /*
 
 =item C<int coproc_close(pid_t pid, int *to, int *from, int *err)>
@@ -501,6 +500,299 @@ I<coproc_pty_open(3)> or I<coproc_pty_close(3)>.
 MT-Safe (I<coproc_pty_open(3)> is MT-Safe iff the L<pseudo(3)|pseudo(3)>
 module is MT-Safe).
 
+=head1 EXAMPLES
+
+The following examples add two numbers from the command line using dc as a coprocess
+in four different ways.
+
+This version uses pipes and does not use C<sh -c>.
+
+    #include <slack/std.h>
+    #include <slack/coproc.h>
+
+    int main(int ac, char **av)
+    {
+        if (ac == 3)
+        {
+            char *argv[2] = { "dc", NULL };
+            int to, from, err, status;
+            char buf[BUFSIZ];
+            ssize_t bytes;
+            pid_t pid;
+
+            // Start the coprocess (without using sh -c)
+
+            if ((pid = coproc_open(&to, &from, &err, "dc", argv, NULL, NULL, NULL)) == (pid_t)-1)
+            {
+                fprintf(stderr, "coproc_open(dc) failed: %s\n", strerror(errno));
+                return EXIT_FAILURE;
+            }
+
+            // Send it input and read its output
+
+            snprintf(buf, BUFSIZ, "%s %s + p\n", av[1], av[2]);
+            write(to, buf, strlen(buf));
+            bytes = read(from, buf, BUFSIZ);
+            printf("%*.*s", bytes, bytes, buf);
+
+            // Stop the coprocess (it's ok if you close to, from and/or err beforehand)
+
+            while ((status = coproc_close(pid, &to, &from, &err)) == -1 && errno == EINTR)
+            {}
+
+            if (status == -1)
+            {
+                fprintf(stderr, "coproc_close(dc) failed: %s\n", strerror(errno));
+                return EXIT_FAILURE;
+            }
+
+            // Evaluate its exit status
+
+            if (WIFSIGNALED(status))
+            {
+                fprintf(stderr, "dc was killed by signal %d\n", WTERMSIG(status));
+                return EXIT_FAILURE;
+            }
+
+            if (WIFEXITED(status) && WEXITSTATUS(status))
+            {
+                fprintf(stderr, "dc was killed by signal %d\n", WEXITSTATUS(status));
+                return EXIT_FAILURE;
+            }
+        }
+
+        return EXIT_SUCCESS;
+    }
+
+This version uses pipes and C<sh -c>.
+
+    #include <slack/std.h>
+    #include <slack/coproc.h>
+
+    int main(int ac, char **av)
+    {
+        if (ac == 3)
+        {
+            int to, from, err, status;
+            char buf[BUFSIZ];
+            ssize_t bytes;
+            pid_t pid;
+
+            // Start the coprocess (using sh -c)
+
+            if ((pid = coproc_open(&to, &from, &err, "dc 2>&1", NULL, NULL, NULL, NULL)) == (pid_t)-1)
+            {
+                fprintf(stderr, "coproc_open(dc) failed: %s\n", strerror(errno));
+                return EXIT_FAILURE;
+            }
+
+            // Send it input and read its output
+
+            snprintf(buf, BUFSIZ, "%s %s + p\n", av[1], av[2]);
+            write(to, buf, strlen(buf));
+            bytes = read(from, buf, BUFSIZ);
+            printf("%*.*s", bytes, bytes, buf);
+
+            // Stop the coprocess (it's ok if you close to, from and/or err beforehand)
+
+            while ((status = coproc_close(pid, &to, &from, &err)) == -1 && errno == EINTR)
+            {}
+
+            if (status == -1)
+            {
+                fprintf(stderr, "coproc_close(dc) failed: %s\n", strerror(errno));
+                return EXIT_FAILURE;
+            }
+
+            // Evaluate its exit status
+
+            if (WIFSIGNALED(status))
+            {
+                fprintf(stderr, "dc was killed by signal %d\n", WTERMSIG(status));
+                return EXIT_FAILURE;
+            }
+
+            if (WIFEXITED(status) && WEXITSTATUS(status))
+            {
+                fprintf(stderr, "dc was killed by signal %d\n", WEXITSTATUS(status));
+                return EXIT_FAILURE;
+            }
+        }
+
+        return EXIT_SUCCESS;
+    }
+
+This version uses a pseudo terminal and does not use C<sh -c>.
+
+    #include <slack/std.h>
+    #include <slack/coproc.h>
+
+    int tty_noecho(int fd)
+    {
+        struct termios attr[1];
+
+        if (tcgetattr(fd, attr) == -1)
+            return -1;
+
+        attr->c_lflag &= ~(ECHO | ECHOE | ECHOK | ECHONL);
+        attr->c_oflag &= ~ONLCR;
+
+        return tcsetattr(fd, TCSANOW, attr);
+    }
+
+    int main(int ac, char **av)
+    {
+        if (ac == 3)
+        {
+            char *argv[2] = { "dc", NULL };
+            struct termios attr[1];
+            char eof = CEOF;
+            int masterfd, status;
+            char slavename[64];
+            char buf[BUFSIZ];
+            ssize_t bytes;
+            pid_t pid;
+
+            // Start the coprocess (without using sh -c)
+
+            if ((pid = coproc_pty_open(&masterfd, slavename, 64, NULL, NULL, "dc", argv, NULL, NULL, NULL)) == (pid_t)-1)
+            {
+                fprintf(stderr, "coproc_pty_open(dc) failed: %s\n", strerror(errno));
+                return EXIT_FAILURE;
+            }
+
+            // Turn off echo so we don't read back what we are about to write
+
+            if (tty_noecho(masterfd) == -1)
+                fprintf(stderr, "tty_noecho(masterfd) failed: %s\n", strerror(errno));
+
+            // Send it input and eof and read its output
+
+            snprintf(buf, BUFSIZ, "%s %s + p\n", av[1], av[2]);
+            write(masterfd, buf, strlen(buf));
+            if (tcgetattr(masterfd, attr) != -1)
+                eof = attr->c_cc[VEOF];
+            write(masterfd, &eof, 1);
+            while ((bytes = read(masterfd, buf, BUFSIZ)) > 0)
+                printf("%*.*s", bytes, bytes, buf);
+
+            if (bytes == -1 && errno != EIO)
+                fprintf(stderr, "read(masterfd) failed: %s\n", strerror(errno));
+
+            // Stop the coprocess (masterfd must not be closed beforehand)
+
+            while ((status = coproc_pty_close(pid, &masterfd, slavename)) == -1 && errno == EINTR)
+            {}
+
+            if (status == -1)
+            {
+                fprintf(stderr, "coproc_pty_close(dc) failed: %s\n", strerror(errno));
+                return EXIT_FAILURE;
+            }
+
+            // Evaluate its exit status
+
+            if (WIFSIGNALED(status))
+            {
+                fprintf(stderr, "dc was killed by signal %d\n", WTERMSIG(status));
+                return EXIT_FAILURE;
+            }
+
+            if (WIFEXITED(status) && WEXITSTATUS(status))
+            {
+                fprintf(stderr, "dc was killed by signal %d\n", WEXITSTATUS(status));
+                return EXIT_FAILURE;
+            }
+        }
+
+        return EXIT_SUCCESS;
+    }
+
+This version uses a pseudo terminal and C<sh -c>.
+
+    #include <slack/std.h>
+    #include <slack/coproc.h>
+
+    int tty_noecho(int fd)
+    {
+        struct termios attr[1];
+
+        if (tcgetattr(fd, attr) == -1)
+            return -1;
+
+        attr->c_lflag &= ~(ECHO | ECHOE | ECHOK | ECHONL);
+        attr->c_oflag &= ~ONLCR;
+
+        return tcsetattr(fd, TCSANOW, attr);
+    }
+
+    int main(int ac, char **av)
+    {
+        if (ac == 3)
+        {
+            int masterfd, status;
+            char slavename[64];
+            char buf[BUFSIZ];
+            struct termios attr[1];
+            char eof = CEOF;
+            ssize_t bytes;
+            pid_t pid;
+
+            // Start the coprocess (without using sh -c)
+
+            if ((pid = coproc_pty_open(&masterfd, slavename, 64, NULL, NULL, "dc 2>&1", NULL, NULL, NULL, NULL)) == (pid_t)-1)
+            {
+                fprintf(stderr, "coproc_pty_open(dc) failed: %s\n", strerror(errno));
+                return EXIT_FAILURE;
+            }
+
+            // Turn off echo so we don't read back what we are about to write
+
+            if (tty_noecho(masterfd) == -1)
+                fprintf(stderr, "tty_noecho(masterfd) failed: %s\n", strerror(errno));
+
+            // Send it input and eof and read its output
+
+            snprintf(buf, BUFSIZ, "%s %s + p\n", av[1], av[2]);
+            write(masterfd, buf, strlen(buf));
+            if (tcgetattr(masterfd, attr) != -1)
+                eof = attr->c_cc[VEOF];
+            write(masterfd, &eof, 1);
+            while ((bytes = read(masterfd, buf, BUFSIZ)) > 0)
+                printf("%*.*s", bytes, bytes, buf);
+
+            if (bytes == -1 && errno != EIO)
+                fprintf(stderr, "read(masterfd) failed: %s\n", strerror(errno));
+
+            // Stop the coprocess (masterfd must not be closed beforehand)
+
+            while ((status = coproc_pty_close(pid, &masterfd, slavename)) == -1 && errno == EINTR)
+            {}
+
+            if (status == -1)
+            {
+                fprintf(stderr, "coproc_pty_close(dc) failed: %s\n", strerror(errno));
+                return EXIT_FAILURE;
+            }
+
+            // Evaluate its exit status
+
+            if (WIFSIGNALED(status))
+            {
+                fprintf(stderr, "dc was killed by signal %d\n", WTERMSIG(status));
+                return EXIT_FAILURE;
+            }
+
+            if (WIFEXITED(status) && WEXITSTATUS(status))
+            {
+                fprintf(stderr, "dc was killed by signal %d\n", WEXITSTATUS(status));
+                return EXIT_FAILURE;
+            }
+        }
+
+        return EXIT_SUCCESS;
+    }
+
 =head1 SEE ALSO
 
 L<libslack(3)|libslack(3)>,
@@ -513,7 +805,7 @@ L<pseudo(3)|pseudo(3>>
 
 =head1 AUTHOR
 
-20020916 raf <raf@raf.org>
+20040102 raf <raf@raf.org>
 
 =cut
 
@@ -580,25 +872,25 @@ int main()
 			if (read_timeout(from, 5, 0) == -1)
 				++errors, printf("Test5: read_timeout(from) failed (%s)\n", strerror(errno));
 			else if ((bytes = read(from, buf, 4)) != 4)
-				++errors, printf("Test6: read(from) failed (returned %d, not %d) (%s)\n", bytes, 4, strerror(errno));
+				++errors, printf("Test6: read(from) failed (returned %d, not %d) (%s)\n", (int)bytes, 4, strerror(errno));
 			else if (memcmp(buf, "abc\n", 4))
 				++errors, printf("Test7: read(from) failed (read \"%.4s\", not \"%.4s\")\n", buf, "abc\n");
 			else if (read_timeout(from, 5, 0) == -1)
 				++errors, printf("Test8: read_timeout(from) failed (%s)\n", strerror(errno));
 			else if ((bytes = read(from, buf, 4)) != 4)
-				++errors, printf("Test9: read(from) failed (returned %d, not %d) (%s)\n", bytes, 4, strerror(errno));
+				++errors, printf("Test9: read(from) failed (returned %d, not %d) (%s)\n", (int)bytes, 4, strerror(errno));
 			else if (memcmp(buf, "def\n", 4))
 				++errors, printf("Test10: read(from) failed (read \"%.4s\", not \"%.4s\")\n", buf, "def\n");
 			else if (read_timeout(from, 5, 0) == -1)
 				++errors, printf("Test11: read_timeout(from) failed (%s)\n", strerror(errno));
 			else if ((bytes = read(from, buf, 4)) != 4)
-				++errors, printf("Test12: read(from) failed (returned %d, not %d) (%s)\n", bytes, 4, strerror(errno));
+				++errors, printf("Test12: read(from) failed (returned %d, not %d) (%s)\n", (int)bytes, 4, strerror(errno));
 			else if (memcmp(buf, "ghi\n", 4))
 				++errors, printf("Test13: read(from) failed (read \"%.4s\", not \"%.4s\")\n", buf, "ghi\n");
 			else if (read_timeout(from, 5, 0) == -1)
 				++errors, printf("Test14: read_timeout(from) failed (%s)\n", strerror(errno));
 			else if ((bytes = read(from, buf, 4)) != 0)
-				++errors, printf("Test15: read(from) failed (returned %d, not %d) (%s)\n", bytes, 0, strerror(errno));
+				++errors, printf("Test15: read(from) failed (returned %d, not %d) (%s)\n", (int)bytes, 0, strerror(errno));
 
 			if ((status = coproc_close(pid, &to, &from, &err)) == -1)
 				++errors, printf("Test16: coproc_close() failed (%s)\n", strerror(errno));
@@ -629,25 +921,25 @@ int main()
 			if (read_timeout(from, 5, 0) == -1)
 				++errors, printf("Test23: read_timeout(from) failed (%s)\n", strerror(errno));
 			else if ((bytes = read(from, buf, 4)) != 4)
-				++errors, printf("Test24: read(from) failed (returned %d, not %d) (%s)\n", bytes, 4, strerror(errno));
+				++errors, printf("Test24: read(from) failed (returned %d, not %d) (%s)\n", (int)bytes, 4, strerror(errno));
 			else if (memcmp(buf, "abc\n", 4))
 				++errors, printf("Test25: read(from) failed (read \"%.4s\", not \"%.4s\")\n", buf, "abc\n");
 			else if (read_timeout(from, 5, 0) == -1)
 				++errors, printf("Test26: read_timeout(from) failed (%s)\n", strerror(errno));
 			else if ((bytes = read(from, buf, 4)) != 4)
-				++errors, printf("Test27: read(from) failed (returned %d, not %d) (%s)\n", bytes, 4, strerror(errno));
+				++errors, printf("Test27: read(from) failed (returned %d, not %d) (%s)\n", (int)bytes, 4, strerror(errno));
 			else if (memcmp(buf, "def\n", 4))
 				++errors, printf("Test28: read(from) failed (read \"%.4s\", not \"%.4s\")\n", buf, "def\n");
 			else if (read_timeout(from, 5, 0) == -1)
 				++errors, printf("Test29: read_timeout(from) failed (%s)\n", strerror(errno));
 			else if ((bytes = read(from, buf, 4)) != 4)
-				++errors, printf("Test30: read(from) failed (returned %d, not %d) (%s)\n", bytes, 4, strerror(errno));
+				++errors, printf("Test30: read(from) failed (returned %d, not %d) (%s)\n", (int)bytes, 4, strerror(errno));
 			else if (memcmp(buf, "ghi\n", 4))
 				++errors, printf("Test31: read(from) failed (read \"%.4s\", not \"%.4s\")\n", buf, "ghi\n");
 			else if (read_timeout(from, 5, 0) == -1)
 				++errors, printf("Test32: read_timeout(from) failed (%s)\n", strerror(errno));
 			else if ((bytes = read(from, buf, 4)) != 0)
-				++errors, printf("Test33: read(from) failed (returned %d, not %d) (%s)\n", bytes, 0, strerror(errno));
+				++errors, printf("Test33: read(from) failed (returned %d, not %d) (%s)\n", (int)bytes, 0, strerror(errno));
 
 			if ((status = coproc_close(pid, &to, &from, &err)) == -1)
 				++errors, printf("Test34: coproc_close() failed (%s)\n", strerror(errno));
@@ -678,25 +970,25 @@ int main()
 			if (read_timeout(from, 5, 0) == -1)
 				++errors, printf("Test41: read_timeout(from) failed (%s)\n", strerror(errno));
 			else if ((bytes = read(from, buf, 4)) != 4)
-				++errors, printf("Test42: read(from) failed (returned %d, not %d) (%s)\n", bytes, 4, strerror(errno));
+				++errors, printf("Test42: read(from) failed (returned %d, not %d) (%s)\n", (int)bytes, 4, strerror(errno));
 			else if (memcmp(buf, "abc\n", 4))
 				++errors, printf("Test43: read(from) failed (read \"%.4s\", not \"%.4s\")\n", buf, "abc\n");
 			else if (read_timeout(from, 5, 0) == -1)
 				++errors, printf("Test44: read_timeout(from) failed (%s)\n", strerror(errno));
 			else if ((bytes = read(from, buf, 4)) != 4)
-				++errors, printf("Test45: read(from) failed (returned %d, not %d) (%s)\n", bytes, 4, strerror(errno));
+				++errors, printf("Test45: read(from) failed (returned %d, not %d) (%s)\n", (int)bytes, 4, strerror(errno));
 			else if (memcmp(buf, "def\n", 4))
 				++errors, printf("Test46: read(from) failed (read \"%.4s\", not \"%.4s\")\n", buf, "def\n");
 			else if (read_timeout(from, 5, 0) == -1)
 				++errors, printf("Test47: read_timeout(from) failed (%s)\n", strerror(errno));
 			else if ((bytes = read(from, buf, 4)) != 4)
-				++errors, printf("Test48: read(from) failed (returned %d, not %d) (%s)\n", bytes, 4, strerror(errno));
+				++errors, printf("Test48: read(from) failed (returned %d, not %d) (%s)\n", (int)bytes, 4, strerror(errno));
 			else if (memcmp(buf, "ghi\n", 4))
 				++errors, printf("Test49: read(from) failed (read \"%.4s\", not \"%.4s\")\n", buf, "ghi\n");
 			else if (read_timeout(from, 5, 0) == -1)
 				++errors, printf("Test50: read_timeout(from) failed (%s)\n", strerror(errno));
 			else if ((bytes = read(from, buf, 4)) != 0)
-				++errors, printf("Test51: read(from) failed (returned %d, not %d) (%s)\n", bytes, 0, strerror(errno));
+				++errors, printf("Test51: read(from) failed (returned %d, not %d) (%s)\n", (int)bytes, 0, strerror(errno));
 
 			if ((status = coproc_close(pid, &to, &from, &err)) == -1)
 				++errors, printf("Test52: coproc_close() failed (%s)\n", strerror(errno));
@@ -727,25 +1019,25 @@ int main()
 			if (read_timeout(from, 5, 0) == -1)
 				++errors, printf("Test59: read_timeout(from) failed (%s)\n", strerror(errno));
 			else if ((bytes = read(from, buf, 4)) != 4)
-				++errors, printf("Test60: read(from) failed (returned %d, not %d) (%s)\n", bytes, 4, strerror(errno));
+				++errors, printf("Test60: read(from) failed (returned %d, not %d) (%s)\n", (int)bytes, 4, strerror(errno));
 			else if (memcmp(buf, "abc\n", 4))
 				++errors, printf("Test61: read(from) failed (read \"%.4s\", not \"%.4s\")\n", buf, "abc\n");
 			else if (read_timeout(from, 5, 0) == -1)
 				++errors, printf("Test62: read_timeout(from) failed (%s)\n", strerror(errno));
 			else if ((bytes = read(from, buf, 4)) != 4)
-				++errors, printf("Test63: read(from) failed (returned %d, not %d) (%s)\n", bytes, 4, strerror(errno));
+				++errors, printf("Test63: read(from) failed (returned %d, not %d) (%s)\n", (int)bytes, 4, strerror(errno));
 			else if (memcmp(buf, "def\n", 4))
 				++errors, printf("Test64: read(from) failed (read \"%.4s\", not \"%.4s\")\n", buf, "def\n");
 			else if (read_timeout(from, 5, 0) == -1)
 				++errors, printf("Test65: read_timeout(from) failed (%s)\n", strerror(errno));
 			else if ((bytes = read(from, buf, 4)) != 4)
-				++errors, printf("Test66: read(from) failed (returned %d, not %d) (%s)\n", bytes, 4, strerror(errno));
+				++errors, printf("Test66: read(from) failed (returned %d, not %d) (%s)\n", (int)bytes, 4, strerror(errno));
 			else if (memcmp(buf, "ghi\n", 4))
 				++errors, printf("Test67: read(from) failed (read \"%.4s\", not \"%.4s\")\n", buf, "ghi\n");
 			else if (read_timeout(from, 5, 0) == -1)
 				++errors, printf("Test68: read_timeout(from) failed (%s)\n", strerror(errno));
 			else if ((bytes = read(from, buf, 4)) != 0)
-				++errors, printf("Test69: read(from) failed (returned %d, not %d) (%s)\n", bytes, 0, strerror(errno));
+				++errors, printf("Test69: read(from) failed (returned %d, not %d) (%s)\n", (int)bytes, 0, strerror(errno));
 
 			if ((status = coproc_close(pid, &to, &from, &err)) == -1)
 				++errors, printf("Test70: coproc_close() failed (%s)\n", strerror(errno));
@@ -772,13 +1064,13 @@ int main()
 			if (read_timeout(from, 5, 0) == -1)
 				++errors, printf("Test75: read_timeout(from) failed (%s)\n", strerror(errno));
 			else if ((bytes = read(from, buf, BUFSIZ)) != 6)
-				++errors, printf("Test76: read(from) failed (returned %d, not %d) (%s)\n", bytes, 6, strerror(errno));
+				++errors, printf("Test76: read(from) failed (returned %d, not %d) (%s)\n", (int)bytes, 6, strerror(errno));
 			else if (memcmp(buf, "a b c\n", 6))
 				++errors, printf("Test77: read(from) failed (read \"%.6s\", not \"%.6s\")\n", buf, "a b c\n");
 			else if (read_timeout(from, 5, 0) == -1)
 				++errors, printf("Test78: read_timeout(from) failed (%s)\n", strerror(errno));
 			else if ((bytes = read(from, buf, BUFSIZ)) != 0)
-				++errors, printf("Test79: read(from) failed (returned %d, not %d) (%s)\n", bytes, 0, strerror(errno));
+				++errors, printf("Test79: read(from) failed (returned %d, not %d) (%s)\n", (int)bytes, 0, strerror(errno));
 
 			if ((status = coproc_close(pid, &to, &from, &err)) == -1)
 				++errors, printf("Test80: coproc_close() failed (%s)\n", strerror(errno));
@@ -805,13 +1097,13 @@ int main()
 		if (read_timeout(from, 5, 0) == -1)
 			++errors, printf("Test85: read_timeout(from) failed (%s)\n", strerror(errno));
 		else if ((bytes = read(from, buf, BUFSIZ)) != 6)
-			++errors, printf("Test86: read(from) failed (returned %d, not %d) (%s)\n", bytes, 6, strerror(errno));
+			++errors, printf("Test86: read(from) failed (returned %d, not %d) (%s)\n", (int)bytes, 6, strerror(errno));
 		else if (memcmp(buf, "a b c\n", 6))
 			++errors, printf("Test87: read(from) failed (read \"%.6s\", not \"%.6s\")\n", buf, "a b c\n");
 		else if (read_timeout(from, 5, 0) == -1)
 			++errors, printf("Test88: read_timeout(from) failed (%s)\n", strerror(errno));
 		else if ((bytes = read(from, buf, BUFSIZ)) != 0)
-			++errors, printf("Test89: read(from) failed (returned %d, not %d) (%s)\n", bytes, 0, strerror(errno));
+			++errors, printf("Test89: read(from) failed (returned %d, not %d) (%s)\n", (int)bytes, 0, strerror(errno));
 
 		if ((status = coproc_close(pid, &to, &from, &err)) == -1)
 			++errors, printf("Test90: coproc_close() failed (%s)\n", strerror(errno));
@@ -871,7 +1163,7 @@ int main()
 		else if (read_timeout(masterfd, 5, 0) == -1)
 			++errors, printf("Test109: read_timeout(masterfd) failed (%s)\n", strerror(errno));
 		else if ((bytes = read(masterfd, buf, 5)) != 5)
-			++errors, printf("Test110: read(masterfd) failed (returned %d, not %d) (%s)\n", bytes, 5, strerror(errno));
+			++errors, printf("Test110: read(masterfd) failed (returned %d, not %d) (%s)\n", (int)bytes, 5, strerror(errno));
 		else if (memcmp(buf, "abc", 3))
 			++errors, printf("Test111: read(masterfd) failed (read \"%.3s\", not \"%.3s\")\n", buf, "abc");
 		else if (write_timeout(masterfd, 5, 0) == -1 || write(masterfd, "def\n", 4) != 4)
@@ -879,7 +1171,7 @@ int main()
 		else if (read_timeout(masterfd, 5, 0) == -1)
 			++errors, printf("Test113: read_timeout(masterfd) failed (%s)\n", strerror(errno));
 		else if ((bytes = read(masterfd, buf, 5)) != 5)
-			++errors, printf("Test114: read(masterfd) failed (returned %d, not %d) (%s)\n", bytes, 5, strerror(errno));
+			++errors, printf("Test114: read(masterfd) failed (returned %d, not %d) (%s)\n", (int)bytes, 5, strerror(errno));
 		else if (memcmp(buf, "def", 3))
 			++errors, printf("Test115: read(masterfd) failed (read \"%.3s\", not \"%.3s\")\n", buf, "def");
 		else if (write_timeout(masterfd, 5, 0) == -1 || write(masterfd, "ghi\n", 4) != 4)
@@ -887,7 +1179,7 @@ int main()
 		else if (read_timeout(masterfd, 5, 0) == -1)
 			++errors, printf("Test117: read_timeout(masterfd) failed (%s)\n", strerror(errno));
 		else if ((bytes = read(masterfd, buf, 5)) != 5)
-			++errors, printf("Test118: read(masterfd) failed (returned %d, not %d) (%s)\n", bytes, 5, strerror(errno));
+			++errors, printf("Test118: read(masterfd) failed (returned %d, not %d) (%s)\n", (int)bytes, 5, strerror(errno));
 		else if (memcmp(buf, "ghi", 3))
 			++errors, printf("Test119: read(masterfd) failed (read \"%.3s\", not \"%.3s\")\n", buf, "ghi");
 
@@ -910,7 +1202,7 @@ int main()
 		else if (read_timeout(masterfd, 5, 0) == -1)
 			++errors, printf("Test125: read_timeout(masterfd) failed (%s)\n", strerror(errno));
 		else if ((bytes = read(masterfd, buf, 5)) != 5)
-			++errors, printf("Test126: read(masterfd) failed (returned %d, not %d) (%s)\n", bytes, 5, strerror(errno));
+			++errors, printf("Test126: read(masterfd) failed (returned %d, not %d) (%s)\n", (int)bytes, 5, strerror(errno));
 		else if (memcmp(buf, "abc", 3))
 			++errors, printf("Test127: read(masterfd) failed (read \"%.3s\", not \"%.3s\")\n", buf, "abc");
 		else if (write_timeout(masterfd, 5, 0) == -1 || write(masterfd, "def\n", 4) != 4)
@@ -918,7 +1210,7 @@ int main()
 		else if (read_timeout(masterfd, 5, 0) == -1)
 			++errors, printf("Test129: read_timeout(masterfd) failed (%s)\n", strerror(errno));
 		else if ((bytes = read(masterfd, buf, 5)) != 5)
-			++errors, printf("Test130: read(masterfd) failed (returned %d, not %d) (%s)\n", bytes, 5, strerror(errno));
+			++errors, printf("Test130: read(masterfd) failed (returned %d, not %d) (%s)\n", (int)bytes, 5, strerror(errno));
 		else if (memcmp(buf, "def", 3))
 			++errors, printf("Test131: read(masterfd) failed (read \"%.3s\", not \"%.3s\")\n", buf, "def");
 		else if (write_timeout(masterfd, 5, 0) == -1 || write(masterfd, "ghi\n", 4) != 4)
@@ -926,7 +1218,7 @@ int main()
 		else if (read_timeout(masterfd, 5, 0) == -1)
 			++errors, printf("Test133: read_timeout(masterfd) failed (%s)\n", strerror(errno));
 		else if ((bytes = read(masterfd, buf, 5)) != 5)
-			++errors, printf("Test134: read(masterfd) failed (returned %d, not %d) (%s)\n", bytes, 5, strerror(errno));
+			++errors, printf("Test134: read(masterfd) failed (returned %d, not %d) (%s)\n", (int)bytes, 5, strerror(errno));
 		else if (memcmp(buf, "ghi", 3))
 			++errors, printf("Test135: read(masterfd) failed (read \"%.3s\", not \"%.3s\")\n", buf, "ghi");
 
@@ -949,7 +1241,7 @@ int main()
 		else if (read_timeout(masterfd, 5, 0) == -1)
 			++errors, printf("Test141: read_timeout(masterfd) failed (%s)\n", strerror(errno));
 		else if ((bytes = read(masterfd, buf, 5)) != 5)
-			++errors, printf("Test142: read(masterfd) failed (returned %d, not %d) (%s)\n", bytes, 5, strerror(errno));
+			++errors, printf("Test142: read(masterfd) failed (returned %d, not %d) (%s)\n", (int)bytes, 5, strerror(errno));
 		else if (memcmp(buf, "abc", 3))
 			++errors, printf("Test143: read(masterfd) failed (read \"%.3s\", not \"%.3s\")\n", buf, "abc");
 		else if (write_timeout(masterfd, 5, 0) == -1 || write(masterfd, "def\n", 4) != 4)
@@ -957,7 +1249,7 @@ int main()
 		else if (read_timeout(masterfd, 5, 0) == -1)
 			++errors, printf("Test145: read_timeout(masterfd) failed (%s)\n", strerror(errno));
 		else if ((bytes = read(masterfd, buf, 5)) != 5)
-			++errors, printf("Test146: read(masterfd) failed (returned %d, not %d) (%s)\n", bytes, 5, strerror(errno));
+			++errors, printf("Test146: read(masterfd) failed (returned %d, not %d) (%s)\n", (int)bytes, 5, strerror(errno));
 		else if (memcmp(buf, "def", 3))
 			++errors, printf("Test147: read(masterfd) failed (read \"%.3s\", not \"%.3s\")\n", buf, "def");
 		else if (write_timeout(masterfd, 5, 0) == -1 || write(masterfd, "ghi\n", 4) != 4)
@@ -965,7 +1257,7 @@ int main()
 		else if (read_timeout(masterfd, 5, 0) == -1)
 			++errors, printf("Test149: read_timeout(masterfd) failed (%s)\n", strerror(errno));
 		else if ((bytes = read(masterfd, buf, 5)) != 5)
-			++errors, printf("Test150: read(masterfd) failed (returned %d, not %d) (%s)\n", bytes, 5, strerror(errno));
+			++errors, printf("Test150: read(masterfd) failed (returned %d, not %d) (%s)\n", (int)bytes, 5, strerror(errno));
 		else if (memcmp(buf, "ghi", 3))
 			++errors, printf("Test151: read(masterfd) failed (read \"%.3s\", not \"%.3s\")\n", buf, "ghi");
 
@@ -990,14 +1282,14 @@ int main()
 			if (read_timeout(masterfd, 5, 0) == -1)
 				++errors, printf("Test157: read_timeout(masterfd) failed (%s)\n", strerror(errno));
 			else if ((bytes = read(masterfd, buf, BUFSIZ)) != 7)
-				++errors, printf("Test158: read(masterfd) failed (returned %d, not %d) (%s)\n", bytes, 7, strerror(errno));
+				++errors, printf("Test158: read(masterfd) failed (returned %d, not %d) (%s)\n", (int)bytes, 7, strerror(errno));
 			else if (memcmp(buf, "a b c", 5))
 				++errors, printf("Test159: read(masterfd) failed (read \"%.5s\", not \"%.5s\")\n", buf, "a b c");
 #ifndef linux
 			else if (read_timeout(masterfd, 5, 0) == -1)
 				++errors, printf("Test160: read_timeout(masterfd) failed (%s)\n", strerror(errno));
 			else if ((bytes = read(masterfd, buf, BUFSIZ)) != 0)
-				++errors, printf("Test161: read(masterfd) failed (returned %d, not %d) (%s)\n", bytes, 0, strerror(errno));
+				++errors, printf("Test161: read(masterfd) failed (returned %d, not %d) (%s)\n", (int)bytes, 0, strerror(errno));
 #endif
 
 			if ((status = coproc_pty_close(pid, &masterfd, slavename)) == -1)
@@ -1022,14 +1314,14 @@ int main()
 		if (read_timeout(masterfd, 5, 0) == -1)
 			++errors, printf("Test167: read_timeout(masterfd) failed (%s)\n", strerror(errno));
 		else if ((bytes = read(masterfd, buf, BUFSIZ)) != 7)
-			++errors, printf("Test168: read(masterfd) failed (returned %d, not %d) (%s)\n", bytes, 7, strerror(errno));
+			++errors, printf("Test168: read(masterfd) failed (returned %d, not %d) (%s)\n", (int)bytes, 7, strerror(errno));
 		else if (memcmp(buf, "a b c", 5))
 			++errors, printf("Test169: read(masterfd) failed (read \"%.5s\", not \"%.5s\")\n", buf, "a b c");
 #ifndef linux
 		else if (read_timeout(masterfd, 5, 0) == -1)
 			++errors, printf("Test170: read_timeout(masterfd) failed (%s)\n", strerror(errno));
 		else if ((bytes = read(masterfd, buf, BUFSIZ)) != 0)
-			++errors, printf("Test171: read(masterfd) failed (returned %d, not %d) (%s)\n", bytes, 0, strerror(errno));
+			++errors, printf("Test171: read(masterfd) failed (returned %d, not %d) (%s)\n", (int)bytes, 0, strerror(errno));
 #endif
 
 		if ((status = coproc_pty_close(pid, &masterfd, slavename)) == -1)

@@ -37,7 +37,7 @@ before giving up.
 test3
 ~~~~~
 The client prints the numbers from 0 to 10, sleeping for a second before
-printing each one. daemon will respawns the client and since it runs for
+printing each one. daemon will respawn the client and since it runs for
 11 seconds, it will be respawned indefinitely. The client has to be stopped
 manually with:
 
@@ -63,8 +63,8 @@ After it has run, check that the current directory contains a "tmp"
 directory. It should contain a file called "test4.client.output" that is
 owned by "nobody" with permissions set to "rw-------". This file should
 contain the aforementioned environment variables and nothing else. If it
-does contain a few other variables, try changing the "#!/bin/sh" line in
-"test4.client" to be "#!/bin/ash" (bash adds a few environment variables).
+does contain a few other variables (e.g. PWD, SHLVL), don't worry. They
+are added by the shell.
 
 Note that this test should also test --chroot but there's too much to setup
 first (e.g. /dev/log, restart syslogd, /etc/passwd, /etc/group). It would
@@ -189,7 +189,7 @@ will already exist and be non-writable. Note that this test must
 not be run as root. After the test, the file "test18.err" should
 contain the following error message:
 
-  daemon: fatal: failed to start debug delivery to test18.dbg: Permission denied
+  test18: fatal: failed to start debug delivery to test18.dbg: Permission denied
 
 test19
 ~~~~~~
@@ -316,14 +316,14 @@ test36
 This test shows what happens when the --chroot option is given in the
 configuration file. It prints a usage message starting with:
 
-  Misplaced option: --chroot=%s in config file (must be on the command line)
+  Misplaced option: --chroot=/ in config file (must be on the command line)
 
 test37
 ~~~~~~
 This test shows what happens when the --user option is given in the
 configuration file. It prints a usage message starting with:
 
-  Misplaced option: --user=%s in config file (must be on the command line)
+  Misplaced option: --user=nobody in config file (must be on the command line)
 
 test38
 ~~~~~~

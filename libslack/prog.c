@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2002 raf <raf@raf.org>
+* Copyright (C) 1999-2004 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20020916 raf <raf@raf.org>
+* 20040102 raf <raf@raf.org>
 */
 
 /*
@@ -36,11 +36,11 @@ I<libslack(prog)> - program framework module
     typedef struct Option Option;
     typedef struct Options Options;
 
-    typedef void (*opt_action_int_t)(int);
-    typedef void (*opt_action_optional_int_t)(int *);
-    typedef void (*opt_action_string_t)(const char *);
-    typedef void (*opt_action_optional_string_t)(const char *);
-    typedef void (*opt_action_none_t)(void);
+    typedef void opt_action_int_t(int arg);
+    typedef void opt_action_optional_int_t(int *arg);
+    typedef void opt_action_string_t(const char *arg);
+    typedef void opt_action_optional_string_t(const char *arg);
+    typedef void opt_action_none_t(void);
 
     enum OptionArgument
     {
@@ -1948,9 +1948,9 @@ static void opt_action(Options *options, int rc, int longindex, const char *argu
 						int arg = int_arg(argument);
 
 						if (option->has_arg == required_argument)
-							((opt_action_int_t)option->object)(arg);
+							((opt_action_int_t *)option->object)(arg);
 						else
-							((opt_action_optional_int_t)option->object)(&arg);
+							((opt_action_optional_int_t *)option->object)(&arg);
 
 						break;
 					}
@@ -1971,7 +1971,7 @@ static void opt_action(Options *options, int rc, int longindex, const char *argu
 						break;
 
 					case OPT_FUNCTION:
-						((opt_action_string_t)option->object)(argument);
+						((opt_action_string_t *)option->object)(argument);
 						break;
 				}
 
@@ -1993,9 +1993,9 @@ static void opt_action(Options *options, int rc, int longindex, const char *argu
 
 			case OPT_FUNCTION:
 				if (option->action == optional_argument)
-					((opt_action_optional_int_t)option->object)(NULL);
+					((opt_action_optional_int_t *)option->object)(NULL);
 				else
-					((opt_action_none_t)option->object)();
+					((opt_action_none_t *)option->object)();
 				break;
 		}
 	}
@@ -2223,7 +2223,7 @@ char *opt_usage(char *buf, size_t size, Options *options)
 				help_length = strlen(help);
 			}
 
-			snprintf(help + help_length, BUFSIZ - help_length, "%*s%s", max_width - help_length + indent_width, "", leader);
+			snprintf(help + help_length, BUFSIZ - help_length, "%*s%s", (int)(max_width - help_length + indent_width), "", leader);
 			help_length = strlen(help);
 			remainder = total_width - help_length;
 
@@ -2234,7 +2234,7 @@ char *opt_usage(char *buf, size_t size, Options *options)
 				/* Indent subsequent description lines */
 				if (desc != opt->desc)
 				{
-					snprintf(help + help_length, BUFSIZ - help_length, "%*s%*.*s", indent_width + max_width, "", leader_width, (int)leader_width, "");
+					snprintf(help + help_length, BUFSIZ - help_length, "%*s%*.*s", (int)(indent_width + max_width), "", (int)leader_width, (int)leader_width, "");
 					help_length = strlen(help);
 				}
 
@@ -2282,7 +2282,7 @@ char *opt_usage(char *buf, size_t size, Options *options)
 
 				if (desc != opt->desc)
 				{
-					snprintf(help + help_length, BUFSIZ - help_length, "%*s%*.*s", indent_width + max_width, "", leader_width, (int)leader_width, "");
+					snprintf(help + help_length, BUFSIZ - help_length, "%*s%*.*s", (int)(indent_width + max_width), "", (int)leader_width, (int)leader_width, "");
 					help_length = strlen(help);
 				}
 
@@ -2352,8 +2352,8 @@ The following program:
  int minimum = 0;
  int reverse = 0;
 
- void setup_syslog(char *facility) { ... }
- void parse_config(char *path) { ... }
+ void setup_syslog(char *facility) {}
+ void parse_config(char *path) {}
 
  Option example_optab[] =
  {

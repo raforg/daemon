@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2002 raf <raf@raf.org>
+* Copyright (C) 1999-2004 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20020916 raf <raf@raf.org>
+* 20040102 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_NET_H
@@ -87,60 +87,60 @@ struct net_interface_t
 };
 
 _begin_decls
-int net_server _args ((const char *interface, const char *service, sockport_t port, int rcvbufsz, int sndbufsz, sockaddr_t *addr, size_t *addrsize));
-int net_client _args ((const char *host, const char *service, sockport_t port, long timeout, int rcvbufsz, int sndbufsz, sockaddr_t *addr, size_t *addrsize));
-int net_udp_server _args ((const char *interface, const char *service, sockport_t port, int rcvbufsz, int sndbufsz, sockaddr_t *addr, size_t *addrsize));
-int net_udp_client _args ((const char *host, const char *service, sockport_t port, int rcvbufsz, int sndbufsz, sockaddr_t *addr, size_t *addrsize));
-int net_create_server _args ((const char *interface, const char *service, sockport_t port, int type, int protocol, sockopt_t *sockopts, sockaddr_t *addr, size_t *addrsize));
-int net_create_client _args ((const char *host, const char *service, sockport_t port, sockport_t localport, int type, int protocol, long timeout, sockopt_t *sockopts, sockaddr_t *addr, size_t *addrsize));
-int net_multicast_sender _args ((const char *group, const char *service, sockport_t port, sockopt_t *sockopts, sockaddr_t *addr, size_t *addrsize, const char *ifname, unsigned int ifindex, int ttl, unsigned int noloopback));
-int net_multicast_receiver _args ((const char *group, const char *service, sockport_t port, sockopt_t *sockopts, sockaddr_t *addr, size_t *addrsize, const char *ifname, unsigned int ifindex));
-int net_multicast_join _args ((int sockfd, const sockaddr_t *addr, size_t addrsize, const char *ifname, unsigned int ifindex));
-int net_multicast_leave _args ((int sockfd, const sockaddr_t *addr, size_t addrsize, const char *ifname, unsigned int ifindex));
-int net_multicast_set_interface _args ((int sockfd, const char *ifname, unsigned int ifindex));
-int net_multicast_get_interface _args ((int sockfd));
-int net_multicast_set_loopback _args ((int sockfd, unsigned int loopback));
-int net_multicast_get_loopback _args ((int sockfd));
-int net_multicast_set_ttl _args ((int sockfd, int ttl));
-int net_multicast_get_ttl _args ((int sockfd));
-int net_tos_lowdelay _args ((int sockfd));
-int net_tos_throughput _args ((int sockfd));
-int net_tos_reliability _args ((int sockfd));
-int net_tos_lowcost _args ((int sockfd));
-int net_tos_normal _args ((int sockfd));
-struct hostent *net_gethostbyname _args ((const char *name, struct hostent *hostbuf, void **buf, size_t *size, int *herrno));
-struct servent *net_getservbyname _args ((const char *name, const char *proto, struct servent *servbuf, void **buf, size_t *size));
-int net_options _args ((int sockfd, sockopt_t *sockopts));
-List *net_interfaces _args ((void));
-List *net_interfaces_with_locker _args ((Locker *locker));
-List *net_interfaces_by_family _args ((int family));
-List *net_interfaces_by_family_with_locker _args ((int family, Locker *locker));
-rudp_t *rudp_create _args ((void));
-void rudp_release _args ((rudp_t *rudp));
-void *rudp_destroy _args ((rudp_t **rudp));
-ssize_t net_rudp_transact _args ((int sockfd, rudp_t *rudp, const void *obuf, size_t osize, void *ibuf, size_t isize));
-ssize_t net_rudp_transactwith _args ((int sockfd, rudp_t *rudp, const void *obuf, size_t osize, int oflags, void *ibuf, size_t isize, int iflags, sockaddr_any_t *addr, size_t addrsize));
-ssize_t net_pack _args ((int sockfd, long timeout, int flags, const char *format, ...));
-ssize_t net_vpack _args ((int sockfd, long timeout, int flags, const char *format, va_list args));
-ssize_t net_packto _args ((int sockfd, long timeout, int flags, const sockaddr_t *to, size_t tosize, const char *format, ...));
-ssize_t net_vpackto _args ((int sockfd, long timeout, int flags, const sockaddr_t *to, size_t tosize, const char *format, va_list args));
-ssize_t net_unpack _args ((int sockfd, long timeout, int flags, const char *format, ...));
-ssize_t net_vunpack _args ((int sockfd, long timeout, int flags, const char *format, va_list args));
-ssize_t net_unpackfrom _args ((int sockfd, long timeout, int flags, sockaddr_t *from, size_t *fromsize, const char *format, ...));
-ssize_t net_vunpackfrom _args ((int sockfd, long timeout, int flags, sockaddr_t *from, size_t *fromsize, const char *format, va_list args));
-ssize_t pack _args ((void *buf, size_t size, const char *format, ...));
-ssize_t vpack _args ((void *buf, size_t size, const char *format, va_list args));
-ssize_t unpack _args ((void *buf, size_t size, const char *format, ...));
-ssize_t vunpack _args ((void *buf, size_t size, const char *format, va_list args));
-ssize_t net_read _args ((int sockfd, long timeout, char *buf, size_t count));
-ssize_t net_write _args ((int sockfd, long timeout, const char *buf, size_t count));
-ssize_t net_expect _args ((int sockfd, long timeout, const char *format, ...));
-ssize_t net_vexpect _args ((int sockfd, long timeout, const char *format, va_list args));
-ssize_t net_send _args ((int sockfd, long timeout, const char *format, ...));
-ssize_t net_vsend _args ((int sockfd, long timeout, const char *format, va_list args));
-ssize_t sendfd _args ((int sockfd, const void *buf, size_t nbytes, int flags, int fd));
-ssize_t recvfd _args ((int sockfd, void *buf, size_t nbytes, int flags, int *fd));
-int mail _args ((const char *server, const char *sender, const char *recipients, const char *subject, const char *message));
+int net_server(const char *interface, const char *service, sockport_t port, int rcvbufsz, int sndbufsz, sockaddr_t *addr, size_t *addrsize);
+int net_client(const char *host, const char *service, sockport_t port, long timeout, int rcvbufsz, int sndbufsz, sockaddr_t *addr, size_t *addrsize);
+int net_udp_server(const char *interface, const char *service, sockport_t port, int rcvbufsz, int sndbufsz, sockaddr_t *addr, size_t *addrsize);
+int net_udp_client(const char *host, const char *service, sockport_t port, int rcvbufsz, int sndbufsz, sockaddr_t *addr, size_t *addrsize);
+int net_create_server(const char *interface, const char *service, sockport_t port, int type, int protocol, sockopt_t *sockopts, sockaddr_t *addr, size_t *addrsize);
+int net_create_client(const char *host, const char *service, sockport_t port, sockport_t localport, int type, int protocol, long timeout, sockopt_t *sockopts, sockaddr_t *addr, size_t *addrsize);
+int net_multicast_sender(const char *group, const char *service, sockport_t port, sockopt_t *sockopts, sockaddr_t *addr, size_t *addrsize, const char *ifname, unsigned int ifindex, int ttl, unsigned int noloopback);
+int net_multicast_receiver(const char *group, const char *service, sockport_t port, sockopt_t *sockopts, sockaddr_t *addr, size_t *addrsize, const char *ifname, unsigned int ifindex);
+int net_multicast_join(int sockfd, const sockaddr_t *addr, size_t addrsize, const char *ifname, unsigned int ifindex);
+int net_multicast_leave(int sockfd, const sockaddr_t *addr, size_t addrsize, const char *ifname, unsigned int ifindex);
+int net_multicast_set_interface(int sockfd, const char *ifname, unsigned int ifindex);
+int net_multicast_get_interface(int sockfd);
+int net_multicast_set_loopback(int sockfd, unsigned int loopback);
+int net_multicast_get_loopback(int sockfd);
+int net_multicast_set_ttl(int sockfd, int ttl);
+int net_multicast_get_ttl(int sockfd);
+int net_tos_lowdelay(int sockfd);
+int net_tos_throughput(int sockfd);
+int net_tos_reliability(int sockfd);
+int net_tos_lowcost(int sockfd);
+int net_tos_normal(int sockfd);
+struct hostent *net_gethostbyname(const char *name, struct hostent *hostbuf, void **buf, size_t *size, int *herrno);
+struct servent *net_getservbyname(const char *name, const char *proto, struct servent *servbuf, void **buf, size_t *size);
+int net_options(int sockfd, sockopt_t *sockopts);
+List *net_interfaces(void);
+List *net_interfaces_with_locker(Locker *locker);
+List *net_interfaces_by_family(int family);
+List *net_interfaces_by_family_with_locker(int family, Locker *locker);
+rudp_t *rudp_create(void);
+void rudp_release(rudp_t *rudp);
+void *rudp_destroy(rudp_t **rudp);
+ssize_t net_rudp_transact(int sockfd, rudp_t *rudp, const void *obuf, size_t osize, void *ibuf, size_t isize);
+ssize_t net_rudp_transactwith(int sockfd, rudp_t *rudp, const void *obuf, size_t osize, int oflags, void *ibuf, size_t isize, int iflags, sockaddr_any_t *addr, size_t addrsize);
+ssize_t net_pack(int sockfd, long timeout, int flags, const char *format, ...);
+ssize_t net_vpack(int sockfd, long timeout, int flags, const char *format, va_list args);
+ssize_t net_packto(int sockfd, long timeout, int flags, const sockaddr_t *to, size_t tosize, const char *format, ...);
+ssize_t net_vpackto(int sockfd, long timeout, int flags, const sockaddr_t *to, size_t tosize, const char *format, va_list args);
+ssize_t net_unpack(int sockfd, long timeout, int flags, const char *format, ...);
+ssize_t net_vunpack(int sockfd, long timeout, int flags, const char *format, va_list args);
+ssize_t net_unpackfrom(int sockfd, long timeout, int flags, sockaddr_t *from, size_t *fromsize, const char *format, ...);
+ssize_t net_vunpackfrom(int sockfd, long timeout, int flags, sockaddr_t *from, size_t *fromsize, const char *format, va_list args);
+ssize_t pack(void *buf, size_t size, const char *format, ...);
+ssize_t vpack(void *buf, size_t size, const char *format, va_list args);
+ssize_t unpack(void *buf, size_t size, const char *format, ...);
+ssize_t vunpack(void *buf, size_t size, const char *format, va_list args);
+ssize_t net_read(int sockfd, long timeout, char *buf, size_t count);
+ssize_t net_write(int sockfd, long timeout, const char *buf, size_t count);
+ssize_t net_expect(int sockfd, long timeout, const char *format, ...);
+ssize_t net_vexpect(int sockfd, long timeout, const char *format, va_list args);
+ssize_t net_send(int sockfd, long timeout, const char *format, ...);
+ssize_t net_vsend(int sockfd, long timeout, const char *format, va_list args);
+ssize_t sendfd(int sockfd, const void *buf, size_t nbytes, int flags, int fd);
+ssize_t recvfd(int sockfd, void *buf, size_t nbytes, int flags, int *fd);
+int mail(const char *server, const char *sender, const char *recipients, const char *subject, const char *message);
 _end_decls
 
 #endif

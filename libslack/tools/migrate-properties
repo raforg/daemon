@@ -1,4 +1,5 @@
 #!/bin/sh
+
 #
 # libslack - http://libslack.org/
 #
@@ -20,20 +21,17 @@
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
 
-# Swap to supplied implementation of rwlocks
-#
 # 20040102 raf <raf@raf.org>
 
-perl -pi \
-	-e 's/pthread_rwlock/test_pthread_rwlock/g;' \
-	-e 's/\bPTHREAD_RWLOCK/TEST_PTHREAD_RWLOCK/g;' \
-	${@:-`find . -name '*.[ch]'`}
+# Convert an old libslack property file into a libslack-0.5.2 property file.
+# Previously, leading spaces were kept. Now they're stripped unless quoted.
+# This script quotes leading spaces in old properties files so that they'll
+# be preserved by newer versions of libslack.
 
-perl -pi \
-	-e 's/^(\S+ \+= -DHAVE_PTHREAD_RWLOCK=1)$/# $1/;' \
-	`find . -name macros.mk`
+if [ $# = 0 ]
+then
+	echo usage: $0 '/etc/properties/* ~/.properties/*' >&2
+	exit 1
+fi
 
-perl -pi \
-	-e 's/^#define (HAVE_PTHREAD_RWLOCK) 1$/\/* #undef $1 *\//;' \
-	`find . -name config.h`
-
+exec perl -p -i -e 's/(?<!\\)= /=\\ /' "$@"

@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2002 raf <raf@raf.org>
+* Copyright (C) 1999-2004 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20020916 raf <raf@raf.org>
+* 20040102 raf <raf@raf.org>
 */
 
 /*
@@ -1388,7 +1388,6 @@ int agent_velocity_unlocked(Agent *agent, int fd)
 
 	/* Get the descriptor's id and return its velocity */
 
-
 	if ((id = agent->ids[fd]) == -1)
 		return set_errno(EINVAL);
 
@@ -2106,8 +2105,19 @@ static int agent_start_unlocked(Agent *agent)
 #if HAVE_POLL
 		if (agent->method == POLL)
 		{
+#ifdef HAVE_POLL_THAT_ABORTS_WHEN_POLLFDS_IS_NULL
+			struct pollfd dummy;
+
+			if ((nfds = poll(agent->pollfds ? agent->pollfds : &dummy, agent->length, tune(timo))) == -1)
+#else
 			if ((nfds = poll(agent->pollfds, agent->length, tune(timo))) == -1)
+#endif
+			{
+				if (errno == EINTR)
+					agent->state = IDLE;
+
 				return -1;
+			}
 
 			if (nfds) /* React to I/O events */
 			{
@@ -2332,6 +2342,10 @@ When I<agent_stop(3)> is called on an agent that isn't started.
 
 =back
 
+=head1 MT-Level
+
+MT-Disciplined
+
 =head1 SCALABILITY
 
 There are two aspects to the scalability of agents: scalability with respect
@@ -2400,8 +2414,9 @@ threaded approach.
 XXX Add throughput/timing results for: single thread select/poll, multiple
 thread select/poll, fast/slow lane
 
-The EXAMPLES section below contains a skeleton implementation of an internet
-service that is scalable with respect to the number of inactive connections.
+XXX The EXAMPLES section below contains a skeleton implementation of an
+internet service that is scalable with respect to the number of inactive
+connections.
 
 =head1 EXAMPLES
 
@@ -2452,22 +2467,22 @@ Trivial example: Read from stdin and timeout after 5 seconds with no input
         Agent *agent;
         int rc;
 
-		// Create an agent
+        // Create an agent
 
         if (!(agent = agent_create()))
             return EXIT_FAILURE;
 
-		// Schedule an action
+        // Schedule an action
 
         if (!(timeout = agent_schedule(agent, 5, 0, action, NULL)))
             return EXIT_FAILURE;
 
-		// Connect standard input
+        // Connect standard input
 
         if (agent_connect(agent, STDIN_FILENO, R_OK, reaction, NULL) == -1)
             return EXIT_FAILURE;
 
-		// Start the agent
+        // Start the agent
 
         while ((rc = agent_start(agent)) == -1 && errno == EINTR)
         {}
@@ -2478,10 +2493,6 @@ Trivial example: Read from stdin and timeout after 5 seconds with no input
 =cut
 
 XXX Show example of twin fast/slow lane agents swapping fds for scalability
-
-=head1 MT-Level
-
-MT-Disciplined
 
 =head1 BUGS
 
@@ -2535,7 +2546,7 @@ L<select(2)|select(2)>
 
 =head1 AUTHOR
 
-20020916 raf <raf@raf.org>
+20040102 raf <raf@raf.org>
 
 =cut
 
@@ -2642,7 +2653,7 @@ static int every_jiffy(Agent *agent, void *arg)
 	if (gettimeofday(now, NULL) == -1)
 		return -1;
 
-	printf("every_jiffy(%24.24s %ld usec) count = %d\n", ctime((const time_t *)&now->tv_sec), now->tv_usec, *count);
+	printf("every_jiffy(%24.24s %ld usec) count = %d\n", ctime((const time_t *)&now->tv_sec), (long)now->tv_usec, *count);
 
 	return 0;
 }
@@ -2658,7 +2669,7 @@ static int every_second(Agent *agent, void *arg)
 	if (gettimeofday(now, NULL) == -1)
 		return -1;
 
-	printf("every_second(%24.24s %ld usec) count = %d\n", ctime((const time_t *)&now->tv_sec), now->tv_usec, *count);
+	printf("every_second(%24.24s %ld usec) count = %d\n", ctime((const time_t *)&now->tv_sec), (long)now->tv_usec, *count);
 
 	return 0;
 }
@@ -2674,7 +2685,7 @@ static int every_minute(Agent *agent, void *arg)
 	if (gettimeofday(now, NULL) == -1)
 		return -1;
 
-	printf("every_minute(%24.24s %ld usec) count = %d\n", ctime((const time_t *)&now->tv_sec), now->tv_usec, *count);
+	printf("every_minute(%24.24s %ld usec) count = %d\n", ctime((const time_t *)&now->tv_sec), (long)now->tv_usec, *count);
 
 	return 0;
 }
@@ -2690,7 +2701,7 @@ static int every_hour(Agent *agent, void *arg)
 	if (gettimeofday(now, NULL) == -1)
 		return -1;
 
-	printf("every_hour(%24.24s %ld usec) count = %d\n", ctime((const time_t *)&now->tv_sec), now->tv_usec, *count);
+	printf("every_hour(%24.24s %ld usec) count = %d\n", ctime((const time_t *)&now->tv_sec), (long)now->tv_usec, *count);
 
 	return 0;
 }
@@ -2706,7 +2717,7 @@ static int every_day(Agent *agent, void *arg)
 	if (gettimeofday(now, NULL) == -1)
 		return -1;
 
-	printf("every_day(%24.24s %ld usec) count = %d\n", ctime((const time_t *)&now->tv_sec), now->tv_usec, *count);
+	printf("every_day(%24.24s %ld usec) count = %d\n", ctime((const time_t *)&now->tv_sec), (long)now->tv_usec, *count);
 
 	return 0;
 }
@@ -2718,7 +2729,7 @@ static int every_second2(Agent *agent, void *arg)
 	if (gettimeofday(now, NULL) == -1)
 		return -1;
 
-	printf("every_second(%24.24s %ld usec)\n", ctime((const time_t *)&now->tv_sec), now->tv_usec);
+	printf("every_second(%24.24s %ld usec)\n", ctime((const time_t *)&now->tv_sec), (long)now->tv_usec);
 
 	return 0;
 }
@@ -2730,7 +2741,7 @@ static int every_minute2(Agent *agent, void *arg)
 	if (gettimeofday(now, NULL) == -1)
 		return -1;
 
-	printf("every_minute(%24.24s %ld usec)\n", ctime((const time_t *)&now->tv_sec), now->tv_usec);
+	printf("every_minute(%24.24s %ld usec)\n", ctime((const time_t *)&now->tv_sec), (long)now->tv_usec);
 
 	return 0;
 }
@@ -2742,7 +2753,7 @@ static int every_hour2(Agent *agent, void *arg)
 	if (gettimeofday(now, NULL) == -1)
 		return -1;
 
-	printf("every_hour(%24.24s %ld usec)\n", ctime((const time_t *)&now->tv_sec), now->tv_usec);
+	printf("every_hour(%24.24s %ld usec)\n", ctime((const time_t *)&now->tv_sec), (long)now->tv_usec);
 
 	return 0;
 }
@@ -2754,7 +2765,7 @@ static int every_day2(Agent *agent, void *arg)
 	if (gettimeofday(now, NULL) == -1)
 		return -1;
 
-	printf("every_day(%24.24s %ld usec)\n", ctime((const time_t *)&now->tv_sec), now->tv_usec);
+	printf("every_day(%24.24s %ld usec)\n", ctime((const time_t *)&now->tv_sec), (long)now->tv_usec);
 
 	return 0;
 }
@@ -2885,7 +2896,7 @@ static int slow(Agent *agent, void *arg)
 	if (gettimeofday(now, NULL) == -1)
 		return -1;
 
-	printf("s l o w(scheduled for %5ld usec) %24.24s %ld usec\n", *usec, ctime((const time_t *)&now->tv_sec), now->tv_usec);
+	printf("s l o w(scheduled for %5ld usec) %24.24s %ld usec\n", *usec, ctime((const time_t *)&now->tv_sec), (long)now->tv_usec);
 
 	sleep(1);
 
@@ -2900,7 +2911,7 @@ static int delayed(Agent *agent, void *arg)
 	if (gettimeofday(now, NULL) == -1)
 		return -1;
 
-	printf("delayed(scheduled for %5ld usec) %24.24s %ld usec\n", *usec, ctime((const time_t *)&now->tv_sec), now->tv_usec);
+	printf("delayed(scheduled for %5ld usec) %24.24s %ld usec\n", *usec, ctime((const time_t *)&now->tv_sec), (long)now->tv_usec);
 
 	return 0;
 }
@@ -3289,10 +3300,14 @@ int main(int ac, char **av)
 					{
 						int s;
 						sockaddr_any_t addr;
+#ifdef HAVE_NETADDR_SIZE_IS_INT
+						int addrsize = sizeof(sockaddr_any_t);
+#else
 						size_t addrsize = sizeof(sockaddr_any_t);
+#endif
 						int status;
 
-						if (read_timeout(server, 5, 0) == -1 || (s = accept(server, (sockaddr_t *)&addr, &addrsize)) == -1)
+						if (read_timeout(server, 5, 0) == -1 || (s = accept(server, (sockaddr_t *)&addr, (void *)&addrsize)) == -1)
 							++errors, printf("Test89: accept() failed (%s)\n", strerror(errno));
 						else
 						{
@@ -3339,7 +3354,6 @@ int main(int ac, char **av)
 				if (close(server) == -1)
 					++errors, printf("Test97: close(server) failed (%s)\n", strerror(errno));
 			}
-
 
 			agent_destroy(&agent);
 			if (agent)

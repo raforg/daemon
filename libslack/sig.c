@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2002 raf <raf@raf.org>
+* Copyright (C) 1999-2004 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20020916 raf <raf@raf.org>
+* 20040102 raf <raf@raf.org>
 */
 
 /*
@@ -458,7 +458,7 @@ static int verify(int test, const char *name, const char *msg1, const char *msg2
 
 	if (strncmp(buf, msg1, msg1_length))
 	{
-		printf("Test %d: msg file produced incorrect input:\nshould be\n%s\nwas:\n%*.*s\n", test, msg1, msg1_length, (int)msg1_length, buf);
+		printf("Test %d: msg file produced incorrect input:\nshould be\n%s\nwas:\n%*.*s\n", test, msg1, (int)msg1_length, (int)msg1_length, buf);
 		return 1;
 	}
 

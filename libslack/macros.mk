@@ -1,7 +1,7 @@
 #
 # libslack - http://libslack.org/
 #
-# Copyright (C) 1999-2001 raf <raf@raf.org>
+# Copyright (C) 1999-2004 raf <raf@raf.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
-# 20020916 raf <raf@raf.org>
+# 20040102 raf <raf@raf.org>
 
 # Uncomment these to override the defines in daemon.h and prog.h
 #
@@ -86,7 +86,7 @@ SLACK_TEST_CCFLAGS += -Wno-long-long
 # SLACK_DEFINES += -DNO_DEBUG_LOCKERS=1
 
 SLACK_NAME := slack
-SLACK_VERSION := 0.5.1
+SLACK_VERSION := 0.5.2
 SLACK_URL := http://libslack.org/
 SLACK_ID := lib$(SLACK_NAME)-$(SLACK_VERSION)
 SLACK_DIST := $(SLACK_ID).tar.gz
@@ -121,6 +121,8 @@ SLACK_APP_MANFILES := $(patsubst %, %.gz, $(SLACK_APP_MANFILES))
 MAN_SUFFIX := .gz
 endif
 
+SLACK_SWIGFILE := $(SLACK_SRCDIR)/slack.swig
+
 SLACK_TESTDIR := $(SLACK_SRCDIR)/test
 SLACK_TESTS := $(patsubst %, $(SLACK_TESTDIR)/%, $(SLACK_MODULES))
 
@@ -153,8 +155,9 @@ DEB_TARGETS +=
 SOL_TARGETS += sol-slack
 OBSD_TARGETS += obsd-slack
 FBSD_TARGETS += fbsd-slack
+OSX_TARGETS += osx-slack
 
-CLEAN_FILES += $(SLACK_OFILES) $(SLACK_CONFIG) $(SLACK_LIB_MANFILES) $(SLACK_APP_MANFILES) $(SLACK_LIB_HTMLFILES) $(SLACK_APP_HTMLFILES) $(SLACK_SRCDIR)/pod2html-*
+CLEAN_FILES += $(SLACK_OFILES) $(SLACK_CONFIG) $(SLACK_LIB_MANFILES) $(SLACK_APP_MANFILES) $(SLACK_LIB_HTMLFILES) $(SLACK_APP_HTMLFILES) $(SLACK_SRCDIR)/pod2html-* $(SLACK_SWIGFILE)
 CLOBBER_FILES += $(SLACK_TARGET) $(SLACK_SRCDIR)/tags $(SLACK_TESTDIR) $(SLACK_INCLINK)
 
 SLACK_RPM_FILES += $(LIB_INSDIR)/$(SLACK_INSTALL_LINK)
@@ -193,8 +196,9 @@ SLACK_CLIENT_LIBS += util
 # SLACK_CLIENT_LIBS += socket
 # SLACK_CLIENT_LIBS += nsl
 
-# Uncomment this on Solaris if you are using Sun's C compiler (used by tests)
+# Uncomment this on Solaris if you are using Sun's C compiler
 #
+# SLACK_CLIENT_LIBS += m
 # SLACK_TEST_LIBS += m
 
 SLACK_TEST_LDFLAGS += $(patsubst %, -L%, $(SLACK_LIBDIRS)) $(patsubst %, -l%, $(SLACK_TEST_LIBS))

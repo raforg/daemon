@@ -1,7 +1,7 @@
 
 # daemon - http://libslack.org/daemon/
 #
-# Copyright (C) 1999-2001 raf <raf@raf.org>
+# Copyright (C) 1999-2004 raf <raf@raf.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
 
-# 20030901 raf <raf@raf.org>
+# 20040102 raf <raf@raf.org>
 
 ifneq ($(DAEMON_TARGET),./$(DAEMON_NAME))
 
@@ -79,7 +79,7 @@ uninstall-daemon-html:
 uninstall-daemon-conf:
 	@rm -f $(DAEMON_CONFDIR)/$(DAEMON_CONFFILE)
 
-.PHONY: dist-daemon dist-html-daemon rpm-daemon deb-daemon sol-daemon obsd-daemon fbsd-daemon
+.PHONY: dist-daemon dist-html-daemon rpm-daemon deb-daemon sol-daemon obsd-daemon fbsd-daemon osx-daemon
 
 dist-daemon: distclean
 	@set -e; \
@@ -237,7 +237,7 @@ $(DAEMON_SRCDIR)/debian:
 		s/<fill in ftp site>/http:\/\/libslack.org\/daemon\//; \
 		s/Upstream Author\(s\):/Upstream Author:/; \
 		s/<put author\(s\) name and email here>/raf <raf\@raf.org>/; \
-		s/^Copyright:$$/Copyright (C) 1999-2002 raf <raf\@raf.org>/; \
+		s/^Copyright:$$/Copyright (C) 1999-2004 raf <raf\@raf.org>/; \
 		s/<Must follow here>/This software is released under the terms of the GNU General Public License:\n\n    http:\/\/www.gnu.org\/copyleft\/gpl.html (on the Web)\n    file:\/usr\/share\/common-licenses\/GPL  (on Debian systems)\n/; \
 	' copyright; \
 	echo "Completing up debian/changelog."; \
@@ -290,7 +290,7 @@ sol-daemon: $(DAEMON_SRCDIR)/daemon.pkginfo
 	cd $(DAEMON_SRCDIR)/solaris/build; \
 	tar xzf $$up/$(DAEMON_DIST); \
 	cd $(DAEMON_ID); \
-	conf/solaris8-cc; \
+	conf/solaris8-gcc; \
 	make PREFIX=../../install FINAL_PREFIX="$(PREFIX)" all install-daemon; \
 	cd "$$base"; \
 	mv $(DAEMON_SRCDIR)/daemon.pkginfo $(DAEMON_SRCDIR)/solaris/info/pkginfo; \
@@ -416,6 +416,23 @@ $(DAEMON_SRCDIR)/fbsd-daemon-description:
 		} \
 	' < $(DAEMON_SRCDIR)/README > $(DAEMON_SRCDIR)/fbsd-daemon-description
 
+osx-daemon:
+	@set -e; \
+	base="`pwd`"; \
+	up="$$base/.."; \
+	mkdir -p "osx-$(DAEMON_NAME)/build"; \
+	mkdir -p "osx-$(DAEMON_NAME)/install"; \
+	cd "./osx-$(DAEMON_NAME)/build"; \
+	tar xzf "$$up/$(DAEMON_DIST)"; \
+	cd ./$(DAEMON_ID); \
+	./conf/macosx; \
+	make PREFIX=../../install FINAL_PREFIX="$(PREFIX)" all install-daemon; \
+	cd ../../install; \
+	arch="`uname -p`"; \
+	tar czf "$$up/$(DAEMON_ID)-osx-$$arch.tar.gz" .; \
+	cd "$$base"; \
+	rm -rf "$$base/osx-$(DAEMON_NAME)"
+
 # Present make targets separately in help if we are not alone
 
 ifneq ($(DAEMON_SRCDIR), .)
@@ -448,6 +465,7 @@ help::
 	echo " sol-daemon            -- makes a binary solaris package for daemon"; \
 	echo " obsd-daemon           -- makes a binary openbsd package for daemon"; \
 	echo " fbsd-daemon           -- makes a binary freebsd package for daemon"; \
+	echo " osx-daemon            -- makes a binary macosx package for daemon"; \
 	echo
 endif
 

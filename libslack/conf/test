@@ -2,7 +2,7 @@
 #
 # libslack - http://libslack.org/
 #
-# Copyright (C) 1999-2001 raf <raf@raf.org>
+# Copyright (C) 1999-2004 raf <raf@raf.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 
 # Modify the macros.mk make include files to exercise optional code
 #
-# 20020916 raf <raf@raf.org>
+# 20040102 raf <raf@raf.org>
 
 perl -pi \
 	-e 's/^# (GETOPT := getopt)$/$1/;' \

@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2002 raf <raf@raf.org>
+* Copyright (C) 1999-2004 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20020916 raf <raf@raf.org>
+* 20040102 raf <raf@raf.org>
 */
 
 /*
@@ -817,6 +817,41 @@ indeterminate. These functions never return C<-1>.
 =head1 MT-Level
 
 MT-Safe
+
+=head1 EXAMPLES
+
+Store the current directory into allocated memory:
+
+    #include <slack/std.h>
+    #include <slack/lim.h>
+
+    int main()
+    {
+        long path_size = limit_path();
+        char *buf = malloc(path_size * sizeof(char));
+        if (!buf)
+            return EXIT_FAILURE;
+
+        printf("%s\n", getcwd(buf, path_size));
+
+        return EXIT_SUCCESS;
+    }
+
+Close all file descriptors:
+
+    #include <slack/std.h>
+    #include <slack/lim.h>
+
+    int main()
+    {
+        int fd_limit = limit_open();
+		int fd;
+
+        for (fd = 0; fd < fd_limit; ++fd)
+            close(fd);
+
+        return EXIT_SUCCESS;
+    }
 
 =head1 SEE ALSO
 

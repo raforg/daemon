@@ -79,8 +79,8 @@ for my $src (@ARGV)
 		if ($hdr_state eq 'decls')
 		{
 			my $line = $_;
-			$line =~ s/ _args \(//;
-			$line =~ s/\)\);/);/;
+			# $line =~ s/ _args \(//;
+			# $line =~ s/\)\);/);/;
 			chop($line);
 			push(@hdr, $line);
 		}

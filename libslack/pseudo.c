@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2002 raf <raf@raf.org>
+* Copyright (C) 1999-2004 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20020916 raf <raf@raf.org>
+* 20040102 raf <raf@raf.org>
 */
 
 /*
@@ -818,29 +818,78 @@ terminal.
 
 =back
 
+=head1 MT-Level
+
+MT-Safe if and only if I<ttyname_r(3)> or I<ptsname_r(3)> are available when
+needed. On systems that have I<openpty(3)> or C<"/dev/ptc">, I<ttyname_r(3)>
+is required, otherwise the unsafe I<ttyname(3)> will be used. On systems
+that have C<"/dev/ptmx">, I<ptsname_r(3)> is required, otherwise the unsafe
+I<ptsname(3)> will be used. On systems that have I<_getpty(2)>,
+I<pty_open(3)> is unsafe because I<_getpty(2)> is unsafe. In short, it's
+MT-Safe under Linux, Unsafe under Solaris and OpenBSD.
+
 =head1 EXAMPLE
 
 A very simple pty program:
 
     #include <slack/std.h>
     #include <slack/pseudo.h>
+    #include <slack/sig.h>
 
     #include <sys/select.h>
     #include <sys/wait.h>
 
+    struct termios stdin_termios;
+    struct winsize stdin_winsize;
+    int havewin = 0;
+    char slavename[64];
+    int masterfd;
+    pid_t pid;
+
+    int tty_raw(int fd)
+    {
+        struct termios attr[1];
+
+        if (tcgetattr(fd, attr) == -1)
+            return -1;
+
+        attr->c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
+        attr->c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
+        attr->c_cflag &= ~(CSIZE | PARENB);
+        attr->c_cflag |= (CS8);
+        attr->c_oflag &= ~(OPOST);
+        attr->c_cc[VMIN] = 1;
+        attr->c_cc[VTIME] = 0;
+
+        return tcsetattr(fd, TCSANOW, attr);
+    }
+
+    void restore_stdin(void)
+    {
+        if (tcsetattr(STDIN_FILENO, TCSANOW, &stdin_termios) == -1)
+            errorsys("failed to restore stdin terminal attributes");
+    }
+
+    void winch(int signo)
+    {
+        struct winsize winsize;
+
+        if (ioctl(STDIN_FILENO, TIOCGWINSZ, &winsize) != -1)
+            ioctl(masterfd, TIOCSWINSZ, &winsize);
+    }
+
     int main(int ac, char **av)
     {
-        char slavename[64];
-        int masterfd;
-        pid_t pid;
-
         if (ac == 1)
         {
             fprintf(stderr, "usage: pty command [arg...]\n");
             return EXIT_FAILURE;
         }
 
-        switch (pid = pty_fork(&masterfd, slavename, sizeof slavename, NULL, NULL))
+        if (isatty(STDIN_FILENO))
+            havewin = ioctl(STDIN_FILENO, TIOCGWINSZ, &stdin_winsize) != -1;
+
+        switch (pid = pty_fork(&masterfd, slavename, sizeof slavename, NULL, havewin ? &stdin_winsize : NULL))
         {
             case -1:
                 fprintf(stderr, "pty: pty_fork() failed (%s)\n", strerror(errno));
@@ -855,6 +904,16 @@ A very simple pty program:
             {
                 int infd = STDIN_FILENO;
                 int status;
+
+                if (isatty(STDIN_FILENO))
+                {
+                    if (tcgetattr(STDIN_FILENO, &stdin_termios) != -1)
+                        atexit((void (*)(void))restore_stdin);
+
+                    tty_raw(STDIN_FILENO);
+
+                    signal_set_handler(SIGWINCH, 0, winch);
+                }
 
                 while (masterfd != -1)
                 {
@@ -873,6 +932,8 @@ A very simple pty program:
                         FD_SET(masterfd, readfds);
 
                     maxfd = (masterfd > infd) ? masterfd : infd;
+
+                    signal_handle_all();
 
                     if ((n = select(maxfd + 1, readfds, NULL, NULL, NULL)) == -1 && errno != EINTR)
                         break;
@@ -911,6 +972,7 @@ A very simple pty program:
                         }
                         else
                         {
+                            close(masterfd);
                             masterfd = -1;
                             continue;
                         }
@@ -927,20 +989,12 @@ A very simple pty program:
         }
 
         pty_release(slavename);
-        close(masterfd);
+
+        if (masterfd != -1)
+            close(masterfd);
 
         return EXIT_SUCCESS;
     }
-
-=head1 MT-Level
-
-MT-Safe if and only if I<ttyname_r(3)> or I<ptsname_r(3)> are available when
-needed. On systems that have I<openpty(3)> or C<"/dev/ptc">, I<ttyname_r(3)>
-is required, otherwise the unsafe I<ttyname(3)> will be used. On systems
-that have C<"/dev/ptmx">, I<ptsname_r(3)> is required, otherwise the unsafe
-I<ptsname(3)> will be used. On systems that have I<_getpty(2)>,
-I<pty_open(3)> is unsafe because I<_getpty(2)> is unsafe. In short, it's
-MT-Safe under Linux, Unsafe under Solaris and OpenBSD.
 
 =head1 SEE ALSO
 

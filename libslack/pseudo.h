@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2002 raf <raf@raf.org>
+* Copyright (C) 1999-2004 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20020916 raf <raf@raf.org>
+* 20040102 raf <raf@raf.org>
 */
 
 /*
@@ -46,12 +46,12 @@
 #include <slack/hdr.h>
 
 _begin_decls
-int pty_open _args ((int *masterfd, int *slavefd, char *slavename, size_t slavenamesize, const struct termios *slave_termios, const struct winsize *slave_winsize));
-int pty_release _args ((const char *slavename));
-int pty_set_owner _args ((const char *slavename, uid_t uid));
-int pty_make_controlling_tty _args ((int *slavefd, const char *slavename));
-int pty_change_window_size _args ((int masterfd, int row, int col, int xpixel, int ypixel));
-pid_t pty_fork _args ((int *masterfd, char *slavename, size_t slavenamesize, const struct termios *slave_termios, const struct winsize *slave_winsize));
+int pty_open(int *masterfd, int *slavefd, char *slavename, size_t slavenamesize, const struct termios *slave_termios, const struct winsize *slave_winsize);
+int pty_release(const char *slavename);
+int pty_set_owner(const char *slavename, uid_t uid);
+int pty_make_controlling_tty(int *slavefd, const char *slavename);
+int pty_change_window_size(int masterfd, int row, int col, int xpixel, int ypixel);
+pid_t pty_fork(int *masterfd, char *slavename, size_t slavenamesize, const struct termios *slave_termios, const struct winsize *slave_winsize);
 _end_decls
 
 #endif

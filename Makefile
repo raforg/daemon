@@ -1,7 +1,7 @@
 #
 # daemon - http://libslack.org/daemon/
 #
-# Copyright (C) 1999-2001 raf <raf@raf.org>
+# Copyright (C) 1999-2004 raf <raf@raf.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
 
-# 20030901 raf <raf@raf.org>
+# 20040102 raf <raf@raf.org>
 
 CC := gcc
 # CC := cc
@@ -29,7 +29,7 @@ POD2MAN := pod2man
 POD2HTML := pod2html
 GZIP := gzip -f -9
 
-DESTDIR := 
+DESTDIR :=
 PREFIX := $(DESTDIR)/usr/local
 APP_INSDIR := $(PREFIX)/bin
 LIB_INSDIR := $(PREFIX)/lib
@@ -60,7 +60,7 @@ DAEMON_INCDIRS := libslack
 DAEMON_LIBDIRS := libslack
 include $(DAEMON_SRCDIR)/macros.mk
 
-.PHONY: all ready test check man html install uninstall dist rpm deb sol obsd fbsd
+.PHONY: all ready test check man html install uninstall dist rpm deb sol obsd fbsd osx
 
 all: ready $(ALL_TARGETS)
 ready: $(READY_TARGETS)
@@ -75,6 +75,7 @@ deb: $(DEB_TARGETS)
 sol: $(SOL_TARGETS)
 obsd: $(OBSD_TARGETS)
 fbsd: $(FBSD_TARGETS)
+osx: $(OSX_TARGETS)
 
 .PHONY: help help-macros depend clean clobber distclean
 
@@ -102,6 +103,7 @@ help::
 	echo " sol                  -- makes binary solaris package"; \
 	echo " obsd                 -- makes binary openbsd package"; \
 	echo " fbsd                 -- makes binary freebsd package"; \
+	echo " osx                  -- makes binary macosx package"; \
 	echo
 
 help-macros::
@@ -137,7 +139,9 @@ help-macros::
 	echo "RPM_TARGETS = $(RPM_TARGETS)"; \
 	echo "DEB_TARGETS = $(DEB_TARGETS)"; \
 	echo "SOL_TARGETS = $(SOL_TARGETS)"; \
-	echo "BSD_TARGETS = $(BSD_TARGETS)"; \
+	echo "OBSD_TARGETS = $(OBSD_TARGETS)"; \
+	echo "FBSD_TARGETS = $(FBSD_TARGETS)"; \
+	echo "OSX_TARGETS = $(OSX_TARGETS)"; \
 	echo
 
 tags: $(TAG_FILES)

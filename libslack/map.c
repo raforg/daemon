@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2002 raf <raf@raf.org>
+* Copyright (C) 1999-2004 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20020916 raf <raf@raf.org>
+* 20040102 raf <raf@raf.org>
 */
 
 /*
@@ -531,7 +531,6 @@ C<_unlocked>. On success, returns C<0>. On error, returns an error code.
 
 */
 
-
 #define map_rdlock(map) ((map) ? locker_rdlock((map)->locker) : EINVAL)
 #define map_wrlock(map) ((map) ? locker_wrlock((map)->locker) : EINVAL)
 #define map_unlock(map) ((map) ? locker_unlock((map)->locker) : EINVAL)
@@ -848,6 +847,7 @@ static int map_resize(Map *map)
 	map->size = new_map->size;
 	map->items = new_map->items;
 	map->chain = new_map->chain;
+	map->value_destroy = new_map->value_destroy;
 	mem_release(new_map);
 
 	return 0;
@@ -1747,7 +1747,7 @@ List *map_keys_with_locker_unlocked(Locker *locker, Map *map)
 		return NULL;
 	}
 
-	while (mapper_has_next(mapper))
+	while (mapper_has_next(mapper) == 1)
 	{
 		const Mapping *mapping = mapper_next_mapping(mapper);
 
@@ -1855,7 +1855,7 @@ List *map_values_with_locker_unlocked(Locker *locker, Map *map)
 		return NULL;
 	}
 
-	while (mapper_has_next(mapper))
+	while (mapper_has_next(mapper) == 1)
 	{
 		const Mapping *mapping = mapper_next_mapping(mapper);
 
@@ -1984,7 +1984,7 @@ void map_apply_unlocked(Map *map, map_action_t *action, void *data)
 	if (!(mapper = mapper_create_unlocked(map)))
 		return;
 
-	while (mapper_has_next(mapper))
+	while (mapper_has_next(mapper) == 1)
 	{
 		const Mapping *mapping = mapper_next_mapping(mapper);
 		action(mapping->key, mapping->value, data);
@@ -2095,13 +2095,147 @@ basis.
 I<MT-Disciplined> means that the application developer has a mechanism for
 specifying the synchronisation requirements to be applied to library code.
 
-=head1 BUGS
+=head1 EXAMPLES
+
+Create a map that doesn't own its items, populate it and then iterate over
+its values with the internal iterator to print the values:
+
+    #include <slack/std.h>
+    #include <slack/map.h>
+
+    int main()
+    {
+        Map *map;
+
+        if (!(map = map_create(NULL)))
+            return EXIT_FAILURE;
+
+        map_add(map, "abc", "123");
+        map_add(map, "def", "456");
+        map_add(map, "ghi", "789");
+
+        while (map_has_next(map) == 1)
+            printf("%s\n", map_next(map));
+
+        map_destroy(&map);
+
+        return EXIT_SUCCESS;
+    }
+
+Create a map that does own its items, populate it and then iterate over
+its items with an external iterator to print its keys and values:
+
+    #include <slack/std.h>
+    #include <slack/map.h>
+
+    int main()
+    {
+        Map *map;
+        Mapper *mapper;
+
+        if (!(map = map_create(free)))
+            return EXIT_FAILURE;
+
+        map_add(map, "abc", strdup("123"));
+        map_add(map, "def", strdup("456"));
+        map_add(map, "ghi", strdup("789"));
+
+        if (!(mapper = mapper_create(map)))
+        {
+            map_destroy(&map);
+            return EXIT_FAILURE;
+        }
+
+        while (mapper_has_next(mapper) == 1)
+        {
+            const Mapping *mapping = mapper_next_mapping(mapper);
+
+            printf("%s -> %s\n", mapping_key(mapping), mapping_value(mapping));
+        }
+
+        mapper_destroy(&mapper);
+        map_destroy(&map);
+
+        return EXIT_SUCCESS;
+    }
+
+The same but with an apply function:
+
+    #include <slack/std.h>
+    #include <slack/map.h>
+
+    void action(void *key, void *item, void *data)
+    {
+        printf("%s -> %s\n", (char *)key, (char *)item);
+    }
+
+    int main()
+    {
+        Map *map;
+
+        if (!(map = map_create(free)))
+            return EXIT_FAILURE;
+
+        map_add(map, "abc", strdup("123"));
+        map_add(map, "def", strdup("456"));
+        map_add(map, "ghi", strdup("789"));
+        map_apply(map, action, NULL);
+        map_destroy(&map);
+
+        return EXIT_SUCCESS;
+    }
+
+The same but with integer keys:
+
+    #include <slack/std.h>
+    #include <slack/map.h>
+
+    static void *int_copy(const void *key)
+    {
+        return (void *)key;
+    }
+
+    static int int_cmp(const void *a, const void *b)
+    {
+        return (int)a - (int)b;
+    }
+
+    static size_t int_hash(size_t size, const void *key)
+    {
+        return (int)key % size;
+    }
+
+    void action(void *key, void *item, void *data)
+    {
+        printf("%d -> %s\n", (int)key, (char *)item);
+    }
+
+    int main(int ac, char **av)
+    {
+        Map *map;
+
+        if (!(map = map_create_generic(int_copy, int_cmp, int_hash, NULL, free)))
+            return EXIT_FAILURE;
+
+        map_add(map, (void *)123, strdup("abc"));
+        map_add(map, (void *)456, strdup("def"));
+        map_add(map, (void *)789, strdup("ghi"));
+
+        map_apply(map, action, NULL);
+        map_destroy(&map);
+
+        return EXIT_SUCCESS;
+    }
+
+=head1 CAVEAT
 
 A C<null> pointer can't be a key. Neither can zero when using integers as
 keys.
 
 If you use an internal iterator in a loop that terminates before the end of
 the map, and fail to call I<map_break(3)>, the internal iterator will leak.
+
+=head1 BUGS
 
 Uses I<malloc(3)>. The type of memory used and the allocation strategy need
 to be decoupled from this code.
@@ -2115,7 +2249,7 @@ L<locker(3)|locker(3)>
 
 =head1 AUTHOR
 
-20020916 raf <raf@raf.org>
+20040102 raf <raf@raf.org>
 
 =cut
 
@@ -2189,7 +2323,7 @@ static void map_histogram(const char *name, Map *map)
 		size_t length = list_length(map->chain[i]);
 		if (length == -1)
 		{
-			printf("  length[%d] = -1\n", i);
+			printf("  length[%d] = -1\n", (int)i);
 			continue;
 		}
 		++histogram[length];
@@ -2199,7 +2333,7 @@ static void map_histogram(const char *name, Map *map)
 
 	for (i = 0; i < map->items; ++i)
 		if (histogram[i])
-			printf("    %d chain%s of length %d\n", histogram[i], (histogram[i] == 1) ? "" : "s", i);
+			printf("    %d chain%s of length %d\n", histogram[i], (histogram[i] == 1) ? "" : "s", (int)i);
 
 	printf("}\n");
 }
@@ -2237,7 +2371,7 @@ static void test_hash(void)
 
 	fclose(words);
 
-	printf("%d entries into %d buckets:\n\n", map->items, map->size);
+	printf("%d entries into %d buckets:\n\n", (int)map->items, (int)map->size);
 
 	for (c = 0; c < map->size; ++c)
 	{
@@ -2248,7 +2382,7 @@ static void test_hash(void)
 
 		if ((length = list_length(map->chain[c])) == -1)
 		{
-			printf(" length[%d] == -1\n", c);
+			printf(" length[%d] == -1\n", (int)c);
 			continue;
 		}
 
@@ -2260,8 +2394,8 @@ static void test_hash(void)
 	}
 
 	printf("avg = %g\n", (double)sum / (double)map->size);
-	printf("min = %d\n", min);
-	printf("max = %d\n", max);
+	printf("min = %d\n", (int)min);
+	printf("max = %d\n", (int)max);
 	map_histogram("dict", map);
 	map_release(map);
 
@@ -2345,7 +2479,11 @@ static size_t direct_hash(size_t size, int key)
 Map *mtmap = NULL;
 Locker *locker = NULL;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+#ifdef PTHREAD_RWLOCK_INITIALIZER
 pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
+#else
+pthread_rwlock_t rwlock;
+#endif
 int barrier[2];
 int size[2];
 const int lim = 1000;
@@ -2416,7 +2554,7 @@ void *iterate_builtin(void *arg)
 	{
 		map_wrlock(mtmap);
 
-		while (map_has_next(mtmap))
+		while (map_has_next(mtmap) == 1)
 		{
 			int val = (int)map_next(mtmap);
 
@@ -2719,7 +2857,7 @@ int main(int ac, char **av)
 
 		TEST_ACT(21, keys = list_create(NULL))
 
-		while (map_has_next(map))
+		while (map_has_next(map) == 1)
 		{
 			void *item;
 
@@ -2735,10 +2873,10 @@ int main(int ac, char **av)
 		TEST_ACT(24, keys = list_create(NULL))
 		TEST_ACT(24, values = list_create(NULL))
 
-		while (map_has_next(map))
+		while (map_has_next(map) == 1)
 		{
 			const Mapping *mapping;
-			
+
 			TEST_ACT(25, mapping = map_next_mapping(map))
 			else
 			{
@@ -2835,7 +2973,7 @@ int main(int ac, char **av)
 			while (mapper_has_next(mapper) == 1)
 			{
 				void *item;
-				
+
 				TEST_ACT(64, item = mapper_next(mapper))
 				mapper_remove(mapper);
 			}
@@ -2862,10 +3000,10 @@ int main(int ac, char **av)
 		TEST_ACT(71, map_add(map, "3", "3") == 0)
 		TEST_ACT(72, map_add(map, "4", "4") == 0)
 
-		while (map_has_next(map))
+		while (map_has_next(map) == 1)
 		{
 			void *item;
-			
+
 			TEST_ACT(73, item = map_next(map))
 			map_remove_current(map);
 		}
@@ -2996,6 +3134,10 @@ int main(int ac, char **av)
 	if (debug)
 		setbuf(stdout, NULL);
 
+#ifndef PTHREAD_RWLOCK_INITIALIZER
+	pthread_rwlock_init(&rwlock, NULL);
+#endif
+
 	if (debug)
 		locker = locker_create_debug_rwlock(&rwlock);
 	else
@@ -3025,7 +3167,7 @@ int main(int ac, char **av)
 	/* Test assumption: sizeof(int) <= sizeof(void *) */
 
 	if (sizeof(int) > sizeof(void *))
-		++errors, printf("Test 222: assumption failed: sizeof(int) > sizeof(void *): int maps are limited to %d bytes\n", sizeof(void *));
+		++errors, printf("Test 222: assumption failed: sizeof(int) > sizeof(void *): int maps are limited to %d bytes\n", (int)sizeof(void *));
 
 	/* Test assumption: memset(&ptr, 0, sizeof(void *)) same as NULL */
 

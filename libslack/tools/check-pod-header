@@ -68,9 +68,9 @@ for my $src (@ARGV)
 		if ($hdr_state eq 'decls')
 		{
 			my $proto = $_;
-			warn "$hdr: _args missing: $proto\n" if $proto =~ /\);\s*$/ && $proto !~ / _args /;
-			$proto =~ s/ _args \(//;
-			$proto =~ s/\)\);/);/;
+			#warn "$hdr: _args missing: $proto\n" if $proto =~ /\);\s*$/ && $proto !~ / _args /;
+			#$proto =~ s/ _args \(//;
+			#$proto =~ s/\)\);/);/;
 			chop($proto);
 			push(@hdr, $proto);
 		}

@@ -2,7 +2,7 @@
 #
 # libslack - http://libslack.org/
 #
-# Copyright (C) 1999-2001 raf <raf@raf.org>
+# Copyright (C) 1999-2004 raf <raf@raf.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 
 # Modify Makefile, macros.mk and config.h to compile on Linux
 #
-# 20020916 raf <raf@raf.org>
+# 20040102 raf <raf@raf.org>
 
 perl -pi \
 	-e 's/^(\S+ \+= xnet)$/# $1/;' \
@@ -55,6 +55,7 @@ perl -pi \
 	-e 's/^#define (NO_POSIX_SOURCE) 1$/\/* #undef $1 *\//;' \
 	-e 's/^#define (NO_XOPEN_SOURCE) 1$/\/* #undef $1 *\//;' \
 	-e 's/^\/\* #undef (HAVE_STDARG_H) \*\/$/#define $1 1/;' \
+	-e 's/^#define (HAVE_STDINT_H) 1$/\/\* #undef $1 \*\//;' \
 	-e 's/^\/\* #undef (HAVE_POLL_H) \*\/$/#define $1 1/;' \
 	-e 's/^\/\* #undef (HAVE_SYS_POLL_H) \*\/$/#define $1 1/;' \
 	-e 's/^\/\* #undef (HAVE_SYS_SELECT_H) \*\/$/#define $1 1/;' \
@@ -120,5 +121,6 @@ perl -pi \
 	-e 's/^\/\* #undef (HAVE_TTYNAME_R) \*\/$/#define $1 1/;' \
 	-e 's/^\/\* #undef (HAVE_PTSNAME_R) \*\/$/#define $1 1/;' \
 	-e 's/^\/\* #undef (HAVE_PTSNAME) \*\/$/#define $1 1/;' \
+	-e 's/^#define (HAVE_POLL_THAT_ABORTS_WHEN_POLLFDS_IS_NULL) 1$/\/* #undef $1 *\//;' \
 	`find . -name config.h`
 

@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2002 raf <raf@raf.org>
+* Copyright (C) 1999-2004 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20020916 raf <raf@raf.org>
+* 20040102 raf <raf@raf.org>
 */
 
 /*
@@ -1472,7 +1472,6 @@ int syslog_parse(const char *spec, int *facility, int *priority)
 	return 0;
 }
 
-
 /*
 
 =back
@@ -1489,9 +1488,16 @@ An argument was C<null> or could not be parsed.
 
 =back
 
+=head1 MT-Level
+
+MT-Disciplined - msg functions - See L<locker(3)|locker(3)> for details.
+
+MT-Safe - syslog functions
+
 =head1 EXAMPLE
 
-    #include <syslog.h>
+Parse syslog facility priority pair:
+
     #include <slack/std.h>
     #include <slack/msg.h>
 
@@ -1505,11 +1511,27 @@ An argument was C<null> or could not be parsed.
         return EXIT_SUCCESS;
     }
 
-=head1 MT-Level
+Multiplex a message to several locations:
 
-MT-Disciplined - msg functions - See L<locker(3)|locker(3)> for details
+    #include <slack/std.h>
+    #include <slack/msg.h>
 
-MT-Safe - syslog functions
+    int main(int ac, char **av)
+    {
+        Msg *stdout_msg = msg_create_stdout();
+        Msg *stderr_msg = msg_create_stderr();
+        Msg *file_msg = msg_create_file("/tmp/junk");
+        Msg *syslog_msg = msg_create_syslog("ident", 0, LOG_DAEMON, LOG_ERR);
+        Msg *plex_msg = msg_create_plex(stdout_msg, stderr_msg);
+
+        msg_add_plex(plex_msg, file_msg);
+        msg_add_plex(plex_msg, syslog_msg);
+
+        msg_out(plex_msg, "Multiplex message\n");
+        unlink("/tmp/junk");
+
+        return EXIT_SUCCESS;
+    }
 
 =head1 SEE ALSO
 
