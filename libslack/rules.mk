@@ -18,7 +18,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
-# 20040102 raf <raf@raf.org>
+# 20040806 raf <raf@raf.org>
 
 ifneq ($(SLACK_TARGET),./$(SLACK_NAME))
 
@@ -257,7 +257,7 @@ sol-slack: $(SLACK_SRCDIR)/libslack.pkginfo
 	cd $(SLACK_SRCDIR)/solaris/build; \
 	tar xzf $$up/$(SLACK_DIST); \
 	cd $(SLACK_ID); \
-	conf/solaris8-gcc; \
+	./config; \
 	make PREFIX=../../install FINAL_PREFIX="$(PREFIX)" all install-slack; \
 	cd "$$base"; \
 	mv $(SLACK_SRCDIR)/libslack.pkginfo $(SLACK_SRCDIR)/solaris/info/pkginfo; \

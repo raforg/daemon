@@ -307,6 +307,56 @@ All rights reserved.
     OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
     ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+MAILING LISTS
+~~~~~~~~~~~~~
+If you'd like to be kept up to date with libslack releases or have questions
+or suggestions, you can join one or more of the following (extremely low
+volume) mailing lists (@libslack.org).
+
+    slack-announce (Announcements)
+    slack-users    (User forum)
+    slack-dev      (Development forum)
+
+To subscribe to any of these mailing lists, send a mail message to
+<listname>-request@libslack.org with "subscribe" as the message body.
+
+E.g. 
+
+    $ echo subscribe | mail slack-announce-request@libslack.org
+    $ echo subscribe | mail slack-users-request@libslack.org
+    $ echo subscribe | mail slack-dev-request@libslack.org
+
+Or you can send a mail message to majordomo@libslack.org with subscribe
+listname in the message body. This way, you can include multiple subscribe
+commands to subscribe to multiple lists at the same time. 
+
+E.g. 
+
+    $ mail majordomo@libslack.org
+    subscribe slack-announce
+    subscribe slack-users
+    subscribe slack-dev
+    .
+
+A digest version of each mailing list is also available. Subscribe to
+digests as above but append -digest to the listname.
+
+E.g. 
+
+    $ echo subscribe | mail slack-announce-digest-request@libslack.org
+    $ echo subscribe | mail slack-users-digest-request@libslack.org
+    $ echo subscribe | mail slack-dev-digest-request@libslack.org
+
+Or 
+
+    $ mail majordomo@libslack.org
+    subscribe slack-announce-digest
+    subscribe slack-users-digest
+    subscribe slack-dev-digest
+
+Note that these are all extremely low volume mailing lists so there's not
+much use for the digest lists.
+
 REFERENCES
 ~~~~~~~~~~
 Advanced Programming in the UNIX Environment

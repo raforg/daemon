@@ -22,7 +22,7 @@
 
 # Modify the macros.mk make include files to exercise optional code
 #
-# 20040102 raf <raf@raf.org>
+# 20040806 raf <raf@raf.org>
 
 perl -pi \
 	-e 's/^# (GETOPT := getopt)$/$1/;' \

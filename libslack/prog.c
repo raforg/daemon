@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20040102 raf <raf@raf.org>
+* 20040806 raf <raf@raf.org>
 */
 
 /*
@@ -2392,7 +2392,7 @@ The following program:
      prog_set_syntax("[options] arg...");
      prog_set_options(options);
      prog_set_version("1.0");
-     prog_set_date("20020916");
+     prog_set_date("20040806");
      prog_set_author("raf <raf@raf.org>");
      prog_set_contact(prog_author());
      prog_set_url("http://libslack.org/");
@@ -2430,7 +2430,7 @@ will behave like:
 
  Name: example
  Version: 1.0
- Date: 20020916
+ Date: 20040806
  Author: raf <raf@raf.org>
  URL: http://libslack.org/
 
@@ -2472,7 +2472,7 @@ L<locker(3)|locker(3)>
 
 =head1 AUTHOR
 
-20020916 raf <raf@raf.org>
+20040806 raf <raf@raf.org>
 
 =cut
 
@@ -2612,7 +2612,7 @@ int main(int ac, char **av)
 			"\n"
 			"Name: %s\n"
 			"Version: 1.0\n"
-			"Date: 20020916\n"
+			"Date: 20040806\n"
 			"Author: raf <raf@raf.org>\n"
 			"Vendor: A Software Vendor\n"
 			"URL: http://libslack.org/test/\n"
@@ -2705,7 +2705,7 @@ int main(int ac, char **av)
 	prog_set_syntax("[options]");
 	prog_set_options(prog_options_table);
 	prog_set_version("1.0");
-	prog_set_date("20020916");
+	prog_set_date("20040806");
 	prog_set_author("raf <raf@raf.org>");
 	prog_set_contact("raf <raf@raf.org>");
 	prog_set_vendor("A Software Vendor");

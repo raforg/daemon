@@ -19,7 +19,7 @@
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
 
-# 20040102 raf <raf@raf.org>
+# 20040806 raf <raf@raf.org>
 
 ifneq ($(DAEMON_TARGET),./$(DAEMON_NAME))
 
@@ -290,7 +290,7 @@ sol-daemon: $(DAEMON_SRCDIR)/daemon.pkginfo
 	cd $(DAEMON_SRCDIR)/solaris/build; \
 	tar xzf $$up/$(DAEMON_DIST); \
 	cd $(DAEMON_ID); \
-	conf/solaris8-gcc; \
+	./config; \
 	make PREFIX=../../install FINAL_PREFIX="$(PREFIX)" all install-daemon; \
 	cd "$$base"; \
 	mv $(DAEMON_SRCDIR)/daemon.pkginfo $(DAEMON_SRCDIR)/solaris/info/pkginfo; \

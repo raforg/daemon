@@ -141,13 +141,13 @@ they have some very nasty bugs.
 
 First, uninstall any previous version:
 
-    cd /usr/local/src/daemon-0.6.1
+    cd /usr/local/src/daemon-0.6.2
     make uninstall
 
 To build and test:
 
-    tar xzf daemon-0.6.2.tar.gz
-    cd daemon-0.6.2
+    tar xzf daemon-0.6.3.tar.gz
+    cd daemon-0.6.3
     ./config          # iff linux, solaris, openbsd, freebsd or macosx
     make              # must be gnu make
     make test         # only tests libslack. to test daemon, see test/README
@@ -191,38 +191,38 @@ BINARY PACKAGES
 ~~~~~~~~~~~~~~~
 To install from the RPM binary package (into /usr by default):
 
-    rpm -i daemon-0.6.2-1.i386.rpm
+    rpm -i daemon-0.6.3-1.i386.rpm
 
 To install from the RPM binary package into somewhere other than /usr:
 
-    rpm --prefix=/usr/local -i daemon-0.6.2-1.i386.rpm
+    rpm --prefix=/usr/local -i daemon-0.6.3-1.i386.rpm
 
 To install from the (relocatable) Debian binary package (into /usr):
 
-    dpkg -i daemon_0.6.2-0_i386.deb # you should really use apt-get
+    dpkg -i daemon_0.6.3-0_i386.deb # you should really use apt-get
 
 Install from the OpenBSD binary package (into /usr/local):
 
-    pkg_add daemon-0.6.2-obsd-i386.tar.gz
+    pkg_add daemon-0.6.3-obsd-i386.tar.gz
 
 Install from the FreeBSD binary package (into /usr/local):
 
-    pkg_add daemon-0.6.2-fbsd-i386.tar.gz
+    pkg_add daemon-0.6.3-fbsd-i386.tar.gz
 
 Install from the (relocatable) Mac OS X binary package (into /usr/local):
 
     cd /usr/local
-    tar xzf /usr/local/src/daemon-0.6.2-osx-powerpc.tar.gz
+    tar xzf /usr/local/src/daemon-0.6.3-osx-powerpc.tar.gz
 
 To install from the (relocatable) Solaris8 binary package (into /opt/daemon):
 
-    gunzip daemon-0.6.2.sun4u.pkg.gz
-    pkgadd -d daemon-0.6.2.sun4u.pkg
+    gunzip daemon-0.6.3.sun4u.pkg.gz
+    pkgadd -d daemon-0.6.3.sun4u.pkg
 
 or:
 
-    gunzip daemon-0.6.2.i86pc.pkg.gz
-    pkgadd -d daemon-0.6.2.i86pc.pkg
+    gunzip daemon-0.6.3.i86pc.pkg.gz
+    pkgadd -d daemon-0.6.3.i86pc.pkg
 
 REQUIREMENTS
 ~~~~~~~~~~~~
@@ -350,6 +350,56 @@ All rights reserved.
     WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
     OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
     ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+MAILING LISTS
+~~~~~~~~~~~~~
+If you'd like to be kept up to date with daemon releases or have questions
+or suggestions, you can join one or more of the following (extremely low
+volume) mailing lists (@libslack.org).
+
+    daemon-announce (Announcements)
+    daemon-users    (User forum)
+    daemon-dev      (Development forum)
+
+To subscribe to any of these mailing lists, send a mail message to
+<listname>-request@libslack.org with "subscribe" as the message body.
+
+E.g. 
+
+    $ echo subscribe | mail daemon-announce-request@libslack.org
+    $ echo subscribe | mail daemon-users-request@libslack.org
+    $ echo subscribe | mail daemon-dev-request@libslack.org
+
+Or you can send a mail message to majordomo@libslack.org with subscribe
+listname in the message body. This way, you can include multiple subscribe
+commands to subscribe to multiple lists at the same time. 
+
+E.g. 
+
+    $ mail majordomo@libslack.org
+    subscribe daemon-announce
+    subscribe daemon-users
+    subscribe daemon-dev
+    .
+
+A digest version of each mailing list is also available. Subscribe to
+digests as above but append -digest to the listname.
+
+E.g. 
+
+    $ echo subscribe | mail daemon-announce-digest-request@libslack.org
+    $ echo subscribe | mail daemon-users-digest-request@libslack.org
+    $ echo subscribe | mail daemon-dev-digest-request@libslack.org
+
+Or 
+
+    $ mail majordomo@libslack.org
+    subscribe daemon-announce-digest
+    subscribe daemon-users-digest
+    subscribe daemon-dev-digest
+
+Note that these are all extremely low volume mailing lists so there's not
+much use for the digest lists.
 
 REFERENCES
 ~~~~~~~~~~
@@ -740,6 +790,9 @@ HISTORY
     - Added hsort_closure(3) (suggested by skaller@maxtal.com.au)
     - Added make slack.swig (generate a SWIG input file for libslack)
 
+0.6.3 (20040806)
+    - Fixed bug: --acceptable was broken (chris@edesix.com)
+
 TODO
 ~~~~
     - Port to NetBSD, Cygwin[?]
@@ -755,5 +808,5 @@ TODO
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 URL: http://libslack.org/daemon/
-Date: 20040102
+Date: 20040806
 Author: raf <raf@raf.org>

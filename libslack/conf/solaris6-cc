@@ -22,7 +22,7 @@
 
 # Modify the macros.mk make include files to compile on Solaris 6 with cc
 #
-# 20040102 raf <raf@raf.org>
+# 20040806 raf <raf@raf.org>
 
 perl -pi \
 	-e 's/^# (\S+ \+= xnet)$/$1/;' \

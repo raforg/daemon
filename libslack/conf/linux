@@ -22,7 +22,7 @@
 
 # Modify Makefile, macros.mk and config.h to compile on Linux
 #
-# 20040102 raf <raf@raf.org>
+# 20040806 raf <raf@raf.org>
 
 perl -pi \
 	-e 's/^(\S+ \+= xnet)$/# $1/;' \

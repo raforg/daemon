@@ -19,7 +19,7 @@
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
 
-# 20040102 raf <raf@raf.org>
+# 20040806 raf <raf@raf.org>
 
 CC := gcc
 # CC := cc
@@ -48,7 +48,7 @@ LIB_MANSECTNAME := C Library Functions - libslack
 FMT_MANSECTNAME := File Formats
 MAN_GZIP := 1
 
-#CCFLAGS += -O3
+CCFLAGS += -O3
 CCFLAGS += -Wall -pedantic
 
 # CCFLAGS += -xO4

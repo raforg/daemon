@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20040102 raf <raf@raf.org>
+* 20040806 raf <raf@raf.org>
 */
 
 /*
@@ -805,7 +805,7 @@ L<pseudo(3)|pseudo(3>>
 
 =head1 AUTHOR
 
-20040102 raf <raf@raf.org>
+20040806 raf <raf@raf.org>
 
 =cut
 

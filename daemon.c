@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20040102 raf <raf@raf.org>
+* 20040806 raf <raf@raf.org>
 */
 
 /*
@@ -613,7 +613,7 @@ L<kill(2)|kill(2)>
 
 =head1 AUTHOR
 
-20040102 raf <raf@raf.org>
+20040806 raf <raf@raf.org>
 
 =cut
 
@@ -2039,7 +2039,7 @@ static void spawn_child(void)
 
 		/* Handle failed spawn attempts - burst, wait, burst, wait, ... */
 
-		if (spawn_time - g.spawn_time < g.delay)
+		if (spawn_time - g.spawn_time < g.acceptable)
 		{
 			debug((2, "previous instance only lasted %d seconds", spawn_time - g.spawn_time))
 
