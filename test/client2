@@ -1,0 +1,12 @@
+#!/bin/sh
+
+perl -e '
+	$| = 1;
+	for (0..4)
+	{
+		sleep 1;
+		print $_, "\n";
+	}
+	close STDOUT, STDERR;
+	sleep 5;
+'

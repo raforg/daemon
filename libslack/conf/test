@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# daemon - http://libslack.org/daemon/
+# libslack - http://libslack.org/
 #
 # Copyright (C) 1999, 2000 raf <raf@raf.org>
 #
@@ -20,18 +20,15 @@
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
 
-# Modify the macros.mk make include files to compile on linux
+# Modify the macros.mk make include files to compile on solaris
 #
 # 20000902 raf <raf@raf.org>
 
 exec perl -pi \
-	-e 's/^(\S+ \+= xnet)$/# $1/;' \
-	-e 's/^(\S+ \+= -DSVR4)$/# $1/;' \
-	-e 's/^(GETOPT := getopt)$/# $1/;' \
-	-e 's/^(\S+ \+= -DNEEDS_GETOPT=1)$/# $1/;' \
-	-e 's/^(SNPRINTF := snprintf)$/# $1/;' \
-	-e 's/^(\S+ \+= -DNEEDS_SNPRINTF=1)$/# $1/;' \
-	-e 's/^(VSSCANF := vsscanf)$/# $1/;' \
-	-e 's/^(\S+ \+= -DNEEDS_VSSCANF=1)$/# $1/;' \
-	-e 's/^(\S+ \+= -DPID_DIR)=.*$/$1=\\"\/var\/run\\"/;' \
+	-e 's/^# (GETOPT := getopt)$/$1/;' \
+	-e 's/^# (\S+ \+= -DNEEDS_GETOPT=1)$/$1/;' \
+	-e 's/^# (SNPRINTF := snprintf)$/$1/;' \
+	-e 's/^# (\S+ \+= -DNEEDS_SNPRINTF=1)$/$1/;' \
+	-e 's/^# (VSSCANF := vsscanf)$/$1/;' \
+	-e 's/^# (\S+ \+= -DNEEDS_VSSCANF=1)$/$1/;' \
 	`find . -name macros.mk`

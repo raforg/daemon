@@ -1,7 +1,7 @@
 #
-# daemon: http://www.zip.com.au/~raf2/lib/software/daemon
+# daemon - http://libslack.org/daemon/
 #
-# Copyright (C) 1999 raf <raf2@zip.com.au>
+# Copyright (C) 1999, 2000 raf <raf@raf.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,6 +18,8 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
+
+# 20000902 raf <raf@raf.org>
 
 ifneq ($(DAEMON_TARGET),./$(DAEMON_NAME))
 
@@ -51,6 +53,7 @@ install-daemon: install-daemon-bin install-daemon-man
 
 install-daemon-bin:
 	install -m 555 $(DAEMON_TARGET) $(APP_INSDIR)
+	strip $(APP_INSDIR)/$(DAEMON_TARGET)
 
 install-daemon-man: man-daemon
 	install -m 444 $(DAEMON_MANFILES) $(APP_MANDIR)
@@ -65,6 +68,16 @@ uninstall-daemon-bin:
 uninstall-daemon-man:
 	cd $(APP_MANDIR) && rm -f $(DAEMON_MANFILES) && cd $(APP_CATDIR) && rm -f $(DAEMON_MANFILES) || exit 0
 
+# Present make targets separately in help if we are not alone
+ifeq ($(DAEMON_IS_ROOT), undefined)
+DAEMON_HELP := 1
+else
+ifeq ($(DAEMON_HAS_SUBTARGETS), 1)
+DAEMON_HELP := 1
+endif
+endif
+
+ifeq ($(DAEMON_HELP), 1)
 help::
 	@echo "make $(DAEMON_NAME)                -- makes $(DAEMON_TARGET) and $(DAEMON_SUBMODULES)"
 	@echo "make man-$(DAEMON_NAME)            -- makes the $(DAEMON_NAME) manpages"
@@ -76,6 +89,7 @@ help::
 	@echo "make uninstall-daemon-bin  -- uninstalls $(DAEMON_NAME) from $(APP_INSDIR)"
 	@echo "make uninstall-daemon-man  -- uninstalls the $(DAEMON_NAME) manpage from $(APP_MANDIR)"
 	@echo
+endif
 
 help-macros::
 	@echo "DAEMON_NAME = $(DAEMON_NAME)"
@@ -102,5 +116,5 @@ help-macros::
 	@echo "DAEMON_LDFLAGS = $(DAEMON_LDFLAGS)"
 	@echo
 
-include $(PROG_SRCDIR)/rules.mk
+include $(SLACK_SRCDIR)/rules.mk
 

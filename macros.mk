@@ -1,7 +1,7 @@
 #
-# daemon: http://www.zip.com.au/~raf2/lib/software/daemon
+# daemon - http://libslack.org/daemon/
 #
-# Copyright (C) 1999 raf <raf2@zip.com.au>
+# Copyright (C) 1999, 2000 raf <raf@raf.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,20 +19,27 @@
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
 
+# 20000902 raf <raf@raf.org>
+
 # Uncomment this to override the default value of 600 seconds
 # as the minimum amount of time that a client can live if it
 # is to be respawned
 #
-# DAEMON_DEFINES += -DRESPAWN_THRESHOLD=2
+# DAEMON_DEFINES += -DRESPAWN_THRESHOLD=600
 
 # Uncomment this to override the default configuration file path
 #
 # DAEMON_DEFINES += -DCONFIG_PATH=\"/etc/daemon.conf\"
 
+# Uncomment this to disable debugging completely
+#
+# DAEMON_DEFINES += -DNDEBUG
+
 DAEMON_NAME := daemon
-DAEMON_VERSION := 0.2
+DAEMON_VERSION := 0.3
 DAEMON_ID := $(DAEMON_NAME)-$(DAEMON_VERSION)
 DAEMON_DIST := $(DAEMON_ID).tar.gz
+DAEMON_HAS_SUBTARGETS := 1
 
 DAEMON_TARGET := $(DAEMON_SRCDIR)/$(DAEMON_NAME)
 DAEMON_MODULES := daemon
@@ -54,13 +61,13 @@ INSTALL_TARGETS += install-daemon
 UNINSTALL_TARGETS += uninstall-daemon
 
 CLEAN_FILES += $(DAEMON_OFILES) $(DAEMON_MANFILES) $(DAEMON_HTMLFILES)
-CLOBBER_FILES += $(DAEMON_TARGET)
+CLOBBER_FILES += $(DAEMON_TARGET) $(DAEMON_SRCDIR)/tags
 
-DAEMON_DEFINES += $(PROG_DEFINES)
+DAEMON_DEFINES += $(SLACK_DEFINES)
 DAEMON_CPPFLAGS += $(DAEMON_DEFINES) $(patsubst %, -I%, $(DAEMON_INCDIRS))
 DAEMON_CCFLAGS += $(CCFLAGS)
 DAEMON_CFLAGS += $(DAEMON_CPPFLAGS) $(DAEMON_CCFLAGS)
-DAEMON_LIBS += prog
+DAEMON_LIBS += slack
 
 # Uncomment this on Solaris for getsockopt(3)
 #
@@ -68,9 +75,9 @@ DAEMON_LIBS += prog
 
 DAEMON_LDFLAGS += $(patsubst %, -L%, $(DAEMON_LIBDIRS)) $(patsubst %, -l%, $(DAEMON_LIBS))
 
-PROG_SRCDIR := prog
-PROG_INCDIRS := prog
-PROG_LIBDIRS := prog
-include $(PROG_SRCDIR)/macros.mk
-DAEMON_SUBMODULES := $(PROG_TARGET)
+SLACK_SRCDIR := libslack
+SLACK_INCDIRS := libslack
+SLACK_LIBDIRS := libslack
+include $(SLACK_SRCDIR)/macros.mk
+DAEMON_SUBMODULES := $(SLACK_TARGET)
 

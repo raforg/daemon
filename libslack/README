@@ -1,0 +1,164 @@
+README
+~~~~~~
+libslack - a UNIX/C library of general utilities for programmers with slack
+
+DESCRIPTION
+~~~~~~~~~~~
+Libslack is a library of general utilities designed to make UNIX/C programming
+a bit easier on the eye. It is a seemingly random collection of modules and
+functions that I find commonly useful. 
+
+It's a small library with lots of functionality, accurately documented and
+thoroughly tested. Good library naming conventions are not rigorously observed
+on the principle that common operations should always be easy to write and code
+should always be easy to read.
+
+Libslack contains the following modules:
+
+    conf     - simple configuration file parsing
+    daemon   - becoming a daemon
+    err      - message/error/debug/verbosity messaging
+    fifo     - fifo and file control
+    getopt   - GNU getopt_long() for systems that don't have it
+    hsort    - heap sort (by Stephen Russell)
+    lim      - POSIX.1 limits convenience functions
+    list     - list data type
+    log      - syslog helper functions
+    map      - map (hash table) data type
+    mem      - memory helper functions
+    msg      - message handling
+    net      - network functions (clients/servers, expect/send, pack/unpack, mail)
+    opt      - command line option handling
+    prog     - program framework
+    prop     - program properties files
+    sig      - ANSI C compliant signal handling
+    snprintf - safe sprintf() for systems that don't have it (by Theo de Raadt)
+    str      - string data type (tr, regex, regsub, fmt, trim, lc, uc, ...)
+    vsscanf  - sscanf() with va_list argument for systems that don't have it
+
+INSTALL
+~~~~~~~
+Currently this is only known to work on Linux Redhat 6.0 and Solaris 2.6.
+Compiling on Solaris 2.6 requires running conf/solaris in the source
+directory. It is ready to compile on Linux as distributed so it is not
+necessary to run conf/linux. There isn't a real configure script so you will
+no doubt encounter problems on other systems. An ANSI C and POSIX
+environment will help greatly.
+
+If your system doesn't have snprintf(3), GNU getopt_long(3) or vsscanf(3),
+uncomment the relevant lines in the macros.mk file to include them in libslack.
+
+If your system doesn't have POSIX 1003.2 compliant regex functions, either:
+install the GNU implementation, ftp://ftp.gnu.org/gnu/regex/regex-0.12.tar.gz
+[290K] (doesn't support internationalisation); or install Henry Spencer's
+implementation, ftp://ftp.zoo.toronto.edu/pub/regex.shar [157K].
+
+If you really, really, really don't want the regular expression functions,
+uncomment REGEX_MISSING in macros.mk to enable the rest of the library to
+be compiled.
+
+To build and test:
+
+        tar xzf libslack-0.3.tar.gz
+        cd libslack-0.3
+        conf/<your-system>         # if applicable (i.e. solaris)
+        make depend
+        make
+        make test                  # note: compiling the tests can take ages
+
+To install the slack library and its manpages:
+
+        make install
+
+For more details:
+
+        make help
+
+There is one manpage for each module in libslack (rather than one for each
+function). They are conf(3), daemon(3), err(3), fifo(3), hsort(3), lim(3),
+list(3), log(3), map(3), mem(3), msg(3), net(3), opt(3), prog(3), prop(3),
+sig(3) and str(3). If necessary, the manpages getopt(3), snprintf(3) and
+vsscanf(3) are created as well.
+
+REQUIREMENTS
+~~~~~~~~~~~~
+Requires perl to run the scripts in the conf directory.
+Requires gcc to compile the source.
+Requires pod2man (comes with perl) to make the manpages.
+Requires pod2html (comes with perl) to make the html manpages.
+Requires perl and GNU tar to make the distribution.
+Requires POSIX 1003.2 compliant regex functions. See INSTALL.
+
+COPYING
+~~~~~~~
+libslack - general utilities including the ability to become a daemon
+Copyright (C) 1999, 2000 raf <raf@raf.org>
+
+    This library is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+    or visit http://www.gnu.org/copyleft/gpl.html
+
+HISTORY
+~~~~~~~
+0.1
+    - Initial version
+
+0.2
+    - Decoupled core file prevention from daemon_init()
+      into its own function, daemon_prevent_core()
+    - Decoupled signal handling from daemon_init()
+    - Cached daemon_started_by_init() and daemon_started_by_inetd() results
+    - Added some modules to libprog: conf, list, hsort, map, prop
+    - Added timestamps to msg_out_file()
+    - Included source to GNU getopt_long_only() (if neccessary)
+    - Added hdr.h to allow non-ANSI compilers to parse libprog's headers
+    - Moved libprog to a subdirectory using a "Whole Project" Makefile
+    - Converted "Whole Project" Makefile into "Scalable" Makefiles
+    - Added verbosity functions to libprog(prog)
+    - Fixed bug when constructing data for GNU getopt_long_only()
+    - Fixed bugs in the options table for libprog(prog)
+    - Changed help message format: separated option chunks by a blank line
+    - Fixed bug when obtaining names associated with syslog constants
+    - Added pathetic conf/linux and conf/solaris scripts
+    - Added manpages
+
+0.3
+    - Started using GNU getopt_long() instead of getopt_long_only()
+    - Added -DSVR4 in conf/solaris (doh!)
+    - Added conditional compilation of debug functions
+    - Added assert macro that calls dump()
+    - Fixed bug: SIG_IGN, SIG_DFL and nasty signals weren't treated specially
+    - Made lists grow/shrink exponentially rather than linearly
+    - Made maps grow as needed and use arbitrary hash functions and key types
+    - Added multi-dimensional array allocator to the mem module
+    - Added net module: clients/servers, expect/send, pack/unpack, mail
+    - Added internal iterators and some more functions to list and map
+    - Added examples sections to some libprog manpages
+    - Added str module: decent strings + tr, regex, regsub, fmt, trim, lc, uc ...
+    - Added vsscanf(3) implementation for systems that don't have it (e.g. solaris)
+    - Renamed libprog to libslack (thanks, fred)
+    - Added socks.h
+    - Added daemon_revoke_privileges(), daemon_file_is_safe() to daemon module
+
+TODO
+~~~~
+    - Add modules: tty/pty, timo, thr
+    - Add pool, gc(?) to mem module
+    - Use autoconf
+    - Use libtool
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+URL: http://libslack.org/
+Date: 20000902
+Author: raf <raf@raf.org>

@@ -1,16 +1,21 @@
 README
 ~~~~~~
-This contains the source for the daemon program and the prog library.
+This contains the source code to daemon and libslack.
+
+daemon - turns other processes into daemons
 
 Daemon turns other processes into daemons. There are many tasks that need to
 be performed to correctly set up a daemon process. This can be tedious.
 Daemon performs these tasks for other processes. This is useful for writing
 daemons in languages other than C, C++ or Perl (e.g. /bin/sh).
 
-The prog library contains the functionality of the daemon program in a
-separately linkable form. This can be useful for writing daemons in
-languages that can link against C functions (e.g. C, C++). The prog library
-also contains many other general utility functions.
+libslack - A UNIX/C library of general utilities for programmers with slack
+
+Libslack contains many modules of general utility (including the ability to
+become a daemon) in a separately linkable form. This can be useful for
+writing daemons in languages that can link against C functions (e.g. C, C++).
+Libslack also contains many other general utility functions. See the
+documentation for details.
 
 DESCRIPTION
 ~~~~~~~~~~~
@@ -21,7 +26,7 @@ Daemon performs these tasks for other processes.
 The preparatory tasks that daemon performs for other processes are:
 
 o Disable core file generation to prevent security holes in daemons run by
-  root (unless the -core option is supplied).
+  root (unless the --core option is supplied).
 
 o If daemon was not invoked by init(8) or inetd(8):
 
@@ -32,7 +37,7 @@ o If daemon was not invoked by init(8) or inetd(8):
   o Under SVR4, background the process again to lose process session
     leadership. This prevents the process from ever gaining a controlling
     terminal. This only happens when SVR4 is defined and
-    NO_EXTRA_SVR4_FORK is not defined when libprog is compiled.
+    NO_EXTRA_SVR4_FORK is not defined when libslack is compiled.
 
 o Change to the root directory so as not to hamper umounts.
 
@@ -46,56 +51,68 @@ o Open stdin, stdout and stderr to /dev/null in case something
   requires them to be open. Of course, this is not done if daemon was
   invoked by inetd(8).
 
-o If the -name option is supplied, create and lock a file containing the
+o If the --name option is supplied, create and lock a file containing the
   process id of the daemon process. The presence of this locked file
   prevents two instances of a daemon with the same name from running at the
   same time.
 
-Daemon then spawns the client command specified on its command line and
-waits for it to terminate. If the -syslog option is supplied, the client's
-standard output and error are captured by daemon and sent to the syslog
-destination specified in the -syslog option.
+If the --user option is supplied, daemon changes the user id (and possibly
+the group id). Only root can use this option.
 
-When the client terminates, daemon spawns it again if the -respawn option is
+Daemon then spawns the client command specified on its command line and
+waits for it to terminate. If the --syslog option is supplied, the client's
+standard output and error are captured by daemon and sent to the syslog
+destination specified in the --syslog option.
+
+When the client terminates, daemon respawns it if the --respawn option is
 supplied and the client terminated successfully after at least 600 seconds.
 Otherwise daemon terminates.
 
 If daemon receives a SIGTERM signal, it propagates the signal to the client
 and then terminates.
 
+Note: For security reasons, never install I<daemon> with setuid or setgid
+privileges. It is unnecessary. If you do, I<daemon> will revert to the real
+user and group for safety before doing anything else.
+
 INSTALL
 ~~~~~~~
 Currently this is only known to work on Linux Redhat 6.0 and Solaris 2.6.
 Compiling on Solaris 2.6 requires running conf/solaris in the source
-directory. There isn't a real configure script so you will no doubt
-encounter problems. An ANSI C and POSIX.1 environment will help greatly.
+directory. It is ready to compile on Linux as distributed so it is not
+necessary to run conf/linux. There isn't a real configure script so you will
+no doubt encounter problems on other systems. An ANSI C and POSIX
+environment will help greatly.
 
-If your system doesn't have snprintf(3) or GNU getopt_long_only(3),
-uncomment the relevant lines in the prog/macros.mk file to include
-them in the prog libary.
+If your system doesn't have snprintf(3), GNU getopt_long(3) or vsscanf(3),
+uncomment the relevant lines in the libslack/macros.mk file to include them
+in libslack.
 
-Requires perl to run the scripts in the conf directory.
-Requires gcc to compile the source.
-Requires pod2man (comes with perl) to make the manpages.
-Requires pod2html (comes with perl) to make the html manpages.
-Requires perl and GNU tar to make the distribution.
+If your system doesn't have POSIX 1003.2 compliant regex functions, either:
+install the GNU implementation, ftp://ftp.gnu.org/gnu/regex/regex-0.12.tar.gz
+[290K] (doesn't support internationalisation); or install Henry Spencer's
+implementation, ftp://ftp.zoo.toronto.edu/pub/regex.shar [157K].
+
+If you really, really, really don't want the regular expression functions,
+uncomment REGEX_MISSING in libslack/macros.mk to enable the rest of the
+library to be compiled.
 
 To build and test:
 
-        tar xzf daemon-0.2.tar.gz
-        cd daemon-0.2
-        conf/<your-system> # if applicable (i.e. solaris)
+        tar xzf daemon-0.3.tar.gz
+        cd daemon-0.3
+        conf/<your-system>         # if applicable (i.e. solaris)
         make depend
         make
-        make test
+        make test                  # note: compiling the tests can take ages
 
-To install just the daemon program:
+To install just the daemon program and its manpage:
 
         make install-daemon
 
-To install just the prog library:
+To install just libslack and its manpages:
 
-        make install-prog
+        make install-slack
 
 To install both:
 
@@ -105,10 +122,25 @@ For more details:
 
         make help
 
+The manpage for daemon is daemon(1). There is one manpage for each module in
+libslack (rather than one for each function). They are conf(3), daemon(3),
+err(3), fifo(3), hsort(3), lim(3), list(3), log(3), map(3), mem(3), msg(3),
+net(3), opt(3), prog(3), prop(3), sig(3) and str(3). If necessary, the
+manpages getopt(3), snprintf(3) and vsscanf(3) are created as well.
+
+REQUIREMENTS
+~~~~~~~~~~~~
+Requires perl to run the scripts in the conf directory.
+Requires gcc to compile the source.
+Requires pod2man (comes with perl) to make the manpages.
+Requires pod2html (comes with perl) to make the html manpages.
+Requires perl and GNU tar to make the distribution.
+Requires POSIX 1003.2 compliant regex functions. See INSTALL.
+
 COPYING
 ~~~~~~~
 daemon - turns other processes into daemons
-Copyright (C) 1999 raf <raf2@zip.com.au>
+Copyright (C) 1999, 2000 raf <raf@raf.org>
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -125,8 +157,8 @@ Copyright (C) 1999 raf <raf2@zip.com.au>
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
     or visit http://www.gnu.org/copyleft/gpl.html
 
-libprog - general utilities including the ability to become a daemon
-Copyright (C) 1999 raf <raf2@zip.com.au>
+libslack - A UNIX/C library of general utilities for programmers with slack
+Copyright (C) 1999, 2000 raf <raf@raf.org>
 
     This library is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -145,6 +177,9 @@ Copyright (C) 1999 raf <raf2@zip.com.au>
 
 HISTORY
 ~~~~~~~
+0.1
+    - Initial version
+
 0.2
     - Decoupled core file prevention from daemon_init()
       into its own function, daemon_prevent_core()
@@ -171,15 +206,39 @@ HISTORY
     - Revert to real uid/gid if not same as effective uid/gid for safety
     - Added manpages
 
-0.1
-    Initial version
+0.3
+    - Started using GNU getopt_long() instead of getopt_long_only()
+    - Started ignoring /etc/daemon.conf if group or world writable
+    - Added -DSVR4 in conf/solaris (doh!)
+    - Added conditional compilation of debug functions
+    - Added assert macro that calls dump()
+    - Completed the daemon(1) manpage (common options weren't documented)
+    - Fixed bug: SIG_IGN, SIG_DFL and nasty signals weren't treated specially
+    - Made lists grow/shrink exponentially rather than linearly
+    - Made maps grow as needed and use arbitrary hash functions and key types
+    - Added multi-dimensional array allocator to the mem module
+    - Added net module: clients/servers, expect/send, pack/unpack, mail
+    - Added internal iterators and some more functions to list and map
+    - Added examples sections to some libprog manpages
+    - Added --user option
+    - Added str module: decent strings + tr, regex, regsub, fmt, trim, lc, uc ...
+    - Added vsscanf(3) implementation for systems that don't have it (e.g. solaris)
+    - Renamed libprog to libslack (thanks, fred!)
+    - Added socks.h
+    - Added daemon_revoke_privileges(), daemon_file_is_safe() to daemon module
+    - Moved revocation of setuid/setgid privileges to start for greater safety
+    - Fixed bug: wasn't unlinking pidfile when client died of natural causes
+    - Fixed bug: wasn't processing config file correctly
+    - Included daemon(1) tests in distribution (not automatic, though)
 
 TODO
 ~~~~
-    - Add configure script
+    - Add modules: tty/pty, timo, thr
+    - Add pool, gc(?) to mem module
+    - Use autoconf
+    - Use libtool
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-URL: http://www.zip.com.au/~raf2/lib/software/daemon
-Date: 19991223
-Author: raf <raf2@zip.com.au>
-
+URL: http://libslack.org/daemon/
+Date: 20000902
+Author: raf <raf@raf.org>
