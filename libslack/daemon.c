@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2001 raf <raf@raf.org>
+* Copyright (C) 1999-2002 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20011109 raf <raf@raf.org>
+* 20020916 raf <raf@raf.org>
 */
 
 /*
@@ -29,6 +29,7 @@ I<libslack(daemon)> - daemon module
 
 =head1 SYNOPSIS
 
+    #include <slack/std.h>
     #include <slack/daemon.h>
 
     typedef void daemon_config_parser_t(void *obj, const char *path, char *line, size_t lineno);
@@ -41,8 +42,12 @@ I<libslack(daemon)> - daemon module
     char *daemon_absolute_path(const char *path);
     int daemon_path_is_safe(const char *path);
     void *daemon_parse_config(const char *path, void *obj, daemon_config_parser_t *parser);
+    int daemon_pidfile(const char *name);
     int daemon_init(const char *name);
     int daemon_close(void);
+    pid_t daemon_getpid(const char *name);
+    int daemon_is_running(const char *name);
+    int daemon_stop(const char *name);
 
 =head1 DESCRIPTION
 
@@ -204,7 +209,7 @@ int daemon_revoke_privileges(void)
 
 Changes the owner and group of the process to C<uid> and C<gid>
 respectively. If C<user> is not null, the supplementary group list will be
-initialised with I<initgroups()>. Otherwise, the supplementary group list
+initialised with I<initgroups(3)>. Otherwise, the supplementary group list
 will be cleared of all groups. On success, returns 0. On error, returns -1.
 Only root can use this function.
 
@@ -214,8 +219,16 @@ Only root can use this function.
 
 int daemon_become_user(uid_t uid, gid_t gid, char *user)
 {
-	if (setgroups(0, NULL) == -1 || getgroups(0, NULL) != 0)
-		return -1;
+	gid_t gids[10];
+	int g = 0;
+
+	if (setgroups(0, NULL) == -1 || (g = getgroups(0, NULL)) != 0)
+	{
+		/* FreeBSD always returns the primary group */
+
+		if (g != 1 || getgroups(10, gids) != 1 || gids[0] != getgid())
+			return -1;
+	}
 
 	if (setgid(gid) == -1 || getgid() != gid || getegid() != gid)
 		return -1;
@@ -477,7 +490,7 @@ after the C<'\'> character but nothing else. The C<parser> function is
 called with the client supplied C<obj>, the file name, the line and the line
 number as arguments. On success, returns C<obj>. On error, returns C<null>
 (i.e. if the configuration file could not be read). Note: Don't parse config
-files unless they are "safe" as determined by I<daemon_path_is_safe()>.
+files unless they are "safe" as determined by I<daemon_path_is_safe(3)>.
 
 =cut
 
@@ -546,51 +559,59 @@ void *daemon_parse_config(const char *path, void *obj, daemon_config_parser_t *p
 
 /*
 
-C<int daemon_pidfile(const char *name)>
+C<int daemon_construct_pidfile(const char *name, char **buf)>
 
-Creates a pid file for a daemon and locks it. The file has one line
-containing the process id of the daemon. The well-known locations for the
-file is defined in C<ROOT_PID_DIR> for root (by default, C<"/var/run"> on
-Linux and C<"/etc"> on Solaris) and C<USER_PID_DIR> for all other users
-(C<"/tmp"> by default). The name of the file is the name of the daemon
-(given by the name argument) followed by C<".pid">. The presence of this
-file will prevent two daemons with the same name from running at the same
-time. On success, returns C<0>. On error, returns C<-1> with C<errno> set
-appropriately.
+Constructs the pidfile for the given name in g.pidfile. On success, returns
+C<0>. On error, returns C<-1> with C<errno> set appropriately.
 
 */
 
-static int daemon_pidfile(const char *name)
+static int daemon_construct_pidfile(const char *name, char **pidfile)
 {
-	mode_t mode;
-	char pid[32];
-	int pid_fd;
 	long path_len;
 	const char *pid_dir;
 	char *suffix = ".pid";
+	size_t size;
 
 	path_len = limit_path();
 	pid_dir = (getuid()) ? USER_PID_DIR : ROOT_PID_DIR;
+	size = ((*name == PATH_SEP) ? strlen(name) : sizeof(pid_dir) + 1 + strlen(name) + strlen(suffix)) + 1;
 
-	if (sizeof(pid_dir) + 1 + strlen(name) + strlen(suffix) + 1 > path_len)
+	if (size > path_len)
 		return set_errno(ENAMETOOLONG);
 
-	if (!g.pidfile && !(g.pidfile = mem_create(path_len, char)))
+	if (!*pidfile && !(*pidfile = mem_create(path_len, char)))
 		return -1;
 
-	snprintf(g.pidfile, path_len, "%s%c%s%s", pid_dir, PATH_SEP, name, suffix);
+	if (*name == PATH_SEP)
+		snprintf(*pidfile, path_len, "%s", name);
+	else
+		snprintf(*pidfile, path_len, "%s%c%s%s", pid_dir, PATH_SEP, name, suffix);
+
+	return 0;
+}
+
+/*
+
+C<int daemon_lock_pidfile(const char *pidfile)>
+
+Open and lock the file referred to by C<pidfile>. On success, returns the
+file descriptor of the opened and locked file. On error, returns C<-1> with
+C<errno> set appropriately.
+
+*/
+
+static int daemon_lock_pidfile(char *pidfile)
+{
+	mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+	int pid_fd;
 
 	/* This is broken over NFS (Linux). So pidfiles must reside locally. */
 
-	mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
-
-	if ((pid_fd = open(g.pidfile, O_RDWR | O_CREAT | O_EXCL, mode)) == -1)
+	if ((pid_fd = open(pidfile, O_RDWR | O_CREAT | O_EXCL, mode)) == -1)
 	{
 		if (errno != EEXIST)
-		{
-			mem_destroy(&g.pidfile);
 			return -1;
-		}
 
 		/*
 		** The pidfile already exists. Is it locked?
@@ -599,20 +620,49 @@ static int daemon_pidfile(const char *name)
 		** Open the pidfile to attempt a lock.
 		*/
 
-		if ((pid_fd = open(g.pidfile, O_RDWR)) == -1)
-		{
-			mem_destroy(&g.pidfile);
+		if ((pid_fd = open(pidfile, O_RDWR)) == -1)
 			return -1;
-		}
 	}
 
 	if (fcntl_lock(pid_fd, F_SETLK, F_WRLCK, SEEK_SET, 0, 0) == -1)
+		return -1;
+
+	return pid_fd;
+}
+
+/*
+
+C<int daemon_pidfile_unlocked(const char *name)>
+
+Equivalent to I<daemon_pidfile(3)> except that the daemon module's mutex is
+not locked and unlocked.
+
+*/
+
+static int daemon_pidfile_unlocked(const char *name)
+{
+	char pid[32];
+	int pid_fd;
+
+	/* Check argument */
+
+	if (!name)
+		return set_errno(EINVAL);
+
+	/* Build the pidfile path */
+
+	if (daemon_construct_pidfile(name, &g.pidfile) == -1)
+		return -1;
+
+	/* Open it and lock it (if possible) */
+
+	if ((pid_fd = daemon_lock_pidfile(g.pidfile)) == -1)
 	{
 		mem_destroy(&g.pidfile);
 		return -1;
 	}
 
-	/* It wasn't locked. Now we have it locked, store our pid. */
+	/* Store our pid */
 
 	snprintf(pid, 32, "%d\n", getpid());
 
@@ -629,6 +679,37 @@ static int daemon_pidfile(const char *name)
 	*/
 
 	return 0;
+}
+
+/*
+
+=item C<int daemon_pidfile(const char *name)>
+
+Creates a pid file for a daemon and locks it. The file has one line
+containing the process id of the daemon. The well-known locations for the
+file is defined in C<ROOT_PID_DIR> for root (by default, C<"/var/run"> on
+Linux and C<"/etc"> on Solaris) and C<USER_PID_DIR> for all other users
+(C<"/tmp"> by default). The name of the file is the name of the daemon
+(given by the name argument) followed by C<".pid"> (If I<name> is an
+absolute file path, it is used as is). The presence of this file will
+prevent two daemons with the same name from running at the same time. On
+success, returns C<0>. On error, returns C<-1> with C<errno> set
+appropriately. B<Note:> This is called by I<daemon_init(3)> so there is
+usually no need to call this function directly.
+
+=cut
+
+*/
+
+int daemon_pidfile(const char *name)
+{
+	int rc;
+
+	ptry(pthread_mutex_lock(&g.lock))
+	rc = daemon_pidfile_unlocked(name);
+	ptry(pthread_mutex_unlock(&g.lock))
+
+	return rc;
 }
 
 /*
@@ -665,7 +746,7 @@ processes in the foreground process group are sent a C<SIGHUP> signal
 I<init(8)> or I<inetd(8)> or when either C<SVR4> was not defined or
 C<NO_EXTRA_SVR4_FORK> was defined when I<libslack> was compiled). This means
 that the client can't make any assumptions about the C<SIGHUP> handler when
-I<daemon_init()> returns.
+I<daemon_init(3)> returns.
 
 =back
 
@@ -853,15 +934,7 @@ int daemon_init(const char *name)
 	/* Place our process id in the file system and lock it. */
 
 	if (name)
-	{
-		int rc;
-
-		ptry(pthread_mutex_lock(&g.lock))
-		rc = daemon_pidfile(name);
-		ptry(pthread_mutex_unlock(&g.lock))
-
-		return rc;
-	}
+		return daemon_pidfile(name);
 
 	return 0;
 }
@@ -893,6 +966,199 @@ int daemon_close(void)
 
 /*
 
+=item C<pid_t daemon_getpid(const char *name)>
+
+Return the process id of the daemon with the given C<name>. If the daemon in
+question is owned by I<root>, then this function must be invoked by I<root>.
+Similarly, if the daemon in question is owned by an ordinary user, then this
+function must be invoked by an ordinary user. If C<name> is the absolute
+path to the pidfile (rather than just the daemon name), then any user may
+call this function. On success, returns the process id of the daemon. On
+error, returns C<-1> with C<errno> set appropriately.
+
+=cut
+
+*/
+
+pid_t daemon_getpid(const char *name)
+{
+	char *pidfile = NULL;
+	char buf[BUFSIZ];
+	ssize_t bytes;
+	int pid_fd;
+	pid_t pid = (pid_t)0;
+
+	/* Check argument */
+
+	if (!name)
+		return set_errno(EINVAL);
+
+	/* Build the pidfile path */
+
+	if (daemon_construct_pidfile(name, &pidfile) == -1)
+		return -1;
+
+	/* Open it and read it */
+
+	pid_fd = open(pidfile, O_RDONLY);
+	mem_release(pidfile);
+
+	if (pid_fd == -1)
+		return -1;
+
+	if ((bytes = read(pid_fd, buf, BUFSIZ)) == -1)
+		return -1;
+
+	close(pid_fd);
+
+	if (sscanf(buf, "%d", &pid) != 1)
+		return -1;
+
+	return pid;
+}
+
+/*
+
+=item C<int daemon_is_running(const char *name)>
+
+Checks whether or not a daemon with the given C<name> is running. If the
+daemon in question is owned by I<root>, then this function must be invoked
+by I<root>. Similarly, if the daemon in question is owned by an ordinary
+user, then this function must be invoked by an ordinary user. If C<name> is
+the absolute path to the pidfile (rather than just the daemon name), then
+any user may call this function. On success, returns C<1> if the daemon is
+running or C<0> if it is not. On error, returns C<-1> with C<errno> set
+appropriately.
+
+=cut
+
+*/
+
+int daemon_is_running(const char *name)
+{
+	char *pidfile = NULL;
+	int pid_fd;
+
+	/* Check argument */
+
+	if (!name)
+		return set_errno(EINVAL);
+
+	/* Build the pidfile path */
+
+	if (daemon_construct_pidfile(name, &pidfile) == -1)
+		return -1;
+
+	/* Open it and lock it (if possible) */
+
+	if ((pid_fd = daemon_lock_pidfile(pidfile)) == -1)
+	{
+		mem_release(pidfile);
+
+		/* Already locked - daemon is running */
+
+		if (errno == EACCES || errno == EAGAIN)
+			return 1;
+
+		return -1;
+	}
+
+	/* Not locked - daemon is not running */
+
+	close(pid_fd);
+	unlink(pidfile);
+	mem_release(pidfile);
+
+	return 0;
+}
+
+/*
+
+=item C<int daemon_stop(const char *name)>
+
+Stop a daemon process with the given C<name> by sending it a C<SIGTERM>
+signal. If the daemon in question is owned by I<root>, then this function
+must be invoked by I<root>. Similarly, if the daemon in question is owned by
+an ordinary user, then this function must be invoked by that user. Note that
+I<root> can't use this function to stop a daemon started by another user
+just by passing the name of the daemon (because the pidfiles for I<root>
+daemons and user daemons are stored in different directories). In order for
+I<root> to stop an ordinary user's daemon process, I<name> has to be the
+absolute path to the daemon's pidfile. On success, returns C<0>. On error,
+returns C<-1> with C<errno> set appropriately.
+
+=cut
+
+*/
+
+int daemon_stop(const char *name)
+{
+	char *pidfile = NULL;
+	char pidbuf[32];
+	ssize_t bytes;
+	int pid_fd;
+	int pid = -1;
+
+	/* Check argument */
+
+	if (!name)
+		return set_errno(EINVAL);
+
+	/* Build the pidfile path */
+
+	if (daemon_construct_pidfile(name, &pidfile) == -1)
+		return -1;
+
+	/* Open it and lock it (if possible) */
+
+	if ((pid_fd = daemon_lock_pidfile(pidfile)) == -1)
+	{
+		/* Already locked - daemon is running */
+
+		if (errno == EACCES || errno == EAGAIN)
+		{
+			/* Read the process id */
+
+			if ((pid_fd = open(pidfile, O_RDONLY)) == -1)
+			{
+				mem_release(pidfile);
+				return -1;
+			}
+
+			mem_release(pidfile);
+
+			if ((bytes = read(pid_fd, pidbuf, 32)) <= 0)
+			{
+				close(pid_fd);
+				return -1;
+			}
+
+			close(pid_fd);
+
+			if (sscanf(pidbuf, "%d", &pid) != 1 || pid <= 0)
+				return set_errno(EINVAL);
+
+			/* Stop the daemon */
+
+			return kill((pid_t)pid, SIGTERM);
+		}
+
+		mem_release(pidfile);
+
+		return -1;
+	}
+
+	/* Not locked - daemon is not running */
+
+	close(pid_fd);
+	unlink(pidfile);
+	mem_release(pidfile);
+
+	return set_errno(ESRCH);
+}
+
+/*
+
 =back
 
 =head1 ERRORS
@@ -908,12 +1174,17 @@ An argument was invalid (e.g. C<null>).
 
 =item ENAMETOOLONG
 
-The C<name> passed to I<daemon_init()> or I<daemon_path_is_safe()> resulted
-in a path name that is too long for the intended filesystem.
+The C<name> passed to I<daemon_init(3)> or I<daemon_path_is_safe(3)>
+resulted in a path name that is too long for the intended filesystem.
 
 =item ELOOP
 
-I<daemon_path_is_safe()> recursed too deeply (16 levels).
+I<daemon_path_is_safe(3)> recursed too deeply (16 levels).
+
+=item I<ESRCH>
+
+I<daemon_stop(3)> found that there was no daemon running with the given
+name.
 
 =back
 
@@ -934,7 +1205,7 @@ I<daemon_path_is_safe()> recursed too deeply (16 levels).
         int freq, passno;
 
         if (sscanf(line, "%s %s %s %s %d %d", device, mount, fstype, opts, &freq, &passno) != 6)
-            fprintf(stderr, "Syntax error in %s (line %d): %s\n", path, lineno, line);
+            fprintf(stderr, "Syntax Error in %s (line %d): %s\n", path, lineno, line);
         else
         {
             char *copy;
@@ -1006,14 +1277,15 @@ C<ROOT_PID_DIR> and C<USER_PID_DIR> to both be C</tmp>.
 The exclusive creation and locking of the pidfile doesn't work correctly
 over NFS on Linux so pidfiles must reside locally.
 
-I<daemon_path_is_safe()> ignores ACLs (so does I<sendmail(8)>). It should
+I<daemon_path_is_safe(3)> ignores ACLs (so does I<sendmail(8)>). It should
 probably treat a path as unsafe if there are any ACLs (allowing extra
 access) along the path.
 
-The functions I<daemon_prevent_core()>, I<daemon_revoke_privileges()>,
-I<daemon_become_user()>, I<daemon_absolute_path()>, I<daemon_path_is_safe()>
-and I<daemon_parse_config()> should probably all have the I<daemon_> prefix
-removed from their names. Their use is more general than just in daemons.
+The functions I<daemon_prevent_core(3)>, I<daemon_revoke_privileges(3)>,
+I<daemon_become_user(3)>, I<daemon_absolute_path(3)>,
+I<daemon_path_is_safe(3)> and I<daemon_parse_config(3)> should probably all
+have the I<daemon_> prefix removed from their names. Their use is more
+general than just in daemons.
 
 =head1 SEE ALSO
 
@@ -1031,11 +1303,12 @@ L<setuid(2)|setuid(2)>,
 L<setgroups(2)|setgroups(2)>,
 L<initgroups(3)|initgroups(3)>,
 L<endpwent(3)|endpwent(3)>,
-L<endgrent(3)|endgrent(3)>
+L<endgrent(3)|endgrent(3)>,
+L<kill(2)|kill(2))>
 
 =head1 AUTHOR
 
-20011109 raf <raf@raf.org>
+20020916 raf <raf@raf.org>
 
 =cut
 
@@ -1209,7 +1482,7 @@ int main(int ac, char **av)
 	const char *config_name;
 	char *cwd;
 	char *core = "core";
-	char *core2 = "daemon.core"; /* OpenBSD */
+	char *core2 = "daemon.core"; /* OpenBSD, FreeBSD */
 	int facility = LOG_DAEMON | LOG_ERR;
 	pid_t pid;
 	int rc;
@@ -1225,7 +1498,7 @@ int main(int ac, char **av)
 		return EXIT_SUCCESS;
 	}
 
-	printf("Testing: daemon\n");
+	printf("Testing: %s\n", "daemon");
 
 	/* Test (a bit) daemon_started_by_init() and daemon_started_by_inetd() */
 
@@ -1271,12 +1544,12 @@ int main(int ac, char **av)
 			}
 
 #ifndef WCOREDUMP
-#define WCOREDUMP 0
+#define WCOREDUMP(status) 0
 #endif
 
 			if (WIFEXITED(status) && WEXITSTATUS(status))
 				++errors;
-			else if (WCOREDUMP(status) || stat(core, statbuf) == 0 || stat(core2, statbuf) == 0)
+			else if (WCOREDUMP(status) && (stat(core, statbuf) == 0 || stat(core2, statbuf)) == 0)
 				++errors, printf("Test3: child dumped core\n");
 			unlink(core);
 			unlink(core2);
@@ -1311,6 +1584,7 @@ int main(int ac, char **av)
 
 			case 0:
 			{
+				gid_t gids[10];
 				errno = 0;
 				if (daemon_become_user(1, 1, NULL) == -1)
 				{
@@ -1324,9 +1598,9 @@ int main(int ac, char **av)
 					return 1;
 				}
 
-				if (getgroups(0, NULL) != 0)
+				if (getgroups(0, NULL) != 0 && (getgroups(10, gids) != 1 || gids[0] != getuid()))
 				{
-					printf("Test5: daemon_become_user(1, 1, NULL) failed: getgroups() = %d (not 0)\n", getgroups(0, NULL));
+					printf("Test5: daemon_become_user(1, 1, NULL) failed: getgroups() = %d (not 0 or 1)\n", getgroups(0, NULL));
 					return 1;
 				}
 

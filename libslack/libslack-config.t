@@ -19,9 +19,10 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
-# 20011109 raf <raf@raf.org>
+# 20020916 raf <raf@raf.org>
 
 var() { eval $1='$2'; export $1; }
+die() { echo "$@" >&2; exit 1; }
 
 var url     "@@URL@@"
 var name    "@@NAME@@"
@@ -43,19 +44,23 @@ usage: libslack-config [options]
 options:
     -h, --help      - Print this help and exit
     -v, --version   - Print the version of the currently installed libslack
-    -L, --latest    - Print the latest version of libslack (uses wget and perl)
+    -L, --latest    - Print the latest version of libslack (uses wget)
     -D, --download  - Download the latest version of libslack (uses wget)
+    -U, --upgrade   - Upgrade to the latest version of libslack (uses wget)
     -p, --prefix    - Print the prefix directory of the libslack installation
     -c, --cflags    - Print CFLAGS needed to compile clients of libslack
     -l, --libs      - Print LDFLAGS needed to link against libslack
+    -l, --ldflags   - Identical to --libs
     -u, --uninstall - Uninstall libslack
+
+Note: the dashes are optional for long option names
 
 Command line example:
     gcc -o app app.c \`libslack-config --cflags --libs\`
 
 Makefile example:
-    APP_CFLAGS  += \$(shell libslack-config --cflags)
-    APP_LDFLAGS += \$(shell libslack-config --libs)
+    CFLAGS  += \$(shell libslack-config --cflags)
+    LDFLAGS += \$(shell libslack-config --libs)
 
 EOF
 	exit $1
@@ -70,7 +75,7 @@ latest()
 
 		while (<>)
 		{
-			$version{$1} = 1 if /HREF="$ENV{name}-([.0-9a-z]+)\.tar\.gz"/;
+			$version{$1} = 1 if /[Hh][Rr][Ee][Ff]=".*$ENV{name}-([\d.]+)\.tar\.gz"/;
 		}
 
 		sub version_sort
@@ -97,15 +102,30 @@ latest()
 	'
 }
 
-die() { echo "$@" >&2; exit 1; }
-
 download()
 {
 	latest="`latest 2>&1`"
-	test "$latest" = "No versions found at ${url}/download" && die "$latest"
-	file="${latest##*/}"
+	test "$latest" = "No versions found at ${url}download" && die "$latest"
+	file="`echo $latest | sed 's/^.*\///'`"
 	test -f "$file" && die "The file $file already exists"
 	wget "$latest"
+}
+
+upgrade()
+{
+	latest="`latest 2>&1`"
+	test "$latest" = "No versions found at ${url}/download" && die "$latest"
+	file="`echo $latest | sed 's/^.*\///'`"
+	dir="`echo $file | sed 's/\.tar\.gz$//'`"
+	test -f "$file" || wget "$latest"
+	test -s "$file" || die "Failed to download $latest"
+	tar xzf "$file" || die "Failed to untar $file"
+	cd "$dir" || die "Failed to cd $dir"
+	./configure || die "Failed to configure $dir"
+	make || die "Failed to make $dir"
+	uninstall || die "Failed to uninstall current version"
+	make PREFIX="$prefix" install || die "Failed to install $dir into $prefix"
+	cd .. && rm -rf "$dir"
 }
 
 uninstall()
@@ -117,46 +137,22 @@ test $# -eq 0 && usage 1 1>&2
 
 while test $# -gt 0
 do
-	case $1 in
-		-h|--help)
-			usage 0
-			;;
-
-		-v|--version)
-			echo "$version"
-			;;
-
-		-L|--latest)
-			latest
-			;;
-
-		-D|--download)
-			download
-			;;
-
-		-p|--prefix)
-			echo "$prefix"
-			;;
-
-		-c|--cflags)
-			echo "$cflags"
-			;;
-
-		-l|--libs)
-			echo "$libs"
-			;;
-
-		-u|--uninstall)
-			uninstall
-			;;
-
-		*)
-			usage 1 >&2
-			;;
+	case "$1" in
+		-h|--help|help)           usage 0;;
+		-v|--version|version)     echo "$version";;
+		-L|--latest|latest)       latest;;
+		-D|--download|download)   download;;
+		-U|--upgrade|upgrade)     upgrade;;
+		-p|--prefix|prefix)       echo "$prefix";;
+		-c|--cflags|cflags)       echo "$cflags";;
+		-l|--libs|libs)           echo "$libs";;
+		-l|--ldflags|ldflags)     echo "$libs";;
+		-u|--uninstall|uninstall) uninstall;;
+		*) usage 1 >&2;;
 	esac
 	shift
 done
 
 exit 0
 
-# vi:set ts=4 sw=4
+# vim:set ts=4 sw=4

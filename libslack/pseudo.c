@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2001 raf <raf@raf.org>
+* Copyright (C) 1999-2002 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20011109 raf <raf@raf.org>
+* 20020916 raf <raf@raf.org>
 */
 
 /*
@@ -52,6 +52,7 @@ I<libslack(pseudo)> - pseudo terminal module
 
 =head1 SYNOPSIS
 
+    #include <slack/std.h>
     #include <slack/pseudo.h>
 
     int pty_open(int *masterfd, int *slavefd, char *slavename, size_t slavenamesize, const struct termios *slave_termios, const struct winsize *slave_winsize);
@@ -542,9 +543,9 @@ to the C<tty> group if it exists. Otherwise, it will be changed to the given
 user's primary group. The slave pty device's permissions are set to
 C<rw--w---->. Note that only root can execute this function successfully on
 most systems. Also note that the ownership of the device is automatically
-set to the real uid of the process by I<pty_open()> and I<pty_fork()>. The
+set to the real uid of the process by I<pty_open(3)> and I<pty_fork(3)>. The
 permissions are also set automatically by these functions. So
-I<pty_set_owner()> is only needed when the device needs to be owned by some
+I<pty_set_owner(3)> is only needed when the device needs to be owned by some
 user other than the real user. On success, returns C<0>. On error, returns
 C<-1> with C<errno> set appropriately.
 
@@ -795,10 +796,10 @@ Invalid arguments were passed to one of the functions.
 
 =item ENOTTY
 
-I<openpty()> or I<open("/dev/ptc")> returned a slave descriptor for which
-I<ttyname()> failed to return the slave device name. I<open("/dev/ptmx")>
-returned a master descriptor for which I<ptsname()> failed to return the the
-slave device name.
+I<openpty(3)> or I<open("/dev/ptc")> returned a slave descriptor for which
+I<ttyname(3)> failed to return the slave device name. I<open("/dev/ptmx")>
+returned a master descriptor for which I<ptsname(3)> failed to return the
+the slave device name.
 
 =item ENOENT
 
@@ -808,11 +809,11 @@ terminal.
 =item ENOSPC
 
 The device name of the slave side of the pseudo terminal was too large to
-fit in the C<slavename> buffer passed to I<pty_open()> or I<pty_fork()>.
+fit in the C<slavename> buffer passed to I<pty_open(3)> or I<pty_fork(3)>.
 
 =item ENXIO
 
-I<pty_make_controlling_tty()> failed to disconnect from the controlling
+I<pty_make_controlling_tty(3)> failed to disconnect from the controlling
 terminal.
 
 =back
@@ -933,13 +934,13 @@ A very simple pty program:
 
 =head1 MT-Level
 
-MT-Safe if and only if I<ttyname_r()> or I<ptsname_r()> are available when
-needed. On systems that have I<openpty()> or C<"/dev/ptc">, I<ttyname_r()>
-is required, otherwise the unsafe I<ttyname()> will be used. On systems that
-have C<"/dev/ptmx">, I<ptsname_r()> is required, otherwise the unsafe
-I<ptsname()> will be used. On systems that have I<_getpty()>, I<pty_open()>
-is unsafe because I<_getpty()> is unsafe. In short, it's MT-Safe under Linux,
-Unsafe under Solaris and OpenBSD.
+MT-Safe if and only if I<ttyname_r(3)> or I<ptsname_r(3)> are available when
+needed. On systems that have I<openpty(3)> or C<"/dev/ptc">, I<ttyname_r(3)>
+is required, otherwise the unsafe I<ttyname(3)> will be used. On systems
+that have C<"/dev/ptmx">, I<ptsname_r(3)> is required, otherwise the unsafe
+I<ptsname(3)> will be used. On systems that have I<_getpty(2)>,
+I<pty_open(3)> is unsafe because I<_getpty(2)> is unsafe. In short, it's
+MT-Safe under Linux, Unsafe under Solaris and OpenBSD.
 
 =head1 SEE ALSO
 
@@ -997,7 +998,7 @@ int main(int ac, char **av)
 	uid_t euid = geteuid();
 	pid_t pid;
 
-	printf("Testing: pseudo\n");
+	printf("Testing: %s\n", "pseudo");
 
 	/* Test pty_open() */
 

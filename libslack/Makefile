@@ -19,13 +19,18 @@
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
 
-# 20011109 raf <raf@raf.org>
+# 20020916 raf <raf@raf.org>
 
 CC := gcc
 # CC := cc
 AR := ar
 RANLIB := ranlib
-PREFIX := /usr/local
+POD2MAN := pod2man
+POD2HTML := pod2html
+GZIP := gzip -f -9
+
+DESTDIR :=
+PREFIX := $(DESTDIR)/usr/local
 APP_INSDIR := $(PREFIX)/bin
 LIB_INSDIR := $(PREFIX)/lib
 MAN_INSDIR := $(PREFIX)/man
@@ -37,20 +42,21 @@ APP_MANDIR := $(MAN_INSDIR)/man$(APP_MANSECT)
 LIB_MANDIR := $(MAN_INSDIR)/man$(LIB_MANSECT)
 APP_MANSECTNAME := User Commands
 LIB_MANSECTNAME := C Library Functions - libslack
+MAN_GZIP := 1
 
 CCFLAGS += -O3
 CCFLAGS += -Wall -pedantic
 
 # CCFLAGS += -xO4
 
-CLEAN_FILES += tags core Makefile.bak .makefile.bak pod2html-*
+CLEAN_FILES += tags core Makefile.bak .makefile.bak pod2htm*
 
 SLACK_SRCDIR := .
 SLACK_INCDIRS := .
 SLACK_LIBDIRS := .
 include $(SLACK_SRCDIR)/macros.mk
 
-.PHONY: all ready test check man html install uninstall dist rpm deb pkg
+.PHONY: all ready test check man html install uninstall dist rpm deb sol
 
 all: ready $(ALL_TARGETS)
 ready: $(READY_TARGETS)
@@ -62,8 +68,9 @@ uninstall: $(UNINSTALL_TARGETS)
 dist: $(DIST_TARGETS)
 rpm: $(RPM_TARGETS)
 deb: $(DEB_TARGETS)
-pkg: $(PKG_TARGETS)
+sol: $(SOL_TARGETS)
 obsd: $(OBSD_TARGETS)
+fbsd: $(FBSD_TARGETS)
 
 .PHONY: help help-macros depend clean clobber distclean
 
@@ -87,9 +94,10 @@ help::
 	echo " distclean            -- same as clobber but also removes source dependencies"; \
 	echo " dist                 -- makes the distribution: ../$(SLACK_DIST)"; \
 	echo " rpm                  -- makes source and binary rpm packages"; \
-	echo " deb                  -- makes binary debian package"; \
-	echo " pkg                  -- makes binary solaris package"; \
+	echo " deb                  -- makes source and binary debian packages"; \
+	echo " sol                  -- makes binary solaris package"; \
 	echo " obsd                 -- makes binary openbsd package"; \
+	echo " fbsd                 -- makes binary freebsd package"; \
 	echo
 
 help-macros::
@@ -120,7 +128,7 @@ help-macros::
 	echo "DIST_TARGETS = $(DIST_TARGETS)"; \
 	echo "RPM_TARGETS = $(RPM_TARGETS)"; \
 	echo "DEB_TARGETS = $(DEB_TARGETS)"; \
-	echo "PKG_TARGETS = $(PKG_TARGETS)"; \
+	echo "SOL_TARGETS = $(SOL_TARGETS)"; \
 	echo "BSD_TARGETS = $(BSD_TARGETS)"; \
 	echo
 

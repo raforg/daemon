@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2001 raf <raf@raf.org>
+* Copyright (C) 1999-2002 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20011109 raf <raf@raf.org>
+* 20020916 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_STR_H
@@ -36,33 +36,34 @@
 typedef struct String String;
 typedef struct StringTR StringTR;
 
-typedef enum
+enum StringAlignment
 {
 	ALIGN_LEFT       = '<',
 	ALIGN_RIGHT      = '>',
 	ALIGN_CENTRE     = '|',
 	ALIGN_CENTER     = '|',
 	ALIGN_FULL       = '='
-}
-StringAlignment;
+};
 
-typedef enum
+enum StringTROption
 {
 	TR_COMPLEMENT = 1,
 	TR_DELETE     = 2,
 	TR_SQUASH     = 4
-}
-StringTROption;
+};
+
+typedef enum StringAlignment StringAlignment;
+typedef enum StringTROption StringTROption;
 
 _begin_decls
-String *str_create _args ((const char *fmt, ...));
-String *str_create_with_locker _args ((Locker *locker, const char *fmt, ...));
-String *str_vcreate _args ((const char *fmt, va_list args));
-String *str_vcreate_with_locker _args ((Locker *locker, const char *fmt, va_list args));
-String *str_create_sized _args ((size_t size, const char *fmt, ...));
-String *str_create_with_locker_sized _args ((Locker *locker, size_t size, const char *fmt, ...));
-String *str_vcreate_sized _args ((size_t size, const char *fmt, va_list args));
-String *str_vcreate_with_locker_sized _args ((Locker *locker, size_t size, const char *fmt, va_list args));
+String *str_create _args ((const char *format, ...));
+String *str_create_with_locker _args ((Locker *locker, const char *format, ...));
+String *str_vcreate _args ((const char *format, va_list args));
+String *str_vcreate_with_locker _args ((Locker *locker, const char *format, va_list args));
+String *str_create_sized _args ((size_t size, const char *format, ...));
+String *str_create_with_locker_sized _args ((Locker *locker, size_t size, const char *format, ...));
+String *str_vcreate_sized _args ((size_t size, const char *format, va_list args));
+String *str_vcreate_with_locker_sized _args ((Locker *locker, size_t size, const char *format, va_list args));
 String *str_copy _args ((const String *str));
 String *str_copy_unlocked _args ((const String *str));
 String *str_copy_with_locker _args ((Locker *locker, const String *str));
@@ -89,28 +90,28 @@ String *str_remove _args ((String *str, ssize_t index));
 String *str_remove_unlocked _args ((String *str, ssize_t index));
 String *str_remove_range _args ((String *str, ssize_t index, ssize_t range));
 String *str_remove_range_unlocked _args ((String *str, ssize_t index, ssize_t range));
-String *str_insert _args ((String *str, ssize_t index, const char *fmt, ...));
-String *str_insert_unlocked _args ((String *str, ssize_t index, const char *fmt, ...));
-String *str_vinsert _args ((String *str, ssize_t index, const char *fmt, va_list args));
-String *str_vinsert_unlocked _args ((String *str, ssize_t index, const char *fmt, va_list args));
+String *str_insert _args ((String *str, ssize_t index, const char *format, ...));
+String *str_insert_unlocked _args ((String *str, ssize_t index, const char *format, ...));
+String *str_vinsert _args ((String *str, ssize_t index, const char *format, va_list args));
+String *str_vinsert_unlocked _args ((String *str, ssize_t index, const char *format, va_list args));
 String *str_insert_str _args ((String *str, ssize_t index, const String *src));
 String *str_insert_str_unlocked _args ((String *str, ssize_t index, const String *src));
-String *str_append _args ((String *str, const char *fmt, ...));
-String *str_append_unlocked _args ((String *str, const char *fmt, ...));
-String *str_vappend _args ((String *str, const char *fmt, va_list args));
-String *str_vappend_unlocked _args ((String *str, const char *fmt, va_list args));
+String *str_append _args ((String *str, const char *format, ...));
+String *str_append_unlocked _args ((String *str, const char *format, ...));
+String *str_vappend _args ((String *str, const char *format, va_list args));
+String *str_vappend_unlocked _args ((String *str, const char *format, va_list args));
 String *str_append_str _args ((String *str, const String *src));
 String *str_append_str_unlocked _args ((String *str, const String *src));
-String *str_prepend _args ((String *str, const char *fmt, ...));
-String *str_prepend_unlocked _args ((String *str, const char *fmt, ...));
-String *str_vprepend _args ((String *str, const char *fmt, va_list args));
-String *str_vprepend_unlocked _args ((String *str, const char *fmt, va_list args));
+String *str_prepend _args ((String *str, const char *format, ...));
+String *str_prepend_unlocked _args ((String *str, const char *format, ...));
+String *str_vprepend _args ((String *str, const char *format, va_list args));
+String *str_vprepend_unlocked _args ((String *str, const char *format, va_list args));
 String *str_prepend_str _args ((String *str, const String *src));
 String *str_prepend_str_unlocked _args ((String *str, const String *src));
-String *str_replace _args ((String *str, ssize_t index, ssize_t range, const char *fmt, ...));
-String *str_replace_unlocked _args ((String *str, ssize_t index, ssize_t range, const char *fmt, ...));
-String *str_vreplace _args ((String *str, ssize_t index, ssize_t range, const char *fmt, va_list args));
-String *str_vreplace_unlocked _args ((String *str, ssize_t index, ssize_t range, const char *fmt, va_list args));
+String *str_replace _args ((String *str, ssize_t index, ssize_t range, const char *format, ...));
+String *str_replace_unlocked _args ((String *str, ssize_t index, ssize_t range, const char *format, ...));
+String *str_vreplace _args ((String *str, ssize_t index, ssize_t range, const char *format, va_list args));
+String *str_vreplace_unlocked _args ((String *str, ssize_t index, ssize_t range, const char *format, va_list args));
 String *str_replace_str _args ((String *str, ssize_t index, ssize_t range, const String *src));
 String *str_replace_str_unlocked _args ((String *str, ssize_t index, ssize_t range, const String *src));
 String *str_substr _args ((const String *str, ssize_t index, ssize_t range));
@@ -123,10 +124,10 @@ String *str_splice _args ((String *str, ssize_t index, ssize_t range));
 String *str_splice_unlocked _args ((String *str, ssize_t index, ssize_t range));
 String *str_splice_with_locker _args ((Locker *locker, String *str, ssize_t index, ssize_t range));
 String *str_splice_with_locker_unlocked _args ((Locker *locker, String *str, ssize_t index, ssize_t range));
-String *str_repeat _args ((size_t count, const char *fmt, ...));
-String *str_repeat_with_locker _args ((Locker *locker, size_t count, const char *fmt, ...));
-String *str_vrepeat _args ((size_t count, const char *fmt, va_list args));
-String *str_vrepeat_with_locker _args ((Locker *locker, size_t count, const char *fmt, va_list args));
+String *str_repeat _args ((size_t count, const char *format, ...));
+String *str_repeat_with_locker _args ((Locker *locker, size_t count, const char *format, ...));
+String *str_vrepeat _args ((size_t count, const char *format, va_list args));
+String *str_vrepeat_with_locker _args ((Locker *locker, size_t count, const char *format, va_list args));
 int str_tr _args ((String *str, const char *from, const char *to, int option));
 int str_tr_unlocked _args ((String *str, const char *from, const char *to, int option));
 int str_tr_str _args ((String *str, const String *from, const String *to, int option));
@@ -138,8 +139,8 @@ StringTR *str_tr_compile _args ((const String *from, const String *to, int optio
 StringTR *str_tr_compile_unlocked _args ((const String *from, const String *to, int option));
 StringTR *str_tr_compile_with_locker _args ((Locker *locker, const String *from, const String *to, int option));
 StringTR *str_tr_compile_with_locker_unlocked _args ((Locker *locker, const String *from, const String *to, int option));
-void tr_release _args ((StringTR *tr));
-void *tr_destroy _args ((StringTR **tr));
+void tr_release _args ((StringTR *table));
+void *tr_destroy _args ((StringTR **table));
 int str_tr_compiled _args ((String *str, StringTR *table));
 int str_tr_compiled_unlocked _args ((String *str, StringTR *table));
 int tr_compiled _args ((char *str, StringTR *table));
@@ -261,8 +262,8 @@ char *cstrchr _args ((const char *str, int c));
 char *cstrpbrk _args ((const char *str, const char *brk));
 char *cstrrchr _args ((const char *str, int c));
 char *cstrstr _args ((const char *str, const char *srch));
-int asprintf _args ((char **str, const char *fmt, ...));
-int vasprintf _args ((char **str, const char *fmt, va_list args));
+int asprintf _args ((char **str, const char *format, ...));
+int vasprintf _args ((char **str, const char *format, va_list args));
 _end_decls
 
 #endif

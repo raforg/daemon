@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2001 raf <raf@raf.org>
+* Copyright (C) 1999-2002 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20011109 raf <raf@raf.org>
+* 20020916 raf <raf@raf.org>
 */
 
 /*
@@ -29,6 +29,7 @@ I<libslack(lim)> - POSIX.1 limits module
 
 =head1 SYNOPSIS
 
+    #include <slack/std.h>
     #include <slack/lim.h>
 
     long limit_arg(void);
@@ -827,7 +828,7 @@ L<locker(3)|locker(3)>
 
 =head1 AUTHOR
 
-20011109 raf <raf@raf.org>
+20020916 raf <raf@raf.org>
 
 =cut
 
@@ -850,7 +851,7 @@ int main(int ac, char **av)
 		return EXIT_SUCCESS;
 	}
 
-	printf("Testing: lim\n");
+	printf("Testing: %s\n", "lim");
 
 	if ((limit = limit_arg()) == -1)
 		++errors, printf("Test1: limit_arg() failed\n");

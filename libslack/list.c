@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2001 raf <raf@raf.org>
+* Copyright (C) 1999-2002 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20011109 raf <raf@raf.org>
+* 20020916 raf <raf@raf.org>
 */
 
 /*
@@ -29,6 +29,7 @@ I<libslack(list)> - list module
 
 =head1 SYNOPSIS
 
+    #include <slack/std.h>
     #include <slack/list.h>
 
     typedef struct List List;
@@ -348,8 +349,8 @@ static void killitems(List *list, size_t index, size_t range)
 =item C<List *list_create(list_release_t *destroy)>
 
 Creates a I<List> with C<destroy> as its item destructor. It is the caller's
-responsbility to deallocate the new list with I<list_release()> or
-I<list_destroy()>. On success, returns the new list. On error, returns
+responsbility to deallocate the new list with I<list_release(3)> or
+I<list_destroy(3)>. On success, returns the new list. On error, returns
 C<null> with C<errno> set appropriately.
 
 =cut
@@ -367,7 +368,7 @@ List *list_create(list_release_t *destroy)
 
 Creates a I<List> with C<destroy> as its item destructor and the remaining
 arguments as its initial items. It is the caller's responsibility to
-deallocate the new list with I<list_release()> or I<list_destroy()>. On
+deallocate the new list with I<list_release(3)> or I<list_destroy(3)>. On
 success, returns the new list. On error, return C<null> with C<errno> set
 appropriately.
 
@@ -389,7 +390,7 @@ List *list_make(list_release_t *destroy, ...)
 
 =item C<List *list_vmake(list_release_t *destroy, va_list args)>
 
-Equivalent to I<list_make()> with the variable argument list specified
+Equivalent to I<list_make(3)> with the variable argument list specified
 directly as for I<vprintf(3)>.
 
 =cut
@@ -407,8 +408,8 @@ List *list_vmake(list_release_t *destroy, va_list args)
 
 Creates a copy of C<src> using C<copy> as the copy constructor (if not
 C<null>). It is the caller's responsibility to deallocate the new list with
-I<list_release()> or I<list_destroy()>. On success, returns the new copy. On
-error, returns C<null> with C<errno> set appropriately.
+I<list_release(3)> or I<list_destroy(3)>. On success, returns the new copy.
+On error, returns C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -423,7 +424,7 @@ List *list_copy(const List *src, list_copy_t *copy)
 
 =item C<List *list_create_with_locker(Locker *locker, list_release_t *destroy)>
 
-Equivalent to I<list_create()> except that multiple threads accessing the
+Equivalent to I<list_create(3)> except that multiple threads accessing the
 new list will be synchronised by C<locker>.
 
 =cut
@@ -450,7 +451,7 @@ List *list_create_with_locker(Locker *locker, list_release_t *destroy)
 
 =item C<List *list_make_with_locker(Locker *locker, list_release_t *destroy, ...)>
 
-Equivalent to I<list_make()> except that multiple threads accessing the new
+Equivalent to I<list_make(3)> except that multiple threads accessing the new
 list will be synchronised by C<locker>.
 
 =cut
@@ -471,8 +472,8 @@ List *list_make_with_locker(Locker *locker, list_release_t *destroy, ...)
 
 =item C<List *list_vmake_with_locker(Locker *locker, list_release_t *destroy, va_list args)>
 
-Equivalent to I<list_vmake()> except that multiple threads accessing the new
-list will be synchronised by C<locker>.
+Equivalent to I<list_vmake(3)> except that multiple threads accessing the
+new list will be synchronised by C<locker>.
 
 =cut
 
@@ -502,7 +503,7 @@ List *list_vmake_with_locker(Locker *locker, list_release_t *destroy, va_list ar
 
 =item C<List *list_copy_with_locker(Locker *locker, const List *src, list_copy_t *copy)>
 
-Equivalent to I<list_copy()> except that multiple threads accessing the new
+Equivalent to I<list_copy(3)> except that multiple threads accessing the new
 list will be synchronised by C<locker>.
 
 =cut
@@ -529,12 +530,12 @@ List *list_copy_with_locker(Locker *locker, const List *src, list_copy_t *copy)
 =item C<int list_rdlock(const List *list)>
 
 Claims a read lock on C<list> (if C<list> was created with a I<Locker>).
-This is needed when multiple read only I<list> module functions need to be
-called atomically. It is the client's responsibility to call
-I<list_unlock()> after the atomic operation. The only functions that may be
-called on C<list> between calls to I<list_rdlock()> and I<list_unlock()> are
-any read only I<list> module functions whose name ends with C<_unlocked>. On
-success, returns C<0>. On error, returns an error code.
+This is needed when multiple read only L<list(3)|list(3)> module functions
+need to be called atomically. It is the client's responsibility to call
+I<list_unlock(3)> after the atomic operation. The only functions that may be
+called on C<list> between calls to I<list_rdlock(3)> and I<list_unlock(3)>
+are any read only L<list(3)|list(3)> module functions whose name ends with
+C<_unlocked>. On success, returns C<0>. On error, returns an error code.
 
 =cut
 
@@ -555,12 +556,12 @@ int (list_rdlock)(const List *list)
 =item C<int list_wrlock(const List *list)>
 
 Claims a write lock on C<list> (if C<list> was created with a I<Locker>).
-This is needed when multiple read/write I<list> module functions need to be
-called atomically. It is the client's responsibility to call
-I<list_unlock()> after the atomic operation. The only functions that may be
-called on C<list> between calls to I<list_wrlock()> and I<list_unlock()> are
-any I<list> module functions whose name ends with C<_unlocked>. On success,
-returns C<0>. On error, returns an error code.
+This is needed when multiple read/write L<list(3)|list(3)> module functions
+need to be called atomically. It is the client's responsibility to call
+I<list_unlock(3)> after the atomic operation. The only functions that may be
+called on C<list> between calls to I<list_wrlock(3)> and I<list_unlock(3)>
+are any L<list(3)|list(3)> module functions whose name ends with
+C<_unlocked>. On success, returns C<0>. On error, returns an error code.
 
 =cut
 
@@ -575,8 +576,8 @@ int (list_wrlock)(const List *list)
 
 =item C<int list_unlock(const List *list)>
 
-Unlocks a read or write lock on C<list> obtained with I<list_rdlock()> or
-I<list_wrlock()> (if C<list> was created with a C<locker>). On success,
+Unlocks a read or write lock on C<list> obtained with I<list_rdlock(3)> or
+I<list_wrlock(3)> (if C<list> was created with a C<locker>). On success,
 returns C<0>. On error, returns an error code.
 
 =cut
@@ -671,7 +672,7 @@ int list_own(List *list, list_release_t *destroy)
 
 =item C<int list_own_unlocked(List *list, list_release_t *destroy)>
 
-Equivalent to I<list_own()> except that C<list> is not write locked.
+Equivalent to I<list_own(3)> except that C<list> is not write locked.
 
 =cut
 
@@ -723,7 +724,7 @@ list_release_t *list_disown(List *list)
 
 =item C<list_release_t *list_disown_unlocked(List *list)>
 
-Equivalent to I<list_disown()> except that C<list> is not write locked.
+Equivalent to I<list_disown(3)> except that C<list> is not write locked.
 
 =cut
 
@@ -778,7 +779,7 @@ void *list_item(const List *list, ssize_t index)
 
 =item C<void *list_item_unlocked(const List *list, ssize_t index)>
 
-Equivalent to I<list_item()> except that C<list> is not read locked.
+Equivalent to I<list_item(3)> except that C<list> is not read locked.
 
 =cut
 
@@ -805,7 +806,8 @@ void *list_item_unlocked(const List *list, ssize_t index)
 
 =item C<int list_item_int(const List *list, ssize_t index)>
 
-Equivalent to I<list_item()> except that the item is cast to an integer type.
+Equivalent to I<list_item(3)> except that the item is cast to an integer
+type.
 
 =cut
 
@@ -820,7 +822,7 @@ int list_item_int(const List *list, ssize_t index)
 
 =item C<int list_item_int_unlocked(const List *list, ssize_t index)>
 
-Equivalent to I<list_item_int()> except that C<list> is not read locked.
+Equivalent to I<list_item_int(3)> except that C<list> is not read locked.
 
 =cut
 
@@ -865,7 +867,7 @@ int list_empty(const List *list)
 
 =item C<int list_empty_unlocked(const List *list)>
 
-Equivalent to I<list_empty()> except that C<list> is not read locked.
+Equivalent to I<list_empty(3)> except that C<list> is not read locked.
 
 =cut
 
@@ -913,7 +915,7 @@ ssize_t list_length(const List *list)
 
 =item C<ssize_t list_length_unlocked(const List *list)>
 
-Equivalent to I<list_length()> except that C<list> is not read locked.
+Equivalent to I<list_length(3)> except that C<list> is not read locked.
 
 =cut
 
@@ -961,7 +963,7 @@ ssize_t list_last(const List *list)
 
 =item C<ssize_t list_last_unlocked(const List *list)>
 
-Equivalent to I<list_last()> except that C<list> is not read locked.
+Equivalent to I<list_last(3)> except that C<list> is not read locked.
 
 =cut
 
@@ -998,7 +1000,7 @@ List *list_remove(List *list, ssize_t index)
 
 =item C<List *list_remove_unlocked(List *list, ssize_t index)>
 
-Equivalent to I<list_remove()> except that C<list> is not write locked.
+Equivalent to I<list_remove(3)> except that C<list> is not write locked.
 
 =cut
 
@@ -1047,7 +1049,8 @@ List *list_remove_range(List *list, ssize_t index, ssize_t range)
 
 =item C<List *list_remove_range_unlocked(List *list, ssize_t index, ssize_t range)>
 
-Equivalent to I<list_remove_range()> except that C<list> is not write locked.
+Equivalent to I<list_remove_range(3)> except that C<list> is not write
+locked.
 
 =cut
 
@@ -1118,7 +1121,7 @@ List *list_insert(List *list, ssize_t index, void *item)
 
 =item C<List *list_insert_unlocked(List *list, ssize_t index, void *item)>
 
-Equivalent to I<list_insert()> except that C<list> is not write locked.
+Equivalent to I<list_insert(3)> except that C<list> is not write locked.
 
 =cut
 
@@ -1150,7 +1153,7 @@ List *list_insert_unlocked(List *list, ssize_t index, void *item)
 
 =item C<List *list_insert_int(List *list, ssize_t index, int item)>
 
-Equivalent to I<list_insert()> except that C<item> is an integer type.
+Equivalent to I<list_insert(3)> except that C<item> is an integer type.
 
 =cut
 
@@ -1165,7 +1168,7 @@ List *list_insert_int(List *list, ssize_t index, int item)
 
 =item C<List *list_insert_int_unlocked(List *list, ssize_t index, int item)>
 
-Equivalent to I<list_insert_int()> except that C<list> is not write locked.
+Equivalent to I<list_insert_int(3)> except that C<list> is not write locked.
 
 =cut
 
@@ -1226,10 +1229,10 @@ List *list_insert_list(List *list, ssize_t index, const List *src, list_copy_t *
 
 =item C<List *list_insert_list_unlocked(List *list, ssize_t index, const List *src, list_copy_t *copy)>
 
-Equivalent to I<list_insert_list()> except that C<list> is not write locked
+Equivalent to I<list_insert_list(3)> except that C<list> is not write locked
 and C<src> is not read locked. Note: If C<src> needs to be read locked, it
 is the caller's responsibility to lock and unlock it explicitly with
-I<list_rdlock()> and I<list_unlock()>.
+I<list_rdlock(3)> and I<list_unlock(3)>.
 
 =cut
 
@@ -1282,7 +1285,7 @@ List *list_append(List *list, void *item)
 
 =item C<List *list_append_unlocked(List *list, void *item)>
 
-Equivalent to I<list_append()> except that C<list> is not write locked.
+Equivalent to I<list_append(3)> except that C<list> is not write locked.
 
 =cut
 
@@ -1297,7 +1300,7 @@ List *list_append_unlocked(List *list, void *item)
 
 =item C<List *list_append_int(List *list, int item)>
 
-Equivalent to I<list_append()> except that C<item> is an integer.
+Equivalent to I<list_append(3)> except that C<item> is an integer.
 
 =cut
 
@@ -1312,7 +1315,7 @@ List *list_append_int(List *list, int item)
 
 =item C<List *list_append_int_unlocked(List *list, int item)>
 
-Equivalent to I<list_append_int()> except that C<list> is not write locked.
+Equivalent to I<list_append_int(3)> except that C<list> is not write locked.
 
 =cut
 
@@ -1344,7 +1347,8 @@ List *list_append_list(List *list, const List *src, list_copy_t *copy)
 
 =item C<List *list_append_list_unlocked(List *list, const List *src, list_copy_t *copy)>
 
-Equivalent to I<list_append_list()> except that C<list> is not write locked.
+Equivalent to I<list_append_list(3)> except that C<list> is not write
+locked.
 
 =cut
 
@@ -1375,7 +1379,7 @@ List *list_prepend(List *list, void *item)
 
 =item C<List *list_prepend_unlocked(List *list, void *item)>
 
-Equivalent to I<list_prepend()> except that C<list> is not write locked.
+Equivalent to I<list_prepend(3)> except that C<list> is not write locked.
 
 =cut
 
@@ -1390,7 +1394,7 @@ List *list_prepend_unlocked(List *list, void *item)
 
 =item C<List *list_prepend_int(List *list, int item)>
 
-Equivalent to I<list_prepend()> except that C<item> is an integer.
+Equivalent to I<list_prepend(3)> except that C<item> is an integer.
 
 =cut
 
@@ -1405,7 +1409,8 @@ List *list_prepend_int(List *list, int item)
 
 =item C<List *list_prepend_int_unlocked(List *list, int item)>
 
-Equivalent to I<list_prepend_int()> except that C<list> is not write locked.
+Equivalent to I<list_prepend_int(3)> except that C<list> is not write
+locked.
 
 =cut
 
@@ -1437,7 +1442,8 @@ List *list_prepend_list(List *list, const List *src, list_copy_t *copy)
 
 =item C<List *list_prepend_list_unlocked(List *list, const List *src, list_copy_t *copy)>
 
-Equivalent to I<list_prepend_list()> except that C<list> is not write locked.
+Equivalent to I<list_prepend_list(3)> except that C<list> is not write
+locked.
 
 =cut
 
@@ -1485,7 +1491,7 @@ List *list_replace(List *list, ssize_t index, ssize_t range, void *item)
 
 =item C<List *list_replace_unlocked(List *list, ssize_t index, ssize_t range, void *item)>
 
-Equivalent to I<list_replace()> except that C<list> is not write locked.
+Equivalent to I<list_replace(3)> except that C<list> is not write locked.
 
 =cut
 
@@ -1525,7 +1531,7 @@ List *list_replace_unlocked(List *list, ssize_t index, ssize_t range, void *item
 
 =item C<List *list_replace_int(List *list, ssize_t index, ssize_t range, int item)>
 
-Equivalent to I<list_replace()> except that C<item> is an integer type.
+Equivalent to I<list_replace(3)> except that C<item> is an integer type.
 
 =cut
 
@@ -1540,7 +1546,7 @@ List *list_replace_int(List *list, ssize_t index, ssize_t range, int item)
 
 =item C<List *list_replace_int_unlocked(List *list, ssize_t index, ssize_t range, int item)>
 
-Equivalent to I<list_replace_int()> except that C<list> is not write locked.
+Equivalent to I<list_replace_int(3)> except that C<list> is not write locked.
 
 =cut
 
@@ -1601,10 +1607,10 @@ List *list_replace_list(List *list, ssize_t index, ssize_t range, const List *sr
 
 =item C<List *list_replace_list_unlocked(List *list, ssize_t index, ssize_t range, const List *src, list_copy_t *copy)>
 
-Equivalent to I<list_replace_list()> except that C<list> is not write locked
-and C<src> is not read locked. Note: If C<src> needs to be read locked, it
-is the caller's responsibility to lock and unlock it explicitly with
-I<list_rdlock()> and I<list_unlock()>.
+Equivalent to I<list_replace_list(3)> except that C<list> is not write
+locked and C<src> is not read locked. Note: If C<src> needs to be read
+locked, it is the caller's responsibility to lock and unlock it explicitly
+with I<list_rdlock(3)> and I<list_unlock(3)>.
 
 =cut
 
@@ -1654,7 +1660,7 @@ C<index>, using C<copy> as the copy constructor (if not C<null>). If
 C<index> or C<range> are negative, they refer to item positions relative to
 the end of the list (C<-1> is the position after the last item, C<-2> is the
 position of the last item and so on). It is the caller's responsibility to
-deallocate the new list with I<list_release()> or I<list_destroy()>. On
+deallocate the new list with I<list_release(3)> or I<list_destroy(3)>. On
 success, returns the new list. On error, returns C<null> with C<errno> set
 appropriately.
 
@@ -1672,7 +1678,7 @@ List *list_extract(const List *list, ssize_t index, ssize_t range, list_copy_t *
 
 =item C<List *list_extract_unlocked(const List *list, ssize_t index, ssize_t range, list_copy_t *copy)>
 
-Equivalent to I<list_extract()> except that C<list> is not read locked.
+Equivalent to I<list_extract(3)> except that C<list> is not read locked.
 
 =cut
 
@@ -1687,7 +1693,7 @@ List *list_extract_unlocked(const List *list, ssize_t index, ssize_t range, list
 
 =item C<List *list_extract_with_locker(Locker *locker, const List *list, ssize_t index, ssize_t range, list_copy_t *copy)>
 
-Equivalent to I<list_extract()> except that multiple threads accessing the
+Equivalent to I<list_extract(3)> except that multiple threads accessing the
 new list will be synchronised by C<locker>.
 
 =cut
@@ -1718,7 +1724,7 @@ List *list_extract_with_locker(Locker *locker, const List *list, ssize_t index, 
 
 =item C<List *list_extract_with_locker_unlocked(Locker *locker, const List *list, ssize_t index, ssize_t range, list_copy_t *copy)>
 
-Equivalent to I<list_extract_with_locker()> except that C<list> is not read
+Equivalent to I<list_extract_with_locker(3)> except that C<list> is not read
 locked.
 
 =cut
@@ -1784,7 +1790,7 @@ List *list_push(List *list, void *item)
 
 =item C<List *list_push_unlocked(List *list, void *item)>
 
-Equivalent to I<list_push()> except that C<list> is not write locked.
+Equivalent to I<list_push(3)> except that C<list> is not write locked.
 
 =cut
 
@@ -1799,7 +1805,7 @@ List *list_push_unlocked(List *list, void *item)
 
 =item C<List *list_push_int(List *list, int item)>
 
-Equivalent to I<list_push()> except that C<item> is an integer.
+Equivalent to I<list_push(3)> except that C<item> is an integer.
 
 =cut
 
@@ -1814,7 +1820,7 @@ List *list_push_int(List *list, int item)
 
 =item C<List *list_push_int_unlocked(List *list, int item)>
 
-Equivalent to I<list_push_int()> except that C<list> is not write locked.
+Equivalent to I<list_push_int(3)> except that C<list> is not write locked.
 
 =cut
 
@@ -1859,7 +1865,7 @@ void *list_pop(List *list)
 
 =item C<void *list_pop_unlocked(List *list)>
 
-Equivalent to I<list_pop()> except that C<list> is not write locked.
+Equivalent to I<list_pop(3)> except that C<list> is not write locked.
 
 =cut
 
@@ -1891,7 +1897,8 @@ void *list_pop_unlocked(List *list)
 
 =item C<int list_pop_int(List *list)>
 
-Equivalent to I<list_pop()> except that the item popped has an integer type.
+Equivalent to I<list_pop(3)> except that the item popped has an integer
+type.
 
 =cut
 
@@ -1906,7 +1913,7 @@ int list_pop_int(List *list)
 
 =item C<int list_pop_int_unlocked(List *list)>
 
-Equivalent to I<list_pop_int()> except that C<list> is not write locked.
+Equivalent to I<list_pop_int(3)> except that C<list> is not write locked.
 
 =cut
 
@@ -1951,7 +1958,7 @@ void *list_shift(List *list)
 
 =item C<void *list_shift_unlocked(List *list)>
 
-Equivalent to I<list_shift()> except that C<list> is not write locked.
+Equivalent to I<list_shift(3)> except that C<list> is not write locked.
 
 =cut
 
@@ -1983,7 +1990,7 @@ void *list_shift_unlocked(List *list)
 
 =item C<int list_shift_int(List *list)>
 
-Equivalent to I<list_shift()> except that the item shifted has an integer
+Equivalent to I<list_shift(3)> except that the item shifted has an integer
 type.
 
 =cut
@@ -1999,7 +2006,7 @@ int list_shift_int(List *list)
 
 =item C<int list_shift_int_unlocked(List *list)>
 
-Equivalent to I<list_shift_int()> except that C<list> is not write locked.
+Equivalent to I<list_shift_int(3)> except that C<list> is not write locked.
 
 =cut
 
@@ -2030,7 +2037,7 @@ List *list_unshift(List *list, void *item)
 
 =item C<List *list_unshift_unlocked(List *list, void *item)>
 
-Equivalent to I<list_unshift()> except that C<list> is not write locked.
+Equivalent to I<list_unshift(3)> except that C<list> is not write locked.
 
 =cut
 
@@ -2045,7 +2052,7 @@ List *list_unshift_unlocked(List *list, void *item)
 
 =item C<List *list_unshift_int(List *list, int item)>
 
-Equivalent to I<list_unshift()> except that C<item> is an integer.
+Equivalent to I<list_unshift(3)> except that C<item> is an integer.
 
 =cut
 
@@ -2060,7 +2067,8 @@ List *list_unshift_int(List *list, int item)
 
 =item C<List *list_unshift_int_unlocked(List *list, int item)>
 
-Equivalent to I<list_unshift_int()> except that C<list> is not write locked.
+Equivalent to I<list_unshift_int(3)> except that C<list> is not write
+locked.
 
 =cut
 
@@ -2080,8 +2088,8 @@ after copying the items with C<copy> (if not C<null>). If C<index> or
 C<range> are negative, they refer to item positions relative to the end of
 the list (C<-1> is the position after the last item, C<-2> is the position
 of the last item and so on). On success, returns the sublist. It is the
-caller's responsibility to deallocate the new list with I<list_release()> or
-I<list_destroy()>. On error, returns C<null> with C<errno> set
+caller's responsibility to deallocate the new list with I<list_release(3)>
+or I<list_destroy(3)>. On error, returns C<null> with C<errno> set
 appropriately.
 
 =cut
@@ -2097,7 +2105,7 @@ List *list_splice(List *list, ssize_t index, ssize_t range, list_copy_t *copy)
 
 =item C<List *list_splice_unlocked(List *list, ssize_t index, ssize_t range, list_copy_t *copy)>
 
-Equivalent to I<list_splice()> except that C<list> is not write locked.
+Equivalent to I<list_splice(3)> except that C<list> is not write locked.
 
 =cut
 
@@ -2112,7 +2120,7 @@ List *list_splice_unlocked(List *list, ssize_t index, ssize_t range, list_copy_t
 
 =item C<List *list_splice_with_locker(Locker *locker, List *list, ssize_t index, ssize_t range, list_copy_t *copy)>
 
-Equivalent to I<list_splice()> except that multiple threads accessing the
+Equivalent to I<list_splice(3)> except that multiple threads accessing the
 new list will be synchronised by C<locker>.
 
 =cut
@@ -2145,7 +2153,7 @@ List *list_splice_with_locker(Locker *locker, List *list, ssize_t index, ssize_t
 
 =item C<List *list_splice_with_locker_unlocked(Locker *locker, List *list, ssize_t index, ssize_t range, list_copy_t *copy)>
 
-Equivalent to I<list_splice_with_locker()> except that C<list> is not write
+Equivalent to I<list_splice_with_locker(3)> except that C<list> is not write
 locked.
 
 =cut
@@ -2207,7 +2215,7 @@ List *list_sort(List *list, list_cmp_t *cmp)
 
 =item C<List *list_sort_unlocked(List *list, list_cmp_t *cmp)>
 
-Equivalent to I<list_sort()> except that C<list> is not write locked.
+Equivalent to I<list_sort(3)> except that C<list> is not write locked.
 
 =cut
 
@@ -2247,9 +2255,9 @@ void list_apply(List *list, list_action_t *action, void *data)
 
 =item C<void list_apply_rdlocked(List *list, list_action_t *action, void *data)>
 
-Equivalent to I<list_apply()> except that C<list> is read locked rather than
-write locked. Use this in preference to I<list_apply()> when C<list> and its
-items will not be modified during the iteration.
+Equivalent to I<list_apply(3)> except that C<list> is read locked rather
+than write locked. Use this in preference to I<list_apply(3)> when C<list>
+and its items will not be modified during the iteration.
 
 =cut
 
@@ -2281,8 +2289,8 @@ void list_apply_rdlocked(List *list, list_action_t *action, void *data)
 
 =item C<void list_apply_wrlocked(List *list, list_action_t *action, void *data)>
 
-Equivalent to I<list_apply()> except that this function name makes the
-fact that C<list> is write locked explicit.
+Equivalent to I<list_apply(3)> except that this function name makes the fact
+that C<list> is write locked explicit.
 
 =cut
 
@@ -2314,7 +2322,7 @@ void list_apply_wrlocked(List *list, list_action_t *action, void *data)
 
 =item C<void list_apply_unlocked(List *list, list_action_t *action, void *data)>
 
-Equivalent to I<list_apply()> except that C<list> is not write locked.
+Equivalent to I<list_apply(3)> except that C<list> is not write locked.
 
 =cut
 
@@ -2343,8 +2351,8 @@ invoked once for each item in C<list>. The arguments passed to C<map> are
 the item, a pointer to the loop variable containing the item's position
 within C<list> and C<data>. C<destroy> will be the item destructor for the
 new list. It is the caller's responsibility to deallocate the new list with
-I<list_release()> or I<list_destroy()>. On success, returns the new list. On
-error, returns C<null> with C<errno> set appropriately.
+I<list_release(3)> or I<list_destroy(3)>. On success, returns the new list.
+On error, returns C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -2359,7 +2367,7 @@ List *list_map(List *list, list_release_t *destroy, list_map_t *map, void *data)
 
 =item C<List *list_map_unlocked(List *list, list_release_t *destroy, list_map_t *map, void *data)>
 
-Equivalent to I<list_map()> except that C<list> is not read locked.
+Equivalent to I<list_map(3)> except that C<list> is not read locked.
 
 =cut
 
@@ -2374,7 +2382,7 @@ List *list_map_unlocked(List *list, list_release_t *destroy, list_map_t *map, vo
 
 =item C<List *list_map_with_locker(Locker *locker, List *list, list_release_t *destroy, list_map_t *map, void *data)>
 
-Equivalent to I<list_map()> except that multiple threads accessing the new
+Equivalent to I<list_map(3)> except that multiple threads accessing the new
 list will be synchronised by C<locker>.
 
 =cut
@@ -2407,7 +2415,8 @@ List *list_map_with_locker(Locker *locker, List *list, list_release_t *destroy, 
 
 =item C<List *list_map_with_locker_unlocked(Locker *locker, List *list, list_release_t *destroy, list_map_t *map, void *data)>
 
-Equivalent to I<list_map_with_locker()> except that C<list> is not read locked.
+Equivalent to I<list_map_with_locker(3)> except that C<list> is not read
+locked.
 
 =cut
 
@@ -2444,9 +2453,9 @@ Creates and returns a new list by invoking C<grep> for each item in C<list>,
 and appending the items for which C<grep> returned a non-zero value. The
 arguments passed to C<grep> are the item, a pointer to the loop variable
 containing the item's position within C<list> and C<data>. It is the
-caller's responsibility to deallocate the new list with I<list_release()> or
-I<list_destroy()>. Note that the new list does not own its items since it
-does not copy them. On success, returns the new list. On error, returns
+caller's responsibility to deallocate the new list with I<list_release(3)>
+or I<list_destroy(3)>. Note that the new list does not own its items since
+it does not copy them. On success, returns the new list. On error, returns
 C<null> with C<errno> set appropriately.
 
 =cut
@@ -2462,7 +2471,7 @@ List *list_grep(List *list, list_query_t *grep, void *data)
 
 =item C<List *list_grep_unlocked(List *list, list_query_t *grep, void *data)>
 
-Equivalent to I<list_grep()> except that C<list> is not read locked.
+Equivalent to I<list_grep(3)> except that C<list> is not read locked.
 
 =cut
 
@@ -2477,7 +2486,7 @@ List *list_grep_unlocked(List *list, list_query_t *grep, void *data)
 
 =item C<List *list_grep_with_locker(Locker *locker, List *list, list_query_t *grep, void *data)>
 
-Equivalent to I<list_grep()> except that multiple threads accessing the new
+Equivalent to I<list_grep(3)> except that multiple threads accessing the new
 list will be synchronised by C<locker>.
 
 =cut
@@ -2510,7 +2519,8 @@ List *list_grep_with_locker(Locker *locker, List *list, list_query_t *grep, void
 
 =item C<List *list_grep_with_locker_unlocked(Locker *locker, List *list, list_query_t *grep, void *data)>
 
-Equivalent to I<list_grep_with_locker()> except that C<list> is not read locked.
+Equivalent to I<list_grep_with_locker(3)> except that C<list> is not read
+locked.
 
 =cut
 
@@ -2580,7 +2590,7 @@ ssize_t list_query(List *list, ssize_t *index, list_query_t *query, void *data)
 
 =item C<ssize_t list_query_unlocked(List *list, ssize_t *index, list_query_t *query, void *data)>
 
-Equivalent to I<list_query()> except that C<list> is not read locked.
+Equivalent to I<list_query(3)> except that C<list> is not read locked.
 
 =cut
 
@@ -2610,11 +2620,11 @@ ssize_t list_query_unlocked(List *list, ssize_t *index, list_query_t *query, voi
 =item C<Lister *lister_create(List *list)>
 
 Creates an iterator for C<list>. It is the caller's responsibility to
-deallocate the iterator with I<lister_release()> or I<lister_destroy()>. The
-iterator keeps C<list> write locked until it is released with
-I<lister_release()> or I<lister_destroy()>. Note that the iterator itself is
-not locked so it must not be shared between threads. On success, returns the
-iterator. On error, returns C<null> with C<errno> set appropriately.
+deallocate the iterator with I<lister_release(3)> or I<lister_destroy(3)>.
+The iterator keeps C<list> write locked until it is released with
+I<lister_release(3)> or I<lister_destroy(3)>. Note that the iterator itself
+is not locked so it must not be shared between threads. On success, returns
+the iterator. On error, returns C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -2629,9 +2639,9 @@ Lister *lister_create(List *list)
 
 =item C<Lister *lister_create_rdlocked(List *list)>
 
-Equivalent to I<lister_create()> except that C<list> is read locked rather
-than write locked. Use this in preference to I<lister_create()> when no
-calls to I<lister_remove()> will be made during the iteration.
+Equivalent to I<lister_create(3)> except that C<list> is read locked rather
+than write locked. Use this in preference to I<lister_create(3)> when no
+calls to I<lister_remove(3)> will be made during the iteration.
 
 =cut
 
@@ -2654,7 +2664,7 @@ Lister *lister_create_rdlocked(List *list)
 
 =item C<Lister *lister_create_wrlocked(List *list)>
 
-Equivalent to I<lister_create()> except that this function name makes the
+Equivalent to I<lister_create(3)> except that this function name makes the
 fact that C<list> is write locked explicit.
 
 =cut
@@ -2678,7 +2688,7 @@ Lister *lister_create_wrlocked(List *list)
 
 =item C<Lister *lister_create_unlocked(const List *list)>
 
-Equivalent to I<lister_create()> except that C<list> is not write locked.
+Equivalent to I<lister_create(3)> except that C<list> is not write locked.
 
 =cut
 
@@ -2730,7 +2740,7 @@ void lister_release(Lister *lister)
 
 =item C<void lister_release_unlocked(Lister *lister)>
 
-Equivalent to I<lister_release()> except that the associated list is not
+Equivalent to I<lister_release(3)> except that the associated list is not
 unlocked.
 
 =cut
@@ -2771,7 +2781,7 @@ void *lister_destroy(Lister **lister)
 
 =item C<void *lister_destroy_unlocked(Lister **lister)>
 
-Equivalent to I<lister_destroy()> except that the associated list is not
+Equivalent to I<lister_destroy(3)> except that the associated list is not
 unlocked.
 
 =cut
@@ -2832,7 +2842,7 @@ void *lister_next(Lister *lister)
 
 =item C<int lister_next_int(Lister *lister)>
 
-Equivalent to I<lister_next()> except that the item returned is an integer.
+Equivalent to I<lister_next(3)> except that the item returned is an integer.
 
 =cut
 
@@ -2852,7 +2862,7 @@ int lister_next_int(Lister *lister)
 
 Removes the current item in the iteration, C<lister>. The next item in the
 iteration is the item following the removed item, if any. This must be
-called after I<lister_next()> or I<lister_next_int()>. On error, sets
+called after I<lister_next(3)> or I<lister_next_int(3)>. On error, sets
 C<errno> appropriately.
 
 =cut
@@ -2884,29 +2894,29 @@ Returns whether or not there is another item in C<list> using an internal
 iterator. The first time this is called, a new internal I<Lister> will be
 created (Note: There can be only one). When there are no more items, returns
 C<0> and destroys the internal iterator. When it returns C<1>, use
-I<list_next()> or I<list_next_int()> to retrieve the next item. On error,
+I<list_next(3)> or I<list_next_int(3)> to retrieve the next item. On error,
 returns C<-1> with C<errno> set appropriately.
 
 Note: If an iteration using an internal iterator terminates before the end
-of the list, it is the caller's responsibility to call I<list_break()>.
+of the list, it is the caller's responsibility to call I<list_break(3)>.
 Failure to do so will cause the internal iterator to leak. It will also
-break the next call to I<list_has_next()> which will continue where the
+break the next call to I<list_has_next(3)> which will continue where the
 current iteration stopped rather than starting at the beginning again.
-I<list_release()> assumes that there is no internal iterator so it is the
-caller's responsibility to complete the iteration or call I<list_break()>
-before releasing C<list> with I<list_release()> or I<list_destroy()>.
+I<list_release(3)> assumes that there is no internal iterator so it is the
+caller's responsibility to complete the iteration or call I<list_break(3)>
+before releasing C<list> with I<list_release(3)> or I<list_destroy(3)>.
 
 Note: The internal I<Lister> does not lock C<list> so this function is not
 threadsafe. It can only be used with lists created in the current function
 (to guarantee that no other thread can access it). This practice should be
 observed even in single threaded applications to avoid breaking iterator
-semantics (possible with nested function calls). If C<list> is a parameter or
-a variable declared outside the function, it is best to create an explicit
-I<Lister> instead. If this function is used on such lists instead, it is the
-caller's responsibility to explicitly lock C<list> first with I<list_wrlock()>
-and explicitly unlock it with I<list_unlock()>. Do this even if you are
-writing single threaded code in case your function may one day be used in a
-multi threaded application.
+semantics (possible with nested function calls). If C<list> is a parameter
+or a variable declared outside the function, it is best to create an
+explicit I<Lister> instead. If this function is used on such lists instead,
+it is the caller's responsibility to explicitly lock C<list> first with
+I<list_wrlock(3)> and explicitly unlock it with I<list_unlock(3)>. Do this
+even if you are writing single threaded code in case your function may one
+day be used in a multi threaded application.
 
 =cut
 
@@ -2974,7 +2984,7 @@ void *list_next(List *list)
 
 =item C<int list_next_int(List *list)>
 
-Equivalent to I<list_next()> except that the item returned is an integer.
+Equivalent to I<list_next(3)> except that the item returned is an integer.
 
 =cut
 
@@ -2994,7 +3004,7 @@ int list_next_int(List *list)
 
 Removes the current item in C<list> using it's internal iterator. The next
 item in the iteration is the item following the removed item, if any. This
-must be called after I<list_next()>. On error, sets C<errno> appropriately.
+must be called after I<list_next(3)>. On error, sets C<errno> appropriately.
 
 =cut
 
@@ -3036,23 +3046,24 @@ threaded and synchronisation doesn't come for free. Even in multi threaded
 programs, not all I<List>s are necessarily shared between multiple threads.
 
 When a I<List> is shared between multiple threads which need to be
-synchronised, the method of synchronisation must be carefully selected by the
-client code. There are tradeoffs between concurrency and overhead. The greater
-the concurrency, the greater the overhead. More locks give greater concurrency
-but have greater overhead. Readers/Writer locks can give greater concurrency
-than mutex locks but have greater overhead. One lock for each I<List> may be
-required, or one lock for all (or a set of) I<List>s may be more appropriate.
+synchronised, the method of synchronisation must be carefully selected by
+the client code. There are tradeoffs between concurrency and overhead. The
+greater the concurrency, the greater the overhead. More locks give greater
+concurrency but have greater overhead. Readers/Writer locks can give greater
+concurrency than mutex locks but have greater overhead. One lock for each
+I<List> may be required, or one lock for all (or a set of) I<List>s may be
+more appropriate.
 
-Generally, the best synchronisation strategy for a given application can only
-be determined by testing/benchmarking the written application. It is important
-to be able to experiment with the synchronisation strategy at this stage of
-development without pain.
+Generally, the best synchronisation strategy for a given application can
+only be determined by testing/benchmarking the written application. It is
+important to be able to experiment with the synchronisation strategy at this
+stage of development without pain.
 
 To facilitate this, I<List>s can be created with
-I<list_create_with_locker()> which takes a I<Locker> argument. The I<Locker>
-specifies a lock and a set of functions for manipulating the lock. Each
-I<List> can have it's own lock by creating a separate I<Locker> for each
-I<List>. Multiple I<List>s can share the same lock by sharing the same
+I<list_create_with_locker(3)> which takes a I<Locker> argument. The
+I<Locker> specifies a lock and a set of functions for manipulating the lock.
+Each I<List> can have it's own lock by creating a separate I<Locker> for
+each I<List>. Multiple I<List>s can share the same lock by sharing the same
 I<Locker>. Only the application developer can determine what is appropriate
 for each application on a case by case basis.
 
@@ -3061,17 +3072,18 @@ specifying the synchronisation requirements to be applied to library code.
 
 =head1 BUGS
 
-Little attempt is made to protect the client from sharing items between lists
-with differing ownership policies and getting it wrong. When copying items from
-any list to an owning list, a copy function must be supplied. When adding a
-single item to an owning list, it is assumed that the list may take over
-ownership of the item. When an owning list is destroyed, all of its items are
-destroyed. If any of these items had been shared with a non-owning list that
-outlived the owning list, then the non-owning list will contain items that
-point to deallocated memory.
+Little attempt is made to protect the client from sharing items between
+lists with differing ownership policies and getting it wrong. When copying
+items from any list to an owning list, a copy function must be supplied.
+When adding a single item to an owning list, it is assumed that the list may
+take over ownership of the item. When an owning list is destroyed, all of
+its items are destroyed. If any of these items had been shared with a
+non-owning list that outlived the owning list, then the non-owning list will
+contain items that point to deallocated memory.
 
 If you use an internal iterator in a loop that terminates before the end of
-the list, and fail to call I<list_break()>, the internal iterator will leak.
+the list, and fail to call I<list_break(3)>, the internal iterator will
+leak.
 
 Uses I<malloc(3)>. The type of memory used and the allocation strategy need
 to be decoupled from this code.
@@ -3087,7 +3099,7 @@ L<locker(3)|locker(3)>
 
 =head1 AUTHOR
 
-20011109 raf <raf@raf.org>
+20020916 raf <raf@raf.org>
 
 =cut
 
@@ -3362,7 +3374,7 @@ int main(int ac, char **av)
 		return EXIT_SUCCESS;
 	}
 
-	printf("Testing: list\n");
+	printf("Testing: %s\n", "list");
 
 	/* Test list_make, list_length, list_item */
 

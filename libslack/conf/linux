@@ -20,9 +20,9 @@
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
 
-# Modify Makefile, macros.mk and config.h to compile on linux
+# Modify Makefile, macros.mk and config.h to compile on Linux
 #
-# 20011109 raf <raf@raf.org>
+# 20020916 raf <raf@raf.org>
 
 perl -pi \
 	-e 's/^(\S+ \+= xnet)$/# $1/;' \
@@ -47,6 +47,7 @@ perl -pi \
 	-e 's/^# (\w*LIBS \+= pthread)$/$1/;' \
 	-e 's/^# (\w*LIBS \+= util)$/$1/;' \
 	-e 's/^(\w*LDFLAGS \+= -pthread)$/# $1/;' \
+	-e 's/^MAN_GZIP := 0$/MAN_GZIP := 1/;' \
 	`find . -name Makefile` \
 	`find . -name macros.mk`
 
@@ -102,6 +103,7 @@ perl -pi \
 	-e 's/^#define (HAVE_PRINTF_FLT_FMT_G_STD) 1$/\/* #undef $1 *\//;' \
 	-e 's/^#define (HAVE_PRINTF_PTR_FMT_NOALT) 1$/\/* #undef $1 *\//;' \
 	-e 's/^#define (HAVE_PRINTF_WITH_SOLARIS_NEGATIVE_WIDTH_BEHAVIOUR) 1$/\/* #undef $1 *\//;' \
+	-e 's/^#define (HAVE_PRINTF_WITH_SOLARIS8_ZERO_PRECISION_ALT_OCTAL_BEHAVIOUR) 1$/\/* #undef $1 *\//;' \
 	-e 's/^\/\* #undef (HAVE_UNIX_DOMAIN_WILDCARD) \*\/$/#define $1 1/;' \
 	-e 's/^#define (SVR4) 1$/\/* #undef $1 *\//;' \
 	-e 's/^#define (SOCKS) 1$/\/* #undef $1 *\//;' \

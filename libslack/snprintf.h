@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2001 raf <raf@raf.org>
+* Copyright (C) 2001 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20011109 raf <raf@raf.org>
+* 20020916 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_SNPRINTF_H
@@ -30,8 +30,8 @@
 #include <slack/hdr.h>
 
 _begin_decls
-int snprintf _args ((char *str, size_t size, const char *fmt, ...));
-int vsnprintf _args ((char *str, size_t size, const char *fmt, va_list args));
+int snprintf _args ((char *str, size_t size, const char *format, ...));
+int vsnprintf _args ((char *str, size_t size, const char *format, va_list args));
 _end_decls
 
 #endif

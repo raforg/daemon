@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2001 raf <raf@raf.org>
+* Copyright (C) 1999-2002 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20011109 raf <raf@raf.org>
+* 20020916 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_DAEMON_H
@@ -65,8 +65,12 @@ int daemon_become_user _args ((uid_t uid, gid_t gid, char *user));
 char *daemon_absolute_path _args ((const char *path));
 int daemon_path_is_safe _args ((const char *path));
 void *daemon_parse_config _args ((const char *path, void *obj, daemon_config_parser_t *parser));
+int daemon_pidfile _args ((const char *name));
 int daemon_init _args ((const char *name));
 int daemon_close _args ((void));
+pid_t daemon_getpid _args ((const char *name));
+int daemon_is_running _args ((const char *name));
+int daemon_stop _args ((const char *name));
 _end_decls
 
 #endif

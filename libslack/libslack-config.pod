@@ -18,7 +18,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
-# 20011109 raf <raf@raf.org>
+# 20020916 raf <raf@raf.org>
 
 =head1 NAME
 
@@ -31,12 +31,15 @@ I<libslack-config> - administrative tool for libslack
 
    -h, --help      - Print this help and exit
    -v, --version   - Print the version of the currently installed libslack
-   -L, --latest    - Print the latest version of libslack (uses wget and perl)
+   -L, --latest    - Print the latest version of libslack (uses wget)
    -D, --download  - Download the latest version of libslack (uses wget)
+   -U, --upgrade   - Upgrade to the latest version of libslack (uses wget)
    -p, --prefix    - Print the prefix directory of the libslack installation
    -c, --cflags    - Print CFLAGS needed to compile clients of libslack
    -l, --libs      - Print LDFLAGS needed to link against libslack
    -u, --uninstall - Uninstall libslack
+
+ Note: the dashes are optional for long option names
 
  Command line example:
    gcc -o app app.c `libslack-config --cflags --libs`
@@ -52,7 +55,8 @@ print the compiler and linker flags that are needed to compile and link
 programs that use I<libslack(3)>. It can also print the version of the
 currently installed I<libslack(3)> or print the latest version available at
 L<http://www.libslack.org/|http://www.libslack.org/>. It can also download
-the latest version. It can also uninstall libslack.
+the latest version. It can also upgrade libslack. It can also uninstall
+libslack.
 
 =head1 OPTIONS
 
@@ -75,6 +79,14 @@ L<http://libslack.org/|http://libslack.org/>.
 
 Download the latest version of I<libslack> from
 L<http://libslack.org/|http://libslack.org/>.
+
+=item C<-U>, C<--upgrade>
+
+Upgrade to the latest version of I<libslack> from
+L<http://libslack.org/|http://libslack.org/>. This downloads the latest
+version, configures it, compiles it, uninstalls the currently installed
+version and then installs the new version wherever the current version
+was installed.
 
 =item C<-p>, C<--prefix>
 
@@ -123,5 +135,5 @@ L<vsscanf(3)|vsscanf(3)>
 
 =head1 AUTHOR
 
-20011109 raf <raf@raf.org>
+20020916 raf <raf@raf.org>
 

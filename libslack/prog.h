@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2001 raf <raf@raf.org>
+* Copyright (C) 1999-2002 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20011109 raf <raf@raf.org>
+* 20020916 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_PROG_H
@@ -144,7 +144,7 @@ int prog_alert_file _args ((const char *path));
 int prog_alert_syslog _args ((const char *id, int option, int facility, int priority));
 int prog_alert_none _args ((void));
 int prog_opt_process _args ((int ac, char **av));
-void prog_usage_msg _args ((const char *fmt, ...));
+void prog_usage_msg _args ((const char *format, ...));
 void prog_help_msg _args ((void));
 void prog_version_msg _args ((void));
 const char *prog_basename _args ((const char *path));

@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2001 raf <raf@raf.org>
+* Copyright (C) 1999-2002 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20011109 raf <raf@raf.org>
+* 20020916 raf <raf@raf.org>
 */
 
 /*
@@ -29,6 +29,7 @@ I<libslack(mem)> - memory module
 
 =head1 SYNOPSIS
 
+    #include <slack/std.h>
     #include <slack/mem.h>
 
     typedef struct Pool Pool;
@@ -121,14 +122,14 @@ A name for the C<nul> character.
 
 Allocates enough memory (with I<malloc(3)>) to store an object of type
 C<type>. It is the caller's responsibility to deallocate the allocated
-memory with I<mem_release()>, I<mem_destroy()> or I<free(3)>. On success,
+memory with I<mem_release(3)>, I<mem_destroy(3)> or I<free(3)>. On success,
 returns the address of the allocated memory. On error, returns C<null>.
 
 =item C< #define mem_create(size, type)>
 
 Allocates enough memory (with I<malloc(3)>) to store C<size> objects of type
 C<type>. It is the caller's responsibility to deallocate the allocated
-memory with I<mem_release()>, I<mem_destroy()> or I<free(3)>. On success,
+memory with I<mem_release(3)>, I<mem_destroy(3)> or I<free(3)>. On success,
 returns the address of the allocated memory. On error, returns C<null>.
 
 =item C< #define mem_resize(mem, num)>
@@ -146,7 +147,7 @@ An interface to I<realloc(3)> that also assigns to a pointer variable unless
 an error occurred. C<mem> points to the pointer to be affected. C<size> is
 the requested size in bytes. If C<size> is zero, C<*mem> is deallocated and
 set to C<null>. This function is exposed as an implementation side effect.
-Don't call it directly. Call I<mem_resize()> instead. On error, returns
+Don't call it directly. Call I<mem_resize(3)> instead. On error, returns
 C<null> with C<errno> set appropriately.
 
 =cut
@@ -198,7 +199,7 @@ void *mem_resize_fn(void **mem, size_t size)
 =item C< #define mem_release(mem)>
 
 Releases (deallocates) C<mem>. Same as I<free(3)>. Only to be used in
-destructor functions. In other cases, use I<mem_destroy()> which also sets
+destructor functions. In other cases, use I<mem_destroy(3)> which also sets
 C<mem> to C<null>.
 
 =item C<void *mem_destroy(void **mem)>
@@ -228,8 +229,8 @@ void *(mem_destroy)(void **mem)
 Allocates C<size> bytes of memory (with I<malloc(3)>) and then locks it into
 RAM with I<mlock(2)> so that it can't be paged to disk where some nefarious
 local user with root access might read its contents. It is the caller's
-responsibility to deallocate the secure memory with I<mem_release_secure()>
-or I<mem_destroy_secure()> which will clear the memory and unlock it before
+responsibility to deallocate the secure memory with I<mem_release_secure(3)>
+or I<mem_destroy_secure(3)> which will clear the memory and unlock it before
 deallocating it. On success, returns the address of the secure allocated
 memory. On error, returns C<null> with C<errno> set appropriately.
 
@@ -238,13 +239,13 @@ pieces of secure memory or many entire pages will be locked. Use a secure
 memory pool instead. Also note that secure memory requires root privileges.
 
 On some systems (e.g. Solaris), memory locks must start on page boundaries.
-So we need to I<malloc()> enough memory to extend from whatever address
-I<malloc()> may return to the next page boundary (worst case: C<pagesize -
+So we need to I<malloc(3)> enough memory to extend from whatever address
+I<malloc(3)> may return to the next page boundary (worst case: C<pagesize -
 sizeof(int)>) and then the actual number of bytes requested. We need an
-additional 8 bytes to store the address returned by I<malloc()> (so we can
-I<free()> it later) and the size passed to I<mlock()> so we can pass it to
-I<munlock()> later. Unfortunately, we need to store the address and size
-after the page boundary and not before it because I<malloc()> may return a
+additional 8 bytes to store the address returned by I<malloc(3)> (so we can
+I<free(3)> it later) and the size passed to I<mlock(2)> so we can pass it to
+I<munlock(2)> later. Unfortunately, we need to store the address and size
+after the page boundary and not before it because I<malloc(3)> may return a
 page boundary or an address less than 8 bytes to the left of a page
 boundary.
 
@@ -261,7 +262,7 @@ It will look like:
    +- malloc()             +- address returned
 
 If your system doesn't require page boundaries (e.g. Linux), the address
-returned by I<malloc()> is locked and returned and only the size is stored.
+returned by I<malloc(3)> is locked and returned and only the size is stored.
 
 =cut
 
@@ -324,8 +325,8 @@ void *mem_create_secure(size_t size)
 
 Sets the memory pointed to by C<mem> to C<nul> bytes, then unlocks and
 releases (deallocates) C<mem>. Only to be used on memory returned by
-I<mem_create_secure()>. Only to be used in destructor functions. In other
-cases, use I<mem_destroy()> which also sets C<mem> to C<null>.
+I<mem_create_secure(3)>. Only to be used in destructor functions. In other
+cases, use I<mem_destroy(3)> which also sets C<mem> to C<null>.
 
 =cut
 
@@ -365,7 +366,7 @@ void mem_release_secure(void *mem)
 
 Sets the memory pointed to by C<*mem> to C<nul> bytes, then unlocks and
 destroys (deallocates and sets to C<null>) C<*mem>. Only to be used on
-memory returned by I<mem_create_secure()>. Returns C<null>.
+memory returned by I<mem_create_secure(3)>. Returns C<null>.
 
 =cut
 
@@ -387,8 +388,8 @@ void *(mem_destroy_secure)(void **mem)
 =item C<char *mem_strdup(const char *str)>
 
 Returns a dynamically allocated copy of C<str>. It is the caller's
-responsibility to deallocate the new string with I<mem_release()>,
-I<mem_destroy()> or I<free(3)>. On error, returns C<null> with C<errno> set
+responsibility to deallocate the new string with I<mem_release(3)>,
+I<mem_destroy(3)> or I<free(3)>. On error, returns C<null> with C<errno> set
 appropriately.
 
 =cut
@@ -414,15 +415,15 @@ char *mem_strdup(const char *str)
 
 =item C< #define mem_create2d(i, j, type)>
 
-Alias for allocating a 2-dimensional array. See I<mem_create_space()>.
+Alias for allocating a 2-dimensional array. See I<mem_create_space(3)>.
 
 =item C< #define mem_create3d(i, j, k, type)>
 
-Alias for allocating a 3-dimensional array. See I<mem_create_space()>.
+Alias for allocating a 3-dimensional array. See I<mem_create_space(3)>.
 
 =item C< #define mem_create4d(i, j, k, l, type)>
 
-Alias for allocating a 4-dimensional array. See I<mem_create_space()>.
+Alias for allocating a 4-dimensional array. See I<mem_create_space(3)>.
 
 =item C<void *mem_create_space(size_t size, ...)>
 
@@ -432,15 +433,15 @@ dimension. The last argument must be zero. There is an arbitrary limit of 32
 dimensions. The memory returned is set to zero. The memory returned needs to
 be cast or assigned into the appropriate pointer type. You can then set and
 access elements exactly like a real multi-dimensional C array. Finally, it
-must be deallocated with I<mem_destroy_space()> or I<mem_release_space()> or
-I<mem_destroy()> or I<mem_release()> or I<free(3)>.
+must be deallocated with I<mem_destroy_space(3)> or I<mem_release_space(3)>
+or I<mem_destroy(3)> or I<mem_release(3)> or I<free(3)>.
 
 Note: You must not use I<memset(3)> on all of the returned memory because
 the start of this memory contains pointers into the remainder. The exact
 amount of this overhead depends on the number and size of dimensions. The
 memory is allocated with I<calloc(3)> to reduce the need to I<memset(3)> the
 elements but if you need to know where the elements begin, use
-I<mem_space_start()>.
+I<mem_space_start(3)>.
 
 The memory returned looks like (e.g.):
 
@@ -513,7 +514,7 @@ void *mem_create_space(size_t size, ...)
 =item C<size_t mem_space_start(size_t size, ...)>
 
 Calculates the amount of overhead required for a multi-dimensional array
-created by a call to I<mem_create_space()> with the same arguments. If you
+created by a call to I<mem_create_space(3)> with the same arguments. If you
 need reset all elements in such an array to zero:
 
     int ****space = mem_create_space(sizeof(int), 2, 3, 4, 5, 0);
@@ -552,39 +553,39 @@ size_t mem_space_start(size_t size, ...)
 =item C< #define mem_release2d(space)>
 
 Alias for releasing (deallocating) a 2-dimensional array.
-See I<mem_release_space()>.
+See I<mem_release_space(3)>.
 
 =item C< #define mem_release3d(space)>
 
 Alias for releasing (deallocating) a 3-dimensional array.
-See I<mem_release_space()>.
+See I<mem_release_space(3)>.
 
 =item C< #define mem_release4d(space)>
 
 Alias for releasing (deallocating) a 4-dimensional array.
-See I<mem_release_space()>.
+See I<mem_release_space(3)>.
 
 =item C< #define mem_release_space(space)>
 
 Releases (deallocates) a multi-dimensional array, C<space>, allocated with
 I<mem_create_space>. Same as I<free(3)>. Only to be used in destructor
-functions. In other cases, use I<mem_destroy_space()> which also sets
+functions. In other cases, use I<mem_destroy_space(3)> which also sets
 C<space> to C<null>.
 
 =item C< #define mem_destroy2d(space)>
 
 Alias for destroying (deallocating and setting to C<null>) a
-2-dimensional array. See I<mem_destroy_space()>.
+2-dimensional array. See I<mem_destroy_space(3)>.
 
 =item C< #define mem_destroy3d(space)>
 
 Alias for destroying (deallocating and setting to C<null>) a
-3-dimensional array. See I<mem_destroy_space()>.
+3-dimensional array. See I<mem_destroy_space(3)>.
 
 =item C< #define mem_destroy4d(space)>
 
 Alias for destroying (deallocating and setting to C<null>) a
-4-dimensional array. See I<mem_destroy_space()>.
+4-dimensional array. See I<mem_destroy_space(3)>.
 
 =item C< #define mem_destroy_space(mem)>
 
@@ -600,15 +601,15 @@ pointed to by C<space>.
 =item C<Pool *pool_create(size_t size)>
 
 Creates a memory pool of size C<size> from which smaller chunks of memory
-may be subsequently allocated (with I<pool_alloc()>) without resorting to
+may be subsequently allocated (with I<pool_alloc(3)>) without resorting to
 the use of I<malloc(3)>. Useful when you have many small objects to allocate
 but I<malloc(3)> is slowing your program down too much. It is the caller's
-responsibility to deallocate the new pool with I<pool_release()> or
-I<pool_destroy()>. On success, returns the pool. On error, returns C<null>.
+responsibility to deallocate the new pool with I<pool_release(3)> or
+I<pool_destroy(3)>. On success, returns the pool. On error, returns C<null>.
 
 The size of a pool can't be changed after it is created and the individual
 chunks of memory allocated from within a pool can't be separately
-deallocated. The entire pool can be emptied with I<pool_clear()>.
+deallocated. The entire pool can be emptied with I<pool_clear(3)>.
 
 =cut
 
@@ -623,7 +624,7 @@ Pool *pool_create(size_t size)
 
 =item C<Pool *pool_create_with_locker(Locker *locker, size_t size)>
 
-Equivalent to I<pool_create()> except that multiple threads accessing the
+Equivalent to I<pool_create(3)> except that multiple threads accessing the
 new pool will be synchronised by C<locker>.
 
 =cut
@@ -672,7 +673,7 @@ an error code.
 =item C<void pool_release(Pool *pool)>
 
 Releases (deallocates) C<pool>. Only to be used in destructor functions. In
-other cases, use I<pool_destroy()> which also sets C<pool> to C<null>.
+other cases, use I<pool_destroy(3)> which also sets C<pool> to C<null>.
 
 =cut
 
@@ -727,13 +728,13 @@ void *pool_destroy(Pool **pool)
 
 =item C<Pool *pool_create_secure(size_t size)>
 
-Creates a memory pool of size C<size> just like I<pool_create()> except that
-the memory pool is locked into RAM with I<mlock(2)> so that it can't be
+Creates a memory pool of size C<size> just like I<pool_create(3)> except
+that the memory pool is locked into RAM with I<mlock(2)> so that it can't be
 paged to disk where some nefarious local user might read its contents. It is
 the caller's responsibility to deallocate the new pool with
-I<pool_release_secure()> or I<pool_destroy_secure()> which will clear the
+I<pool_release_secure(3)> or I<pool_destroy_secure(3)> which will clear the
 memory pool and unlock it before deallocating it. In all other ways, the
-pool returned is exactly like a pool returned by I<pool_create()>. On
+pool returned is exactly like a pool returned by I<pool_create(3)>. On
 success, returns the pool. On error, returns C<null> with C<errno> set
 appropriately. Note that secure memory requires root privileges.
 
@@ -750,7 +751,7 @@ Pool *pool_create_secure(size_t size)
 
 =item C<Pool *pool_create_secure_with_locker(Locker *locker, size_t size)>
 
-Equivalent to I<pool_create_secure()> except that multiple threads accessing
+Equivalent to I<pool_create_secure(3)> except that multiple threads accessing
 the new pool will be synchronised by C<locker>.
 
 =cut
@@ -788,8 +789,8 @@ Pool *pool_create_secure_with_locker(Locker *locker, size_t size)
 
 Sets the contents of the memory pool to C<nul> bytes, then unlocks and
 releases (deallocates) C<pool>. Only to be used on pools returned by
-I<pool_create_secure()>. Only to be used in destructor functions. In other
-cases, use I<pool_destroy_secure()> which also sets C<pool> to C<null>.
+I<pool_create_secure(3)>. Only to be used in destructor functions. In other
+cases, use I<pool_destroy_secure(3)> which also sets C<pool> to C<null>.
 
 =cut
 
@@ -899,8 +900,9 @@ returns C<null> with C<errno> set appropriately.
 Allocates a chunk of memory of C<size> bytes from C<pool>. Does not use
 I<malloc(3)>. The pointer returned must not be passed to I<free(3)> or
 I<realloc(3)>. Only the entire pool can be deallocated with
-I<pool_release()> or I<pool_destroy()>. All of the chunks can be deallocated
-in one go with I<pool_clear()> without deallocating the pool itself.
+I<pool_release(3)> or I<pool_destroy(3)>. All of the chunks can be
+deallocated in one go with I<pool_clear(3)> without deallocating the pool
+itself.
 
 On success, returns the pointer to the allocated pool memory. On error,
 returns C<null> with C<errno> set appropriately (i.e. C<EINVAL> if C<pool>
@@ -998,13 +1000,13 @@ When arguments are invalid.
 
 =item ENOSPC
 
-When there is insufficient available space in a pool for I<pool_alloc()>
-to satisfy a request.
+When there is insufficient available space in a pool for I<pool_alloc(3)> to
+satisfy a request.
 
 =item ENOSYS
 
-Returned by I<mem_create_secure()> and I<pool_create_secure()> when
-I<mlock()> is not supported (e.g. Mac OS X).
+Returned by I<mem_create_secure(3)> and I<pool_create_secure(3)> when
+I<mlock(2)> is not supported (e.g. Mac OS X).
 
 =back
 
@@ -1012,7 +1014,7 @@ I<mlock()> is not supported (e.g. Mac OS X).
 
 MT-Safe (mem)
 
-MT-Disciplined (pool) man I<locker(3)> for details.
+MT-Disciplined (pool) man L<locker(3)|locker(3)> for details.
 
 =head1 EXAMPLES
 
@@ -1092,7 +1094,7 @@ L<locker(3)|locker(3)>
 
 =head1 AUTHOR
 
-20011109 raf <raf@raf.org>
+20020916 raf <raf@raf.org>
 
 =cut
 
@@ -1130,7 +1132,7 @@ int main(int ac, char **av)
 		return EXIT_SUCCESS;
 	}
 
-	printf("Testing: mem\n");
+	printf("Testing: %s\n", "mem");
 
 	/* Test create, resize and destroy */
 

@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20011109 raf <raf@raf.org>
+* 20020916 raf <raf@raf.org>
 */
 
 /*
@@ -79,8 +79,6 @@
  *    fixed return value (required length, not truncated length)
  *    fixed error reporting (return -1 on format error)
  *    fixed snprintf(NULL, 0, "")
- *    added manpage in pod format (perldoc -F snprintf.c)
- *    added rigorous testing
  *    fixed handling of %9.[diouxXp]
  *    fixed handling of %p
  *    fixed handling of flags [+- #0]
@@ -88,7 +86,12 @@
  *    fixed handling of field width (%c)
  *    fixed handling of %h[diouxX] (bigendian)
  *    added ability to mimic glibc or solaris behaviour
- *    now ISO C 89 compliant formatting except fmt is not an mbstr
+ *    now ISO C 89 compliant formatting except format is not an mbstr
+ *    added manpage in pod format (perldoc -F snprintf.c)
+ *    added rigorous testing
+ *
+ *  raf (raf@raf.org) May 2002
+ *    added solaris 8 bug compatibility
  *
  **************************************************************/
 
@@ -100,10 +103,11 @@ I<snprintf(3)> - safe sprintf
 
 =head1 SYNOPSIS
 
+    #include <slack/std.h>
     #include <slack/snprintf.h>
 
-    int snprintf(char *str, size_t size, const char *fmt, ...);
-    int vsnprintf(char *str, size_t size, const char *fmt, va_list args);
+    int snprintf(char *str, size_t size, const char *format, ...);
+    int vsnprintf(char *str, size_t size, const char *format, va_list args);
 
 =head1 DESCRIPTION
 
@@ -184,11 +188,11 @@ int sprintf();
 
 /*
 
-=item C<int snprintf(char *str, size_t size, const char *fmt, ...)>
+=item C<int snprintf(char *str, size_t size, const char *format, ...)>
 
 Writes output to the string C<str>, under control of the format string
-C<fmt>, that specifies how subsequent arguments are converted for output. It
-is similar to I<sprintf(3)>, except that C<size> specifies the maximum
+C<format>, that specifies how subsequent arguments are converted for output.
+It is similar to I<sprintf(3)>, except that C<size> specifies the maximum
 number of characters to produce. The trailing C<nul> character is counted
 towards this limit, so you must allocate at least C<size> characters for
 C<str>.
@@ -205,7 +209,7 @@ character. Thus, the C<nul>-terminated output has been completely written if
 and only if the return value is nonnegative and less than C<size>. On error,
 returns C<-1> (i.e. encoding error).
 
-Note that if your system already has I<snprintf()> but this implementation
+Note that if your system already has I<snprintf(3)> but this implementation
 was installed anyway, it's because the system implementation has a broken
 return value. Some older implementations (e.g. I<glibc-2.0>) return C<-1>
 when the string is truncated rather than returning the number of characters
@@ -219,23 +223,23 @@ counting the terminating C<nul> character) as required by I<ISO/IEC
 
 #ifndef HAVE_SNPRINTF
 #ifdef __STDC__
-int snprintf(char *str, size_t size, const char *fmt, ...)
+int snprintf(char *str, size_t size, const char *format, ...)
 #else
-int snprintf(str, size, fmt, va_alist)
+int snprintf(str, size, format, va_alist)
 	char *str;
 	size_t size;
-	const char *fmt;
+	const char *format;
 	va_dcl
 #endif
 {
 	int ret;
 	va_list args;
 #ifdef __STDC__
-	va_start(args, fmt);
+	va_start(args, format);
 #else
 	va_start(args);
 #endif
-	ret = vsnprintf(str, size, fmt, args);
+	ret = vsnprintf(str, size, format, args);
 	va_end(args);
 
 	return ret;
@@ -244,9 +248,9 @@ int snprintf(str, size, fmt, va_alist)
 
 /*
 
-=item C<int vsnprintf(char *str, size_t size, const char *fmt, va_list args)>
+=item C<int vsnprintf(char *str, size_t size, const char *format, va_list args)>
 
-Equivalent to I<snprintf()> with the variable argument list specified
+Equivalent to I<snprintf(3)> with the variable argument list specified
 directly as for I<vsprintf(3)>.
 
 =cut
@@ -508,8 +512,13 @@ static void fmtint(char *buffer, size_t *currlen, size_t *reqlen, size_t size, l
 	{
 		if (base == 16 && value)
 			sextra = 2;
+#ifdef HAVE_PRINTF_WITH_SOLARIS8_ZERO_PRECISION_ALT_OCTAL_BEHAVIOUR
+		else if (base == 8 && precision <= place && (place != 0 && convert[place - 1] != '0'))
+			zextra = 1;
+#else
 		else if (base == 8 && precision <= place && (place == 0 || convert[place - 1] != '0'))
 			zextra = 1;
+#endif
 	}
 
 	/*
@@ -593,7 +602,7 @@ static void fmtfp(char *buffer, size_t *currlen, size_t *reqlen, size_t size, LD
 	/* Calculate maximum space required and delegate to sprintf() */
 
 	char buf[512], *convert = buf, *p;
-	char fmt[1 + 5 + 20 + 1 + 20 + 1 + 1 + 1];
+	char format[1 + 5 + 20 + 1 + 20 + 1 + 1 + 1];
 	char widstr[21];
 	int fpmax;
 
@@ -647,7 +656,7 @@ static void fmtfp(char *buffer, size_t *currlen, size_t *reqlen, size_t size, LD
 	/* Build the format string (probably should have just copied it) */
 
 	sprintf(widstr, "%d", width);
-	sprintf(fmt, "%%%s%s%s%s%s%s.%d%s%s",
+	sprintf(format, "%%%s%s%s%s%s%s.%d%s%s",
 		(flags & FLAG_MINUS) ? "-" : "",
 		(flags & FLAG_PLUS)  ? "+" : "",
 		(flags & FLAG_SPACE) ? " " : "",
@@ -663,9 +672,9 @@ static void fmtfp(char *buffer, size_t *currlen, size_t *reqlen, size_t size, LD
 	/* Delegate to sprintf() */
 
 	if (cflags & SIZE_LDOUBLE)
-		sprintf(convert, fmt, fvalue);
+		sprintf(convert, format, fvalue);
 	else
-		sprintf(convert, fmt, (double)fvalue);
+		sprintf(convert, format, (double)fvalue);
 
 	/* Copy to buffer */
 
@@ -678,7 +687,7 @@ static void fmtfp(char *buffer, size_t *currlen, size_t *reqlen, size_t size, LD
 		free(convert);
 }
 
-int vsnprintf(char *str, size_t size, const char *fmt, va_list args)
+int vsnprintf(char *str, size_t size, const char *format, va_list args)
 {
 	char ch;
 	long value;
@@ -695,7 +704,7 @@ int vsnprintf(char *str, size_t size, const char *fmt, va_list args)
 	state = PARSE_DEFAULT;
 	currlen = reqlen = flags = cflags = width = 0;
 	precision = -1;
-	ch = *fmt++;
+	ch = *format++;
 
 	while (state != PARSE_DONE)
 	{
@@ -714,7 +723,7 @@ int vsnprintf(char *str, size_t size, const char *fmt, va_list args)
 					state = PARSE_FLAGS;
 				else
 					outch(str, &currlen, &reqlen, size, ch);
-				ch = *fmt++;
+				ch = *format++;
 				break;
 
 			case PARSE_FLAGS:
@@ -722,27 +731,27 @@ int vsnprintf(char *str, size_t size, const char *fmt, va_list args)
 				{
 					case '-':
 						flags |= FLAG_MINUS;
-						ch = *fmt++;
+						ch = *format++;
 						break;
 
 					case '+':
 						flags |= FLAG_PLUS;
-						ch = *fmt++;
+						ch = *format++;
 						break;
 
 					case ' ':
 						flags |= FLAG_SPACE;
-						ch = *fmt++;
+						ch = *format++;
 						break;
 
 					case '#':
 						flags |= FLAG_ALT;
-						ch = *fmt++;
+						ch = *format++;
 						break;
 
 					case '0':
 						flags |= FLAG_ZERO;
-						ch = *fmt++;
+						ch = *format++;
 						break;
 
 					default:
@@ -755,12 +764,12 @@ int vsnprintf(char *str, size_t size, const char *fmt, va_list args)
 				if (isdigit((int)(unsigned char)ch))
 				{
 					width = 10 * width + ch - '0';
-					ch = *fmt++;
+					ch = *format++;
 				}
 				else if (ch == '*')
 				{
 					width = va_arg(args, int);
-					ch = *fmt++;
+					ch = *format++;
 					state = PARSE_DOT;
 				}
 				else
@@ -772,7 +781,7 @@ int vsnprintf(char *str, size_t size, const char *fmt, va_list args)
 				{
 					precision = 0;
 					state = PARSE_PRECISION;
-					ch = *fmt++;
+					ch = *format++;
 				}
 				else
 					state = PARSE_SIZE;
@@ -782,12 +791,12 @@ int vsnprintf(char *str, size_t size, const char *fmt, va_list args)
 				if (isdigit((int)(unsigned char)ch))
 				{
 					precision = 10 * precision + ch - '0';
-					ch = *fmt++;
+					ch = *format++;
 				}
 				else if (ch == '*')
 				{
 					precision = va_arg(args, int);
-					ch = *fmt++;
+					ch = *format++;
 					state = PARSE_SIZE;
 				}
 				else
@@ -799,17 +808,17 @@ int vsnprintf(char *str, size_t size, const char *fmt, va_list args)
 				{
 					case 'h':
 						cflags = SIZE_SHORT;
-						ch = *fmt++;
+						ch = *format++;
 						break;
 
 					case 'l':
 						cflags = SIZE_LONG;
-						ch = *fmt++;
+						ch = *format++;
 						break;
 
 					case 'L':
 						cflags = SIZE_LDOUBLE;
-						ch = *fmt++;
+						ch = *format++;
 						break;
 				}
 
@@ -961,7 +970,7 @@ int vsnprintf(char *str, size_t size, const char *fmt, va_list args)
 						return -1;
 				}
 
-				ch = *fmt++;
+				ch = *format++;
 				state = PARSE_DEFAULT;
 				flags = cflags = width = 0;
 				precision = -1;
@@ -990,27 +999,27 @@ starting any other threads.
 
 =head1 BUGS
 
-The format control string, C<fmt>, should be interpreted as a multibyte
+The format control string, C<format>, should be interpreted as a multibyte
 character sequence but it is not. Apart from that, these functions comply
-with the ISO C 89 formatting requirements specified for the I<fprintf()>
+with the ISO C 89 formatting requirements specified for the I<fprintf(3)>
 function (section 7.9.6.1).
 
-Even though I<snprintf()> is an ISO C 99 function (section 7.19.6.5), this
+Even though I<snprintf(3)> is an ISO C 99 function (section 7.19.6.5), this
 implementation does not support the new ISO C 99 formatting conversions or
 length modifiers (i.e. C<%hh[diouxXn]>, C<%ll[diouxXn]>, C<%j[diouxXn]>,
 C<%z[diouxXn]>, C<%t[diouxXn]>, C<%ls>, C<%lc> and C<%[aAF]>). The main
-reason is that the local system's I<sprintf()> function is used to perform
+reason is that the local system's I<sprintf(3)> function is used to perform
 floating point formatting. If the local system can support C<%[aA]>, then
-you must have C99 already and so you must also have I<snprintf()> already.
+you must have C99 already and so you must also have I<snprintf(3)> already.
 
-If I<snprintf()> or I<vsnprintf()> require more than 512 bytes of space in
+If I<snprintf(3)> or I<vsnprintf(3)> require more than 512 bytes of space in
 which to format a floating point number, but fail to allocate the required
 space, the floating point number will not be formatted at all and processing
 will continue. There is no indication to the client that an error occurred.
 The chances of this happening are remote. It would take a field width or
 precision greater than the available memory to trigger this bug. Since there
 are only 15 significant digits in a I<double> and only 18 significant digits
-in am 80 bit I<long double> (33 significant digits in a 128 bit long
+in an 80 bit I<long double> (33 significant digits in a 128 bit long
 double), a precision larger than 15/18/33 serves no purpose and a field
 width larger than the useful output serves no purpose.
 
@@ -1022,7 +1031,7 @@ L<vsprintf(3)|vsprintf(3)>
 
 =head1 AUTHOR
 
-20011109 raf <raf@raf.org>,
+20020916 raf <raf@raf.org>,
 1998 Andrew Tridgell <tridge@samba.org>,
 1998 Michael Elkins <me@cs.hmc.edu>,
 1998 Thomas Roessler <roessler@guug.de>,
@@ -1798,51 +1807,51 @@ int main(int ac, char **av)
 	if (ac == 2 && !strcmp(av[1], "verbose"))
 		verbose = 1;
 
-	printf("Testing: snprintf\n");
+	printf("Testing: %s\n", "snprintf");
 
-#define TEST_SNPRINTF1(fmt, val, vfmt) \
+#define TEST_SNPRINTF1(format, val, vfmt) \
 	{ \
 		char valstr[1024]; \
 		sprintf(valstr, (vfmt), (val)); \
 		++tests; \
-		len1 = snprintf(buf1, sizeof(buf1), (fmt), (val)); \
-		len2 = sprintf(buf2, (fmt), (val)); \
+		len1 = snprintf(buf1, sizeof(buf1), (format), (val)); \
+		len2 = sprintf(buf2, (format), (val)); \
 		if (len1 != len2) \
-			++errors, printf("Test%d: snprintf(%s, %s) failed (%s, not %s)\n", tests, (fmt), valstr, buf1, buf2); \
+			++errors, printf("Test%d: snprintf(%s, %s) failed (%s, not %s)\n", tests, (format), valstr, buf1, buf2); \
 		else if (memcmp(buf1, buf2, len1 + 1)) \
-			++errors, printf("Test%d: snprintf(%s, %s) failed (%s, not %s)\n", tests, (fmt), valstr, buf1, buf2); \
+			++errors, printf("Test%d: snprintf(%s, %s) failed (%s, not %s)\n", tests, (format), valstr, buf1, buf2); \
 		else if (verbose) \
-			printf("Test%d: snprintf(%s, %s) succeeded (%s)\n", tests, (fmt), valstr, buf1); \
+			printf("Test%d: snprintf(%s, %s) succeeded (%s)\n", tests, (format), valstr, buf1); \
 	}
 
-#define TEST_SNPRINTF2(fmt, width, precision, val, vfmt) \
+#define TEST_SNPRINTF2(format, width, precision, val, vfmt) \
 	{ \
 		char valstr[1024]; \
 		sprintf(valstr, (vfmt), (val)); \
 		++tests; \
-		len1 = snprintf(buf1, sizeof(buf1), (fmt), (width), (precision), (val)); \
-		len2 = sprintf(buf2, (fmt), (width), (precision), (val)); \
+		len1 = snprintf(buf1, sizeof(buf1), (format), (width), (precision), (val)); \
+		len2 = sprintf(buf2, (format), (width), (precision), (val)); \
 		if (len1 != len2) \
-			++errors, printf("Test%d: snprintf(%s, %d, %d, %s) failed (%s, not %s)\n", tests, (fmt), (width), (precision), valstr, buf1, buf2); \
+			++errors, printf("Test%d: snprintf(%s, %d, %d, %s) failed (%s, not %s)\n", tests, (format), (width), (precision), valstr, buf1, buf2); \
 		else if (memcmp(buf1, buf2, len1 + 1)) \
-			++errors, printf("Test%d: snprintf(%s, %d, %d, %s) failed (%s, not %s)\n", tests, (fmt), (width), (precision), valstr, buf1, buf2); \
+			++errors, printf("Test%d: snprintf(%s, %d, %d, %s) failed (%s, not %s)\n", tests, (format), (width), (precision), valstr, buf1, buf2); \
 		else if (verbose) \
-			printf("Test%d: snprintf(%s, %d, %d, %s) succeeded (%s)\n", tests, (fmt), (width), (precision), valstr, buf1); \
+			printf("Test%d: snprintf(%s, %d, %d, %s) succeeded (%s)\n", tests, (format), (width), (precision), valstr, buf1); \
 	}
 
-#define TEST_SNPRINTF3(fmt, arg, val, vfmt) \
+#define TEST_SNPRINTF3(format, arg, val, vfmt) \
 	{ \
 		char valstr[1024]; \
 		sprintf(valstr, (vfmt), (val)); \
 		++tests; \
-		len1 = snprintf(buf1, sizeof(buf1), (fmt), (arg), (val)); \
-		len2 = sprintf(buf2, (fmt), (arg), (val)); \
+		len1 = snprintf(buf1, sizeof(buf1), (format), (arg), (val)); \
+		len2 = sprintf(buf2, (format), (arg), (val)); \
 		if (len1 != len2) \
-			++errors, printf("Test%d: snprintf(%s, %d, %s) failed (%s, not %s)\n", tests, (fmt), (arg), valstr, buf1, buf2); \
+			++errors, printf("Test%d: snprintf(%s, %d, %s) failed (%s, not %s)\n", tests, (format), (arg), valstr, buf1, buf2); \
 		else if (memcmp(buf1, buf2, len1 + 1)) \
-			++errors, printf("Test%d: snprintf(%s, %d, %s) failed (%s, not %s)\n", tests, (fmt), (arg), valstr, buf1, buf2); \
+			++errors, printf("Test%d: snprintf(%s, %d, %s) failed (%s, not %s)\n", tests, (format), (arg), valstr, buf1, buf2); \
 		else if (verbose) \
-			printf("Test%d: snprintf(%s, %d, %s) succeeded (%s)\n", tests, (fmt), (arg), valstr, buf1); \
+			printf("Test%d: snprintf(%s, %d, %s) succeeded (%s)\n", tests, (format), (arg), valstr, buf1); \
 	}
 
 	/* Test int */
@@ -2180,11 +2189,11 @@ int main(int ac, char **av)
 
 	/* Test error reporting */
 
-#define TEST_SNPRINTF6(action, fmt) \
+#define TEST_SNPRINTF6(action, format) \
 	if (++tests, (rc = (action)) != -1) \
-		++errors, printf("Test%d: snprintf(NULL, 0, \"%s\") failed (returned %d, not %d)\n", tests, (fmt), rc, -1); \
+		++errors, printf("Test%d: snprintf(NULL, 0, \"%s\") failed (returned %d, not %d)\n", tests, (format), rc, -1); \
 	else if (verbose) \
-		printf("Test%d: snprintf(NULL, 0, \"%s\") succeeded (returned -1)\n", tests, (fmt));
+		printf("Test%d: snprintf(NULL, 0, \"%s\") succeeded (returned -1)\n", tests, (format));
 
 	for (x = 0; err_fmt[x]; ++x)
 		TEST_SNPRINTF6(snprintf(NULL, 0, err_fmt[x]), err_fmt[x])

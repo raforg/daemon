@@ -1,0 +1,492 @@
+README
+~~~~~~
+This directory contains various tests for the daemon program. Note that
+these tests do not verify their own behaviour. Most of the tests send
+messages to syslog so you have to monitor syslog destinations (e.g.
+/var/log/messages). Some of the tests run in the foreground with pseudo
+terminals. A user has to be there to see that things (like window resizing)
+work. So this file describes what to expect for each test. Note that the
+daemon.conf file used for these tests turns on debugging and verbose messages
+and limit respawning such that most tests will terminate by themselves (all
+but one).
+
+ASSUMPTIONS
+~~~~~~~~~~~
+These tests make the following assumptions:
+
+ 1 - They must be executed from the current directory
+ 2 - The current directory must be "safe" (man daemon_path_is_safe(3))
+ 3 - The daemon(1) binary to be tested is in the parent directory
+
+test1
+~~~~~
+The client prints the numbers from 0 to 4, sleeping for a second before
+printing each one. daemon will respawn the client but since it only runs for
+5 seconds, the burst/wait respawn cycle is triggered. So the client should
+run twice, then wait 10 seconds, then run twice more before giving up.
+
+test2
+~~~~~
+The client prints the numbers from 0 to 4, sleeping a second before printing
+each one. Then, the client closes stdout and stderr and then sleeps for a
+further 2 seconds before terminating. daemon will respawn the client but
+since it only runs for 7 seconds, the burst/wait respawn cycle is triggered.
+So the client should run twice, then wait 10 seconds, then run twice more
+before giving up.
+
+test3
+~~~~~
+The client prints the numbers from 0 to 10, sleeping for a second before
+printing each one. daemon will respawns the client and since it runs for
+11 seconds, it will be respawned indefinitely. The client has to be stopped
+manually with:
+
+  ../daemon --name=test3 --stop
+
+You can see if it's running with:
+
+  ../daemon --name=test3 --verbose --running
+
+test4
+~~~~~
+Note: This test must be run as root.
+
+The client changes the user id to nobody, changes to the tmp directory
+(within this test directory), sets the umask to 0777 and sets the
+environment to the following variables:
+
+  HOME=/tmp
+  LOGNAME=foobar
+  PATH=/bin:/usr/bin
+
+After it has run, check that the current directory contains a "tmp"
+directory. It should contain a file called "test4.client.output" that is
+owned by "nobody" with permissions set to "rw-------". This file should
+contain the aforementioned environment variables and nothing else. If it
+does contain a few other variables, try changing the "#!/bin/sh" line in
+"test4.client" to be "#!/bin/ash" (bash adds a few environment variables).
+
+Note that this test should also test --chroot but there's too much to setup
+first (e.g. /dev/log, restart syslogd, /etc/passwd, /etc/group). It would
+never work on enough platforms so I didn't bother. If you really want to try
+chroot (trivially), run test4 like:
+
+  CHROOT="-R /" ./test4
+
+test5
+~~~~~
+The client is run with --safe. The client is a C program. It just prints
+"test5". If the current directory is safe, then "test5.client" is safe
+and will run.
+
+test6
+~~~~~
+The client is run with --safe. The client is a C program. It just prints
+"test6". However, "test6.client" is not safe and daemon will refuse to run
+it.
+
+test7
+~~~~~
+The client is run with --safe. It is a shell script that starts with
+"#!/bin/sh". It just prints "test7". This test checks that the safety test
+checks #! interpreters. If it fails, make sure that /bin/sh really is safe.
+
+test8
+~~~~~
+The client is run with --safe. It is a shell script that starts with
+"#!/usr/bin/env sh". It just prints "test8". This test checks that the
+safety test checks indirect #!/usr/bin/env interpreters. If it fails,
+check that /usr/bin/env and /bin/sh really are safe.
+
+test9
+~~~~~
+The client is run with --safe. It is a group writable shell script that
+starts with "#!/bin/sh". It just prints "test9". Since the script is unsafe,
+daemon will refuse to run it. This test checks that the safety test
+recognises an unsafe script file.
+
+test10
+~~~~~~
+The client is run with --safe. It is a script that starts with
+"#!`pwd`/test10.interpreter" which is group writable. Since the interpreter
+is unsafe, daemon will refuse to run the script. This test checks that the
+safety test recognises an unsafe interpreter.
+
+test11
+~~~~~~
+The client is run with --safe. It is a script that starts with
+"#!/usr/bin/env test11.interpreter" which is group writable. Since the
+interpreter is unsafe, daemon will refuse to run the script. This test
+checks that the safety test recognises an unsafe interpreter via
+/usr/bin/env.
+
+test12
+~~~~~~
+The client is run in the foreground. The client is "less /etc/services". Run
+this from a terminal so that the pseudo terminal code is exercised. Make
+sure that less behaves properly. In particular, resize the window if
+possible to check that SIGWINCH is propagated to the client correctly.
+
+test13
+~~~~~~
+The client (cat) is run in the foreground with an explicit pseudo terminal
+set to noecho mode. It reads stdin until eof, printing out each line as soon
+as it is received. In this test, daemon is run without a controlling
+terminal. Input to the terminal from which "test13" is run is propagated to
+daemon's stdin via pipes. daemon then propagates this input to the client
+via a pseudo terminal which prints it out. daemon reads this over a pseudo
+terminal and propagates it back via pipes to the controlling terminal of
+"test13". The client's pseudo terminal is set to noecho mode to prevent what
+you type from appearing twice.
+
+Don't forget that you have to type in something, and end the test with EOF.
+
+Note that when compiling "test13.daemon", it isn't assumed that libslack is
+installed so compilation might fail (it's ok on Linux). If so, fiddle with
+"test13.compile" to get it to compile. If you have the version of libslack
+that came with daemon installed, you can just uncomment the compile command
+that uses libslack-config.
+
+test14
+~~~~~~
+The client (sort) is run in the foreground with an explicit pseudo terminal
+set to noecho mode. It reads stdin until eof and then prints its input
+sorted. This is identical to Test13 except that the client is sort, not cat.
+It even uses the same test harness (test13.daemon). This test checks that
+daemon can end the input of the client and continue to read its output.
+
+Don't forget that you have to type in something, and end with EOF.
+
+test15
+~~~~~~
+This is very like test13 with one bizarre twist. The client is just like cat
+except that before reading or writing anything, it changes the EOF character
+from Control-D to Control-F (just because it can). This test checks that
+daemon copes with an idiot client that changes its EOF character.
+
+Don't forget that you have to type in something, and end with Control-D.
+
+test16
+~~~~~~
+The client just writes "stdout" to stdout and "stderr" to stderr. This test
+logs the client's stderr and stdout to files. After the test, the file
+"test16.stderr" will contain "stderr" and the file "test16.stdout" will
+contain "stdout".
+
+test17
+~~~~~~
+The client just writes "stdout" to stdout and "stderr" to stderr. This test
+logs the client's stderr and stdout to a single file, "test17.output". It
+also logs daemon's debug messages to a file, "test17.dbg". After the test,
+the file "test17.output" will contain "stdout" and "stderr" and the file
+"test17.dbg" will contain all of daemon's debug messages.
+
+test18
+~~~~~~
+This test logs daemon's error output to a file. It also tries to
+log daemon's debug output to a file but fails because that file
+will already exist and be non-writable. Note that this test must
+not be run as root. After the test, the file "test18.err" should
+contain the following error message:
+
+  daemon: fatal: failed to start debug delivery to test18.dbg: Permission denied
+
+test19
+~~~~~~
+This test shows what happens when a non-root user tries to use the --user
+option. Note that this test must not be run as root. It prints a usage
+message starting with:
+
+  Invalid option: --user (only works for root)
+
+test20
+~~~~~~
+This test shows what happens when an invalid argument is given for the --umask
+option. It prints a usage message starting with:
+
+  Invalid --umask argument: 'hello' (must be a valid octal mode)
+
+test21
+~~~~~~
+This test shows what happens when an invalid argument is given for the
+--acceptable option. It prints a usage message starting with:
+
+  Invalid --acceptable argument: 9 (less than 10)  
+
+test22
+~~~~~~
+This test shows what happens when an invalid argument is given for the
+--attempts option. It prints a usage message starting with:
+
+  Invalid --attempts argument: -1 (not between 0 and 100)
+
+test23
+~~~~~~
+This test also shows what happens when an invalid argument is given for the
+--attempts option. It prints a usage message starting with:
+
+  Invalid --attempts argument: 101 (not between 0 and 100)
+
+test24
+~~~~~~
+This test shows what happens when an invalid argument is given for the
+--delay option. It prints a usage message starting with:
+
+  Invalid --delay argument: 9 (less than 10)
+
+test25
+~~~~~~
+This test shows what happens when an invalid argument is given for the
+--limit option. It prints a usage message starting with:
+
+  Invalid --limit argument: -1 (less than 0)
+
+test26
+~~~~~~
+This test shows what happens when an invalid argument is given for the
+--pty option. It prints a usage message starting with:
+
+  Invalid --pty argument: 'hello' (Only 'noecho' is supported)
+
+test27
+~~~~~~
+This test shows what happens when incompatible options (--safe and --unsafe)
+are given. It prints a usage message starting with:
+
+  Incompatible options: --safe and --unsafe
+
+test28
+~~~~~~
+This test shows what happens when the --pty option is given without the
+--foreground option. It prints a usage message starting with:
+
+  Missing option: --foreground (required for --pty)
+
+test29
+~~~~~~
+This test shows what happens when the --acceptable option is given without
+the --respawn option. It prints a usage message starting with:
+
+  Missing option: --respawn (required for --acceptable)
+
+test30
+~~~~~~
+This test shows what happens when the --attempts option is given without the
+--respawn option. It prints a usage message starting with:
+
+  Missing option: --respawn (required for --attemtps)
+
+test31
+~~~~~~
+This test shows what happens when the --delay option is given without the
+--respawn option. It prints a usage message starting with:
+
+  Missing option: --respawn (required for --delay)
+
+test32
+~~~~~~
+This test shows what happens when the --limit option is given without the
+--respawn option. It prints a usage message starting with:
+
+  Missing option: --respawn (required for --limit)
+
+test33
+~~~~~~
+This test shows what happens when the --stop option is given without the
+--name option. It prints a usage message starting with:
+
+  Missing option: --name (required for --stop)
+
+test34
+~~~~~~
+This test shows what happens when the --running option is given without the
+--name option. It prints a usage message starting with:
+
+  Missing option: --name (required for --running)
+
+test35
+~~~~~~
+This test shows what happens when the --name option is given in the
+configuration file. It prints a usage message starting with:
+
+  Misplaced option: --name=%s in config file (must be on the command line)
+
+test36
+~~~~~~
+This test shows what happens when the --chroot option is given in the
+configuration file. It prints a usage message starting with:
+
+  Misplaced option: --chroot=%s in config file (must be on the command line)
+
+test37
+~~~~~~
+This test shows what happens when the --user option is given in the
+configuration file. It prints a usage message starting with:
+
+  Misplaced option: --user=%s in config file (must be on the command line)
+
+test38
+~~~~~~
+This test shows what happens when --pidfiles option is given without the
+--name option.
+
+  Missing option: --name (required for --pidfiles)
+
+test39
+~~~~~~
+This test shows what happens when --restart option is given without the
+--name option.
+
+  Missing option: --name (required for --restart)
+
+test40
+~~~~~~
+This test shows what happens when both the --running and --restart options
+are supplied.
+
+  Incompatible options: --running and --restart
+
+test41
+~~~~~~
+This test shows what happens when both the --running and --stop options
+are supplied.
+
+  Incompatible options: --running and --stop
+
+test42
+~~~~~~
+This test shows what happens when both the --restart and --stop options
+are supplied.
+
+  Incompatible options: --restart and --stop
+
+test43
+~~~~~~
+This test shows what happens when the --restart, --running and --stop
+options are all supplied.
+
+  Incompatible options: --running and --restart
+
+test44
+~~~~~~
+This test shows what happens when both the --config and --noconfig options
+are supplied:
+
+  Incompatible options: --config and --noconfig
+
+test45
+~~~~~~
+This tests parsing a ~/.daemonrc file. This is just like test1 except that
+the test44 specific options are obtained from ~/.daemonrc instead of the
+daemon.conf in the current directory.
+
+test46
+~~~~~~
+This tests the --noconfig option. This is just like test45 except that the
+daemon.conf file in the current directory is not read at all so the generic
+options are supplied by the ~/.daemonrc file as well.
+
+test47
+~~~~~~
+This tests the --pidfile option. This is just like test1 except that the
+pidfile is placed in the current directory. A second after daemon is called,
+the pidfile in the current directory is shown using ls(1).
+
+test48
+~~~~~~
+This tests the --pidfiles option. This is just like test1 except that the
+pidfile is placed in the current directory. A second after daemon is called,
+the pidfile in the current directory is shown using ls(1).
+
+test49
+~~~~~~
+This test shows what happens when the argument to the --pidfile option
+includes a non existent directory.
+
+  Invalid --pidfile argument: '/i-am-not-a-directory/i-am-an-invalid-argument/test47.pid' (Parent directory does not exist)
+
+test50
+~~~~~~
+This test shows what happens when the argument to the --pidfile option
+includes a directory that is not writable (don't run this as root):
+
+  Invalid --pidfile argument: '/var/test50.pid' (Parent directory is not writable)
+
+test51
+~~~~~~
+This test shows what happens when the argument to the --pidfile option
+is not an absolute path:
+
+  Invalid --pidfile argument: 'test51.pid' (Must be an absolute file path)
+
+test52
+~~~~~~
+This test shows what happens when the argument to the --pidfiles option
+is not a directory.
+
+  Invalid --pidfiles argument: '/i-am-not-a-directory/i-am-an-invalid-argument' (Directory does not exist)
+
+test53
+~~~~~~
+This test shows what happens when the argument to the --pidfiles option
+is a directory that is not writable (don't run this as root):
+
+  Invalid --pidfiles argument: '/var' (Directory is not writable)
+
+test54
+~~~~~~
+This test shows what happens when the argument to the --pidfiles option
+is not an absolute path:
+
+  Invalid --pidfiles argument: 'var' (Must be an absolute directory path)
+
+test55
+~~~~~~
+This test shows what happens when the argument to the --name option has
+invalid characters:
+
+  Invalid --name argument: 'name;' (Must consist entirely of [-._a-zA-Z0-9])
+
+test56
+~~~~~~
+This test shows what happens when the argument to the --pidfile option has
+invalid characters:
+
+  Invalid --pidfile argument: '/name;' (Must consist entirely of [-._a-zA-Z0-9/])
+
+test57
+~~~~~~
+This test shows what happens when the argument to the --pidfiles option has
+invalid characters:
+
+  Invalid --pidfiles argument: '/name;' (Must consist entirely of [-._a-zA-Z0-9/])
+
+test58
+~~~~~~
+This tests the --restart option. This test runs test1 and, three seconds later,
+restarts it.
+
+test59
+~~~~~~
+This test shows what happens when no client command is supplied on the
+command line. It prints a usage message starting with:
+
+  Invalid arguments: no command supplied
+
+test60
+~~~~~~
+This test shows what happens when daemon tries to keep respawning a client
+that terminates as soon as its started (i.e. /bin/false). It will respawn
+quickly 5 times, then wait wait for 10 seconds. It repeats this 3 times
+before finally giving up.
+
+test61
+~~~~~~
+This tests the --command option. It echoes "test61 extra" to daemon.err.
+The "test61" comes from the configuration file. The "extra" comes from
+the daemon command line in the test61 shell script.
+
+clean
+~~~~~
+The clean script deletes all temporary files created by any of the tests.
+

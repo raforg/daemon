@@ -1,7 +1,7 @@
 /*
 # libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2001 raf <raf@raf.org>
+* Copyright (C) 1999-2002 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20011109 raf <raf@raf.org>
+* 20020916 raf <raf@raf.org>
 */
 
 /*
@@ -29,6 +29,7 @@ I<libslack(fio)> - fifo and file control module and some I/O
 
 =head1 SYNOPSIS
 
+    #include <slack/std.h>
     #include <slack/fio.h>
 
     char *fgetline(char *line, size_t size, FILE *stream);
@@ -116,7 +117,7 @@ char *fgetline(char *line, size_t size, FILE *stream)
 
 =item C<char *fgetline_unlocked(char *line, size_t size, FILE *stream)>
 
-Equivalent to I<fgetline()> except that C<stream> is not locked.
+Equivalent to I<fgetline(3)> except that C<stream> is not locked.
 
 =cut
 
@@ -628,10 +629,10 @@ int fifo_open(const char *path, mode_t mode, int lock, int *writefd)
 	** deciding that there's no reader and opening this fifo
 	** at the same time.
 	**
-	** Note: some systems (like Mac OS X) can't lock fifos :(
+	** Note: some systems (e.g. FreeBSD, Mac OS X) can't lock fifos :(
 	*/
 
-	if (lock && fcntl_lock(wfd, F_SETLK, F_WRLCK, SEEK_SET, 0, 0) == -1 && errno != EOPNOTSUPP)
+	if (lock && fcntl_lock(wfd, F_SETLK, F_WRLCK, SEEK_SET, 0, 0) == -1 && errno != EOPNOTSUPP && errno != EBADF)
 	{
 		if (mine)
 			unlink(path);
@@ -687,12 +688,12 @@ set by the underlying system calls. See their manpages for details.
 
 =item C<ETIMEDOUT>
 
-The I<read_timeout()>, I<write_timeout()> and I<rw_timeout()> functions
+The I<read_timeout(3)>, I<write_timeout(3)> and I<rw_timeout(3)> functions
 set this when a timeout occurs.
 
 =item C<EADDRINUSE>
 
-I<fifo_open()> sets this when the path refers to a fifo that already has
+I<fifo_open(3)> sets this when the path refers to a fifo that already has
 another process reading from it.
 
 =back
@@ -702,14 +703,14 @@ another process reading from it.
 MT-Safe
 
 Mac OS X doesn't have I<flockfile(3)>, I<funlockfile(3)> or
-I<getc_unlocked(3)> so I<freadline()> is not MT-Safe on such platforms. You
+I<getc_unlocked(3)> so I<fgetline(3)> is not MT-Safe on such platforms. You
 must guard all stdio calls in multi threaded programs with explicit
 synchronisation variables.
 
 =head1 BUGS
 
 Some systems, such as Mac OS X, can't lock fifos. On these systems,
-I<fifo_open()> ignores the locking failure and returns successfully. This
+I<fifo_open(3)> ignores the locking failure and returns successfully. This
 means that there is no guarantee of a unique reader process on these
 systems. You will need to lock an ordinary file yourself to provide this
 guarantee.
@@ -727,7 +728,7 @@ L<mkfifo(2)|mkfifo(2)>
 
 =head1 AUTHOR
 
-20011109 raf <raf@raf.org>
+20020916 raf <raf@raf.org>
 
 =cut
 
@@ -756,7 +757,7 @@ int main(int ac, char **av)
 		return EXIT_SUCCESS;
 	}
 
-	printf("Testing: fio\n");
+	printf("Testing: %s\n", "fio");
 
 	umask(0);
 
@@ -890,7 +891,7 @@ int main(int ac, char **av)
 
 #ifndef HAVE_FCNTL_THAT_CAN_LOCK_FIFOS
 	printf("\n");
-	printf("    Note: Some systems (e.g. Mac OS X) can't lock fifos so fifo_open()\n");
+	printf("    Note: Some systems (e.g. FreeBSD, Mac OS X) can't lock fifos so fifo_open()\n");
 	printf("    can't guarantee a unique reader.\n");
 #endif
 

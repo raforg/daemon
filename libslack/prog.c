@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2001 raf <raf@raf.org>
+* Copyright (C) 1999-2002 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20011109 raf <raf@raf.org>
+* 20020916 raf <raf@raf.org>
 */
 
 /*
@@ -29,6 +29,7 @@ I<libslack(prog)> - program framework module
 
 =head1 SYNOPSIS
 
+    #include <slack/std.h>
     #include <slack/prog.h>
 
     typedef struct option option;
@@ -135,7 +136,7 @@ I<libslack(prog)> - program framework module
     int prog_alert_syslog(const char *id, int option, int facility, int priority);
     int prog_alert_none(void);
     int prog_opt_process(int ac, char **av);
-    void prog_usage_msg(const char *fmt, ...);
+    void prog_usage_msg(const char *format, ...);
     void prog_help_msg(void);
     void prog_version_msg(void);
     const char *prog_basename(const char *path);
@@ -166,11 +167,12 @@ getopt_long(3)>. Option semantics are specified by an action
 (C<OPT_NONE>, C<OPT_INTEGER> or C<OPT_STRING>) and an object (C<int *>,
 C<char **>, C<func()>, C<func(int)> or C<func(char *)>).
 
-The I<opt_process()> and I<opt_usage()> functions are used by the I<prog>
+The I<opt_process(3)> and I<opt_usage(3)> functions are used by the I<prog>
 functions and needn't be used directly. Instead, use I<prog_opt_process(3)>
-to execute options and I<prog_usage_msg(3)> and I<prog_help_msg()> to
+to execute options and I<prog_usage_msg(3)> and I<prog_help_msg(3)> to
 construct usage and help message directly from the supplied option data.
-They are exposed in case you don't want to use any other part of this module.
+They are exposed in case you don't want to use any other part of this
+module.
 
 =over 4
 
@@ -208,7 +210,7 @@ struct Prog
 	Msg *out;
 	Msg *err;
 	Msg *dbg;
-	Msg *alert;
+	Msg *log;
 	size_t debug_level;
 	size_t verbosity_level;
 	Locker *locker;
@@ -304,7 +306,7 @@ const char *prog_set_name(const char *name)
 =item C<Options *prog_set_options(Options *options)>
 
 Sets the program's options to C<options>. This is used when processing the
-command line options with I<prog_opt_process()>. On success, returns
+command line options with I<prog_opt_process(3)>. On success, returns
 C<options>. On error, returns C<null> with C<errno> set appropriately.
 
 =cut
@@ -476,12 +478,12 @@ const char *prog_set_legal(const char *legal)
 
 =item C<Msg *prog_set_out(Msg *out)>
 
-Sets the program's message destination to C<out>. This is used by I<msg()>
-and I<vmsg()> which are, in turn, used to emit usage, version and help
+Sets the program's message destination to C<out>. This is used by I<msg(3)>
+and I<vmsg(3)> which are, in turn, used to emit usage, version and help
 messages. The program message destination is set to standard output by
-I<prog_init()> but it can be anything. However, it is probably best to leave
-it as standard output until after command line option processing is
-complete. See I<msg()> for details. On success, returns C<out>. On error,
+I<prog_init(3)> but it can be anything. However, it is probably best to
+leave it as standard output until after command line option processing is
+complete. See I<msg(3)> for details. On success, returns C<out>. On error,
 returns C<null> with C<errno> set appropriately.
 
 =cut
@@ -536,7 +538,7 @@ Msg *prog_set_dbg(Msg *dbg)
 =item C<Msg *prog_set_alert(Msg *alert)>
 
 Sets the program's alert message destination to C<alert>. This is set to
-standard error by I<prog_init()> but it can be set to anything. See
+standard error by I<prog_init(3)> but it can be set to anything. See
 I<msg(3)> for details. On success, returns C<alert>. On error, returns
 C<null> with C<errno> set appropriately.
 
@@ -546,7 +548,7 @@ C<null> with C<errno> set appropriately.
 
 Msg *prog_set_alert(Msg *alert)
 {
-	prog_set_msg(g.alert, alert);
+	prog_set_msg(g.log, alert);
 }
 
 /*
@@ -574,19 +576,19 @@ Example:
     #define INTERP_SECTION (4 << 8)
 
     prog_set_debug_level(LEXER_SECTION | PARSER_SECTION | 1);
-    debug((LEXER_SECTION  | 1, "lexer debug"))  // yes
-    debug((LEXER_SECTION  | 4, "lexer debug"))  // no (level too high)
-    debug((PARSER_SECTION | 1, "parser debug")) // yes
-    debug((INTERP_SECTION | 1, "interp debug")) // no (wrong section)
+    debug((LEXER_SECTION  | 1, "lexer debugmsg"))  // yes
+    debug((LEXER_SECTION  | 4, "lexer debugmsg"))  // no (level too high)
+    debug((PARSER_SECTION | 1, "parser debugmsg")) // yes
+    debug((INTERP_SECTION | 1, "interp debugmsg")) // no (wrong section)
     debug((1, "global debug"))                  // no (no section to match)
 
     prog_set_debug_level(1);
-    debug((LEXER_SECTION  | 1, "lexer debug"))  // yes
-    debug((LEXER_SECTION  | 4, "lexer debug"))  // no (level too high)
-    debug((PARSER_SECTION | 1, "parser debug")) // yes
-    debug((INTERP_SECTION | 1, "interp debug")) // yes
-    debug((1, "global debug"))                  // yes
-    debug((4, "global debug"))                  // no (level too high)
+    debug((LEXER_SECTION  | 1, "lexer debugmsg"))  // yes
+    debug((LEXER_SECTION  | 4, "lexer debugmsg"))  // no (level too high)
+    debug((PARSER_SECTION | 1, "parser debugmsg")) // yes
+    debug((INTERP_SECTION | 1, "interp debugmsg")) // yes
+    debug((1, "global debugmsg"))                  // yes
+    debug((4, "global debugmsg"))                  // no (level too high)
 
 =cut
 
@@ -876,15 +878,15 @@ with C<errno> set appropriately.
 
 Msg *prog_alert(void)
 {
-	prog_get_ptr(g.alert);
+	prog_get_ptr(g.log);
 }
 
 /*
 
 =item C<size_t prog_debug_level(void)>
 
-Returns the program's debug level. On error, returns C<0> with C<errno>
-set appropriately.
+Returns the program's debug level. On error, returns C<0> with C<errno> set
+appropriately.
 
 =cut
 
@@ -899,8 +901,8 @@ size_t prog_debug_level(void)
 
 =item C<size_t prog_verbosity_level(void)>
 
-Returns the program's verbosity level. On error, returns C<0> with
-C<errno> set appropriately.
+Returns the program's verbosity level. On error, returns C<0> with C<errno>
+set appropriately.
 
 =cut
 
@@ -925,14 +927,14 @@ set appropriately.
 
 int prog_out_fd(int fd)
 {
-	Msg *msg;
+	Msg *mesg;
 
-	if (!(msg = msg_create_fd_with_locker(g.locker, fd)))
+	if (!(mesg = msg_create_fd_with_locker(g.locker, fd)))
 		return -1;
 
-	if (!prog_set_out(msg))
+	if (!prog_set_out(mesg))
 	{
-		msg_release(msg);
+		msg_release(mesg);
 		return -1;
 	}
 
@@ -969,14 +971,14 @@ appropriately.
 
 int prog_out_file(const char *path)
 {
-	Msg *msg;
+	Msg *mesg;
 
-	if (!(msg = msg_create_file_with_locker(g.locker, path)))
+	if (!(mesg = msg_create_file_with_locker(g.locker, path)))
 		return -1;
 
-	if (!prog_set_out(msg))
+	if (!prog_set_out(mesg))
 	{
-		msg_release(msg);
+		msg_release(mesg);
 		return -1;
 	}
 
@@ -997,14 +999,14 @@ On error, returns C<-1> with C<errno> set appropriately.
 
 int prog_out_syslog(const char *ident, int option, int facility, int priority)
 {
-	Msg *msg;
+	Msg *mesg;
 
-	if (!(msg = msg_create_syslog_with_locker(g.locker, ident, option, facility, priority)))
+	if (!(mesg = msg_create_syslog_with_locker(g.locker, ident, option, facility, priority)))
 		return -1;
 
-	if (!prog_set_out(msg))
+	if (!prog_set_out(mesg))
 	{
-		msg_release(msg);
+		msg_release(mesg);
 		return -1;
 	}
 
@@ -1043,14 +1045,14 @@ C<errno> set appropriately.
 
 int prog_err_fd(int fd)
 {
-	Msg *msg;
+	Msg *mesg;
 
-	if (!(msg = msg_create_fd_with_locker(g.locker, fd)))
+	if (!(mesg = msg_create_fd_with_locker(g.locker, fd)))
 		return -1;
 
-	if (!prog_set_err(msg))
+	if (!prog_set_err(mesg))
 	{
-		msg_release(msg);
+		msg_release(mesg);
 		return -1;
 	}
 
@@ -1088,14 +1090,14 @@ appropriately.
 
 int prog_err_file(const char *path)
 {
-	Msg *msg;
+	Msg *mesg;
 
-	if (!(msg = msg_create_file_with_locker(g.locker, path)))
+	if (!(mesg = msg_create_file_with_locker(g.locker, path)))
 		return -1;
 
-	if (!prog_set_err(msg))
+	if (!prog_set_err(mesg))
 	{
-		msg_release(msg);
+		msg_release(mesg);
 		return -1;
 	}
 
@@ -1116,14 +1118,14 @@ C<0>. On error, returns C<-1> with C<errno> set appropriately.
 
 int prog_err_syslog(const char *ident, int option, int facility, int priority)
 {
-	Msg *msg;
+	Msg *mesg;
 
-	if (!(msg = msg_create_syslog_with_locker(g.locker, ident, option, facility, priority)))
+	if (!(mesg = msg_create_syslog_with_locker(g.locker, ident, option, facility, priority)))
 		return -1;
 
-	if (!prog_set_err(msg))
+	if (!prog_set_err(mesg))
 	{
-		msg_release(msg);
+		msg_release(mesg);
 		return -1;
 	}
 
@@ -1161,14 +1163,14 @@ C<errno> set appropriately.
 
 int prog_dbg_fd(int fd)
 {
-	Msg *msg;
+	Msg *mesg;
 
-	if (!(msg = msg_create_fd_with_locker(g.locker, fd)))
+	if (!(mesg = msg_create_fd_with_locker(g.locker, fd)))
 		return -1;
 
-	if (!prog_set_dbg(msg))
+	if (!prog_set_dbg(mesg))
 	{
-		msg_release(msg);
+		msg_release(mesg);
 		return -1;
 	}
 
@@ -1180,7 +1182,8 @@ int prog_dbg_fd(int fd)
 =item C<int prog_dbg_stdout(void)>
 
 Sets the program's debug message destination to be standard output. On
-success, returns C<0>. On error, returns C<-1> with C<errno> set appropriately.
+success, returns C<0>. On error, returns C<-1> with C<errno> set
+appropriately.
 
 =cut
 
@@ -1295,14 +1298,14 @@ C<errno> set appropriately.
 
 int prog_alert_fd(int fd)
 {
-	Msg *msg;
+	Msg *mesg;
 
-	if (!(msg = msg_create_fd_with_locker(g.locker, fd)))
+	if (!(mesg = msg_create_fd_with_locker(g.locker, fd)))
 		return -1;
 
-	if (!prog_set_alert(msg))
+	if (!prog_set_alert(mesg))
 	{
-		msg_release(msg);
+		msg_release(mesg);
 		return -1;
 	}
 
@@ -1430,9 +1433,9 @@ I<prog_usage_msg(3)> and I<prog_help_msg(3)>. The semantics (which may be
 either a variable assignment or a function invocation) allow complete
 command line option processing to be performed with a single call to this
 function. On success, returns C<optind>. On error (i.e. invalid option or
-option argument), calls I<prog_usage_msg()> which terminates the program
+option argument), calls I<prog_usage_msg(3)> which terminates the program
 with a return code of C<EXIT_FAILURE>. See the I<EXAMPLE> section for
-details on specifying option data. See I<opt_process()> for details on the
+details on specifying option data. See I<opt_process(3)> for details on the
 processing of each option. On error, returns C<-1> with C<errno> set
 appropriately.
 
@@ -1462,16 +1465,16 @@ int prog_opt_process(int ac, char **av)
 
 /*
 
-=item C<void prog_usage_msg(const char *fmt, ...)>
+=item C<void prog_usage_msg(const char *format, ...)>
 
 Emits a program usage error message then terminates the program with a
 return code of C<EXIT_FAILURE>. The usage message consists of the program's
 name, syntax, options and descriptions (if they have been supplied) and the
-given message. C<fmt> is a I<printf(3)>-like format string. Any remaining
+given message. C<format> is a I<printf(3)>-like format string. Any remaining
 arguments are processed as in I<printf(3)>.
 
 B<Warning: Do not under any circumstances ever pass a non-literal string as
-the fmt argument unless you know exactly how many conversions will take
+the format argument unless you know exactly how many conversions will take
 place. Being careless with this is a very good way to build potential
 security holes into your programs. The same is true for all functions that
 take a printf()-like format string as an argument.>
@@ -1483,14 +1486,14 @@ take a printf()-like format string as an argument.>
 
 */
 
-void prog_usage_msg(const char *fmt, ...)
+void prog_usage_msg(const char *format, ...)
 {
 	char msg_buf[MSG_SIZE];
 	char opt_buf[MSG_SIZE];
 	int msg_length;
 	va_list args;
-	va_start(args, fmt);
-	vsnprintf(msg_buf, MSG_SIZE, fmt, args);
+	va_start(args, format);
+	vsnprintf(msg_buf, MSG_SIZE, format, args);
 	va_end(args);
 
 	if (locker_rdlock(g.locker))
@@ -1689,7 +1692,7 @@ Set the verbosity level (Defaults to 1 if I<level> is not supplied)
 
 =item C<-d>I<[level]>, C<--debug>I<[=level]>
 
-Set the debug level (Defaults to 1 if I<level> is not supplied)
+Set the debugging level (Defaults to 1 if I<level> is not supplied)
 
 =back
 
@@ -1728,7 +1731,7 @@ static Option prog_optab[] =
 	},
 #ifndef NDEBUG
 	{
-		"debug", 'd', "level", "Set the debug level",
+		"debug", 'd', "level", "Set the debugging level",
 		optional_argument, OPT_INTEGER, OPT_FUNCTION, (void *)handle_debug_option
 	},
 #endif
@@ -1818,7 +1821,12 @@ static char *opt_optstring(Options *options)
 		{
 			if (opts->options[i].short_name)
 			{
-				*p++ = opts->options[i].short_name;
+				char short_name = opts->options[i].short_name;
+
+				if (short_name == '?')
+					short_name = '\001';
+
+				*p++ = short_name;
 
 				switch (opts->options[i].has_arg)
 				{
@@ -1868,7 +1876,7 @@ C<void opt_action(Options *options, int rc, int longindex, const char *argument)
 
 Performs the action associated with the option in C<options> when I<GNU
 getopt_long(3)> returned C<rc> or C<longindex>. C<argument> is a pointer to
-an C<int> or C<char *>. See I<opt_process()> for details.
+an C<int> or C<char *>. See I<opt_process(3)> for details.
 
 */
 
@@ -2051,9 +2059,9 @@ int opt_process(int argc, char **argv, Options *options, char *msgbuf, size_t bu
 	for (;;)
 	{
 		int longindex = -1;
-		int rc = getopt_long(argc, argv, optstring, long_options, &longindex);
+		int rc;
 
-		if (rc == EOF)
+		if ((rc = getopt_long(argc, argv, optstring, long_options, &longindex)) == EOF)
 			break;
 
 		if (rc == '?' || rc == ':')
@@ -2062,6 +2070,9 @@ int opt_process(int argc, char **argv, Options *options, char *msgbuf, size_t bu
 			mem_release(optstring);
 			return set_errno(EINVAL);
 		}
+
+		if (rc == '\001')
+			rc = '?';
 
 		errno = 0;
 		opt_action(options, rc, longindex, optarg);
@@ -2321,12 +2332,12 @@ MT-Disciplined - prog functions
 
 By default, this module is not thread safe because most programs are single
 threaded and synchronisation doesn't come for free. For multi threaded
-programs, use I<prog_set_locker()> to synchronise access to this module's
+programs, use I<prog_set_locker(3)> to synchronise access to this module's
 data before creating the threads that will access it.
 
 Unsafe - opt functions
 
-I<opt_process()> and I<opt_usage()> must only be used in the main thread.
+I<opt_process(3)> and I<opt_usage(3)> must only be used in the main thread.
 They should not be needed anywhere else. Normally, they would not be called
 directly at all.
 
@@ -2381,7 +2392,7 @@ The following program:
      prog_set_syntax("[options] arg...");
      prog_set_options(options);
      prog_set_version("1.0");
-     prog_set_date("20011109");
+     prog_set_date("20020916");
      prog_set_author("raf <raf@raf.org>");
      prog_set_contact(prog_author());
      prog_set_url("http://libslack.org/");
@@ -2406,7 +2417,7 @@ will behave like:
        -h, --help                       - Print a help message then exit
        -V, --version                    - Print a version message then exit
        -v, --verbose[=level]            - Set the verbosity level
-       -d, --debug[=level]              - Set the debug level
+       -d, --debug[=level]              - Set the debugging level
 
        -n, --name=name                  - Provide a name
        -m, --minimum=minval             - Ignore everything below minimum
@@ -2419,7 +2430,7 @@ will behave like:
 
  Name: example
  Version: 1.0
- Date: 20011109
+ Date: 20020916
  Author: raf <raf@raf.org>
  URL: http://libslack.org/
 
@@ -2435,7 +2446,7 @@ will behave like:
        -h, --help                       - Print a help message then exit
        -V, --version                    - Print a version message then exit
        -v, --verbose[=level]            - Set the verbosity level
-       -d, --debug[=level]              - Set the debug level
+       -d, --debug[=level]              - Set the debugging level
 
        -n, --name=name                  - Provide a name
        -m, --minimum=minval             - Ignore everything below minimum
@@ -2455,14 +2466,13 @@ L<libslack(3)|libslack(3)>,
 L<getopt_long(3)|getopt_long(3)>,
 L<err(3)|err(3)>,
 L<msg(3)|msg(3)>,
-L<opt(3)|opt(3)>,
 L<prop(3)|prop(3)>,
 L<sig(3)|sig(3)>,
 L<locker(3)|locker(3)>
 
 =head1 AUTHOR
 
-20011109 raf <raf@raf.org>
+20020916 raf <raf@raf.org>
 
 =cut
 
@@ -2587,7 +2597,7 @@ int main(int ac, char **av)
 	};
 	char *results[3][2] =
 	{
-		/* -help output */
+		/* --help output */
 		{
 			/* stdout */
 			"usage: %s [options]\n"
@@ -2596,15 +2606,15 @@ int main(int ac, char **av)
 			"      -h, --help            - Print a help message then exit\n"
 			"      -V, --version         - Print a version message then exit\n"
 			"      -v, --verbose[=level] - Set the verbosity level\n"
-			"      -d, --debug[=level]   - Set the debug level\n"
+			"      -d, --debug[=level]   - Set the debugging level\n"
 			"\n"
 			"This program tests the prog module.\n"
 			"\n"
 			"Name: %s\n"
 			"Version: 1.0\n"
-			"Date: 20011109\n"
+			"Date: 20020916\n"
 			"Author: raf <raf@raf.org>\n"
-			"Vendor: A Software Company\n"
+			"Vendor: A Software Vendor\n"
 			"URL: http://libslack.org/test/\n"
 			"\n"
 			"This software is released under the terms of the GPL.\n"
@@ -2615,7 +2625,7 @@ int main(int ac, char **av)
 			""
 		},
 
-		/* -version output */
+		/* --version output */
 
 		{
 			/* stdout */
@@ -2625,7 +2635,7 @@ int main(int ac, char **av)
 			""
 		},
 
-		/* -invalid output */
+		/* --invalid output */
 		{
 			/* stdout */
 			"",
@@ -2638,7 +2648,7 @@ int main(int ac, char **av)
 			"      -h, --help            - Print a help message then exit\n"
 			"      -V, --version         - Print a version message then exit\n"
 			"      -v, --verbose[=level] - Set the verbosity level\n"
-			"      -d, --debug[=level]   - Set the debug level\n"
+			"      -d, --debug[=level]   - Set the debugging level\n"
 		}
 	};
 
@@ -2651,7 +2661,7 @@ int main(int ac, char **av)
 		return EXIT_SUCCESS;
 	}
 
-	printf("Testing: prog\n");
+	printf("Testing: %s\n", "prog");
 
 	rc = opt_process(oargc, oargv, options, NULL, 0);
 	if (rc != 24)
@@ -2695,10 +2705,10 @@ int main(int ac, char **av)
 	prog_set_syntax("[options]");
 	prog_set_options(prog_options_table);
 	prog_set_version("1.0");
-	prog_set_date("20011109");
+	prog_set_date("20020916");
 	prog_set_author("raf <raf@raf.org>");
 	prog_set_contact("raf <raf@raf.org>");
-	prog_set_vendor("A Software Company");
+	prog_set_vendor("A Software Vendor");
 	prog_set_url("http://libslack.org/test/");
 	prog_set_legal("This software is released under the terms of the GPL.\n");
 	prog_set_desc("This program tests the prog module.\n");

@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2001 raf <raf@raf.org>
+* Copyright (C) 1999-2002 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20011109 raf <raf@raf.org>
+* 20020916 raf <raf@raf.org>
 */
 
 /*
@@ -29,6 +29,7 @@ I<libslack(link)> - linked list module
 
 =head1 SYNOPSIS
 
+    #include <slack/std.h>
     #include <slack/link.h>
 
     typedef struct slink_t slink_t;
@@ -383,7 +384,7 @@ void *dlink_freelist_init(void *freelist, size_t nelem, size_t size)
 =item C<void *slink_freelist_attach(void *freelist1, void *freelist2)>
 
 Attaches C<freelist2> to the end of C<freelist1>. Both free lists must have
-already been initialised with I<slink_freelist_init()>. Note that it will
+already been initialised with I<slink_freelist_init(3)>. Note that it will
 not be possible to separate these free lists. On success, returns a pointer
 to the beginning of the combined freelist. On error, returns C<null> with
 C<errno> set appropriately.
@@ -415,7 +416,7 @@ void *slink_freelist_attach(void *freelist1, void *freelist2)
 =item C<void *dlink_freelist_attach(void *freelist1, void *freelist2)>
 
 Attaches C<freelist2> to the end of C<freelist1>. Both free lists must have
-already been initialised with I<dlink_freelist_init()>. Note that it will
+already been initialised with I<dlink_freelist_init(3)>. Note that it will
 not be possible to separate these free lists. On success, returns a pointer
 to the beginning of the combined freelist. On error, returns C<null> with
 C<errno> set appropriately.
@@ -449,7 +450,7 @@ void *dlink_freelist_attach(void *freelist1, void *freelist2)
 
 Allocates an item from C<*freelist> and updates C<*freelist> to point to the
 next free item. C<*freelist> must be a singly linked freelist initialised
-with I<slink_freelist_init()>. On success, returns the allocated item. On
+with I<slink_freelist_init(3)>. On success, returns the allocated item. On
 error, returns C<null> with C<errno> set appropriately.
 
 =cut
@@ -478,7 +479,7 @@ void *slink_alloc(void **freelist)
 
 Allocates an item from C<*freelist> and updates C<*freelist> to point to the
 next free item. C<*freelist> must be a doubly linked freelist initialised
-with I<dlink_freelist_init()>. On success, returns the allocated item. On
+with I<dlink_freelist_init(3)>. On success, returns the allocated item. On
 error, returns C<null> with C<errno> set appropriately.
 
 =cut
@@ -507,7 +508,7 @@ void *dlink_alloc(void **freelist)
 
 Inserts C<item> into C<*freelist> and updates C<*freelist> to point to
 I<item>. C<*freelist> must be a singly linked freelist initialised with
-I<slink_freelist_init()>. On success, returns the resulting free list. On
+I<slink_freelist_init(3)>. On success, returns the resulting free list. On
 error, returns C<null> with C<errno> set appropriately.
 
 =cut
@@ -528,7 +529,7 @@ void *slink_free(void **freelist, void *item)
 
 Inserts C<item> into C<*freelist> and updates C<*freelist> to point to
 C<item>. C<*freelist> must be a doubly linked freelist initialised with
-I<dlink_freelist_init()>. On success, returns the resulting free list. On
+I<dlink_freelist_init(3)>. On success, returns the resulting free list. On
 error, returns C<null> with C<errno> set appropriately.
 
 =cut
@@ -559,7 +560,7 @@ When C<null> pointers are incorrectly passed as arguments to most functions.
 
 =item ENOSPC
 
-When I<slink_alloc()> or I<dlink_alloc()> is called and the free list is
+When I<slink_alloc(3)> or I<dlink_alloc(3)> is called and the free list is
 exhausted.
 
 =back
@@ -589,6 +590,10 @@ L<list(3)|list(3)>,
 L<map(3)|map(3)>,
 L<mem(3)|mem(3)>,
 L<locker(3)|locker(3)>
+
+=head1 AUTHOR
+
+20020916 raf <raf@raf.org>
 
 =cut
 
@@ -636,7 +641,7 @@ int main(int ac, char **av)
 		return EXIT_SUCCESS;
 	}
 
-	printf("Testing: link\n");
+	printf("Testing: %s\n", "link");
 
 	/* Test singly linked lists */
 
@@ -665,7 +670,7 @@ int main(int ac, char **av)
 		}
 
 		if ((item = slink_alloc((void **)&sfreelist)))
-			++errors, printf("Test4: slink_alloc() with no space failed (item = %p, not null)\n", item);
+			++errors, printf("Test4: slink_alloc() with no space failed (item = %p, not null)\n", (void *)item);
 		else if (errno != ENOSPC)
 			++errors, printf("Test5: slink_alloc() with no space failed (errno = %s, not %s)\n", strerror(errno), strerror(ENOSPC));
 
@@ -724,7 +729,7 @@ int main(int ac, char **av)
 			}
 
 			if ((item = slink_alloc((void **)&sfreelist)))
-				++errors, printf("Test16: slink_alloc() with no space failed (item = %p, not null)\n", item);
+				++errors, printf("Test16: slink_alloc() with no space failed (item = %p, not null)\n", (void *)item);
 			else if (errno != ENOSPC)
 				++errors, printf("Test17: slink_alloc() with no space failed (errno = %s, not %s)\n", strerror(errno), strerror(ENOSPC));
 
@@ -758,7 +763,7 @@ int main(int ac, char **av)
 				++errors, printf("Test23: slink_remove() failed (i = %d, not -1)\n", i);
 
 			if (spoints)
-				++errors, printf("Test24: slink_remove() failed (spoints = %p, not null)\n", spoints);
+				++errors, printf("Test24: slink_remove() failed (spoints = %p, not null)\n", (void *)spoints);
 		}
 	}
 
@@ -789,7 +794,7 @@ int main(int ac, char **av)
 		}
 
 		if ((item = dlink_alloc((void **)&dfreelist)))
-			++errors, printf("Test28: dlink_alloc() with no space failed (item = %p, not null)\n", item);
+			++errors, printf("Test28: dlink_alloc() with no space failed (item = %p, not null)\n", (void *)item);
 		else if (errno != ENOSPC)
 			++errors, printf("Test29: dlink_alloc() with no space failed (errno = %s, not %s)\n", strerror(errno), strerror(ENOSPC));
 
@@ -862,7 +867,7 @@ int main(int ac, char **av)
 			}
 
 			if ((item = dlink_alloc((void **)&dfreelist)))
-				++errors, printf("Test43: dlink_alloc() with no space failed (item = %p, not null)\n", item);
+				++errors, printf("Test43: dlink_alloc() with no space failed (item = %p, not null)\n", (void *)item);
 			else if (errno != ENOSPC)
 				++errors, printf("Test44: dlink_alloc() with no space failed (errno = %s, not %s)\n", strerror(errno), strerror(ENOSPC));
 

@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2001 raf <raf@raf.org>
+* Copyright (C) 1999-2002 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20011109 raf <raf@raf.org>
+* 20020916 raf <raf@raf.org>
 */
 
 /*
@@ -29,16 +29,17 @@ I<libslack(net)> - network module
 
 =head1 SYNOPSIS
 
+    #include <slack/std.h>
     #include <slack/net.h>
 
-    typedef struct sockaddr sockaddr;
+    typedef struct sockaddr sockaddr_t;
     typedef unsigned short sockport_t;
     typedef struct sockopt_t sockopt_t;
 
-    typedef union sockaddr_any sockaddr_any;
-    typedef struct sockaddr_un sockaddr_un;
-    typedef struct sockaddr_in sockaddr_in;
-    typedef struct sockaddr_in6 sockaddr_in6;
+    typedef union sockaddr_any_t sockaddr_any_t;
+    typedef struct sockaddr_un sockaddr_un_t;
+    typedef struct sockaddr_in sockaddr_in_t;
+    typedef struct sockaddr_in6 sockaddr_in6_t;
 
     typedef struct net_interface_t net_interface_t;
     typedef struct rudp_t rudp_t;
@@ -51,12 +52,12 @@ I<libslack(net)> - network module
         int optlen;
     };
 
-    union sockaddr_any
+    union sockaddr_any_t
     {
-        sockaddr any;
-        sockaddr_un un;
-        sockaddr_in in;
-        sockaddr_in6 in6;
+        sockaddr_t any;
+        sockaddr_un_t un;
+        sockaddr_in_t in;
+        sockaddr_in6_t in6;
     };
 
     struct net_interface_t
@@ -65,22 +66,22 @@ I<libslack(net)> - network module
         unsigned int index;
         short flags;
         int mtu;
-        sockaddr_any *addr;
-        sockaddr_any *brdaddr;
-        sockaddr_any *dstaddr;
-        sockaddr_any *hwaddr;
+        sockaddr_any_t *addr;
+        sockaddr_any_t *brdaddr;
+        sockaddr_any_t *dstaddr;
+        sockaddr_any_t *hwaddr;
     };
 
-    int net_server(const char *interface, const char *service, sockport_t port, int rcvbufsz, int sndbufsz, sockaddr *addr, size_t *addrsize);
-    int net_client(const char *host, const char *service, sockport_t port, long timeout, int rcvbufsz, int sndbufsz, sockaddr *addr, size_t *addrsize);
-    int net_udp_server(const char *interface, const char *service, sockport_t port, int rcvbufsz, int sndbufsz, sockaddr *addr, size_t *addrsize);
-    int net_udp_client(const char *host, const char *service, sockport_t port, int rcvbufsz, int sndbufsz, sockaddr *addr, size_t *addrsize);
-    int net_create_server(const char *interface, const char *service, sockport_t port, int type, int protocol, sockopt_t *sockopts, sockaddr *addr, size_t *addrsize);
-    int net_create_client(const char *host, const char *service, sockport_t port, sockport_t localport, int type, int protocol, long timeout, sockopt_t *sockopts, sockaddr *addr, size_t *addrsize);
-    int net_multicast_sender(const char *group, const char *service, sockport_t port, sockopt_t *sockopts, sockaddr *addr, size_t *addrsize, const char *ifname, unsigned int ifindex, int ttl, unsigned int noloopback);
-    int net_multicast_receiver(const char *group, const char *service, sockport_t port, sockopt_t *sockopts, sockaddr *addr, size_t *addrsize, const char *ifname, unsigned int ifindex);
-    int net_multicast_join(int sockfd, const sockaddr *addr, size_t addrsize, const char *ifname, unsigned int ifindex);
-    int net_multicast_leave(int sockfd, const sockaddr *addr, size_t addrsize, const char *ifname, unsigned int ifindex);
+    int net_server(const char *interface, const char *service, sockport_t port, int rcvbufsz, int sndbufsz, sockaddr_t *addr, size_t *addrsize);
+    int net_client(const char *host, const char *service, sockport_t port, long timeout, int rcvbufsz, int sndbufsz, sockaddr_t *addr, size_t *addrsize);
+    int net_udp_server(const char *interface, const char *service, sockport_t port, int rcvbufsz, int sndbufsz, sockaddr_t *addr, size_t *addrsize);
+    int net_udp_client(const char *host, const char *service, sockport_t port, int rcvbufsz, int sndbufsz, sockaddr_t *addr, size_t *addrsize);
+    int net_create_server(const char *interface, const char *service, sockport_t port, int type, int protocol, sockopt_t *sockopts, sockaddr_t *addr, size_t *addrsize);
+    int net_create_client(const char *host, const char *service, sockport_t port, sockport_t localport, int type, int protocol, long timeout, sockopt_t *sockopts, sockaddr_t *addr, size_t *addrsize);
+    int net_multicast_sender(const char *group, const char *service, sockport_t port, sockopt_t *sockopts, sockaddr_t *addr, size_t *addrsize, const char *ifname, unsigned int ifindex, int ttl, unsigned int noloopback);
+    int net_multicast_receiver(const char *group, const char *service, sockport_t port, sockopt_t *sockopts, sockaddr_t *addr, size_t *addrsize, const char *ifname, unsigned int ifindex);
+    int net_multicast_join(int sockfd, const sockaddr_t *addr, size_t addrsize, const char *ifname, unsigned int ifindex);
+    int net_multicast_leave(int sockfd, const sockaddr_t *addr, size_t addrsize, const char *ifname, unsigned int ifindex);
     int net_multicast_set_interface(int sockfd, const char *ifname, unsigned int ifindex);
     int net_multicast_get_interface(int sockfd);
     int net_multicast_set_loopback(int sockfd, unsigned int loopback);
@@ -103,25 +104,25 @@ I<libslack(net)> - network module
     void rudp_release(rudp_t *rudp);
     void *rudp_destroy(rudp_t **rudp);
     ssize_t net_rudp_transact(int sockfd, rudp_t *rudp, const void *obuf, size_t osize, void *ibuf, size_t isize);
-    ssize_t net_rudp_transactwith(int sockfd, rudp_t *rudp, const void *obuf, size_t osize, int oflags, void *ibuf, size_t isize, int iflags, sockaddr_any *addr, size_t addrsize);
-    ssize_t net_pack(int sockfd, long timeout, int flags, const char *fmt, ...);
-    ssize_t net_vpack(int sockfd, long timeout, int flags, const char *fmt, va_list args);
-    ssize_t net_packto(int sockfd, long timeout, int flags, const sockaddr *to, size_t tosize, const char *fmt, ...);
-    ssize_t net_vpackto(int sockfd, long timeout, int flags, const sockaddr *to, size_t tosize, const char *fmt, va_list args);
-    ssize_t net_unpack(int sockfd, long timeout, int flags, const char *fmt, ...);
-    ssize_t net_vunpack(int sockfd, long timeout, int flags, const char *fmt, va_list args);
-    ssize_t net_unpackfrom(int sockfd, long timeout, int flags, sockaddr *from, size_t *fromsize, const char *fmt, ...);
-    ssize_t net_vunpackfrom(int sockfd, long timeout, int flags, sockaddr *from, size_t *fromsize, const char *fmt, va_list args);
-    ssize_t pack(void *buf, size_t size, const char *fmt, ...);
-    ssize_t vpack(void *buf, size_t size, const char *fmt, va_list args);
-    ssize_t unpack(void *buf, size_t size, const char *fmt, ...);
-    ssize_t vunpack(void *buf, size_t size, const char *fmt, va_list args);
+    ssize_t net_rudp_transactwith(int sockfd, rudp_t *rudp, const void *obuf, size_t osize, int oflags, void *ibuf, size_t isize, int iflags, sockaddr_any_t *addr, size_t addrsize);
+    ssize_t net_pack(int sockfd, long timeout, int flags, const char *format, ...);
+    ssize_t net_vpack(int sockfd, long timeout, int flags, const char *format, va_list args);
+    ssize_t net_packto(int sockfd, long timeout, int flags, const sockaddr_t *to, size_t tosize, const char *format, ...);
+    ssize_t net_vpackto(int sockfd, long timeout, int flags, const sockaddr_t *to, size_t tosize, const char *format, va_list args);
+    ssize_t net_unpack(int sockfd, long timeout, int flags, const char *format, ...);
+    ssize_t net_vunpack(int sockfd, long timeout, int flags, const char *format, va_list args);
+    ssize_t net_unpackfrom(int sockfd, long timeout, int flags, sockaddr_t *from, size_t *fromsize, const char *format, ...);
+    ssize_t net_vunpackfrom(int sockfd, long timeout, int flags, sockaddr_t *from, size_t *fromsize, const char *format, va_list args);
+    ssize_t pack(void *buf, size_t size, const char *format, ...);
+    ssize_t vpack(void *buf, size_t size, const char *format, va_list args);
+    ssize_t unpack(void *buf, size_t size, const char *format, ...);
+    ssize_t vunpack(void *buf, size_t size, const char *format, va_list args);
     ssize_t net_read(int sockfd, long timeout, char *buf, size_t count);
     ssize_t net_write(int sockfd, long timeout, const char *buf, size_t count);
-    ssize_t net_expect(int sockfd, long timeout, const char *fmt, ...);
-    ssize_t net_vexpect(int sockfd, long timeout, const char *fmt, va_list args);
-    ssize_t net_send(int sockfd, long timeout, const char *fmt, ...);
-    ssize_t net_vsend(int sockfd, long timeout, const char *fmt, va_list args);
+    ssize_t net_expect(int sockfd, long timeout, const char *format, ...);
+    ssize_t net_vexpect(int sockfd, long timeout, const char *format, va_list args);
+    ssize_t net_send(int sockfd, long timeout, const char *format, ...);
+    ssize_t net_vsend(int sockfd, long timeout, const char *format, va_list args);
     ssize_t sendfd(int sockfd, const void *buf, size_t nbytes, int flags, int fd);
     ssize_t recvfd(int sockfd, void *buf, size_t nbytes, int flags, int *fd);
     int mail(const char *server, const char *sender, const char *recipients, const char *subject, const char *message);
@@ -222,7 +223,7 @@ struct rudp_t
 
 /*
 
-=item C<int net_server(const char *interface, const char *service, sockport_t port, int rcvbufsz, int sndbufsz, sockaddr *addr, size_t *addrsize)>
+=item C<int net_server(const char *interface, const char *service, sockport_t port, int rcvbufsz, int sndbufsz, sockaddr_t *addr, size_t *addrsize)>
 
 Creates a TCP server socket ready to I<accept(2)> connections on
 C<interface> (as determined by I<gethostbyname(3)>).
@@ -231,9 +232,9 @@ If C<interface> is C<null>, connections will be accepted on all local
 network interfaces. Otherwise, connections will only be accepted on the
 specified interface (as determined by I<gethostbyname(3)>).
 
-If C<service> is non-C<null> and is either numeric or is a service name
-(as determined by I<getservbyname(3)>), the specified port is used.
-Otherwise, C<port> (which must be in host byte order) is used.
+If C<service> is non-C<null> and is either numeric or is a service name (as
+determined by I<getservbyname(3)>), the specified port is used. Otherwise,
+C<port> (which must be in host byte order) is used.
 
 If C<interface> is equal to C<"/unix"> and C<service> is an absolute file
 system path, the server socket created will be a I<UNIX domain stream
@@ -290,7 +291,7 @@ static sockopt_t *build_sockopts(sockopt_t *sockopts, int *rcvbufsz, int *sndbuf
 	return sockopts;
 }
 
-int net_server(const char *interface, const char *service, sockport_t port, int rcvbufsz, int sndbufsz, sockaddr *addr, size_t *addrsize)
+int net_server(const char *interface, const char *service, sockport_t port, int rcvbufsz, int sndbufsz, sockaddr_t *addr, size_t *addrsize)
 {
 	sockopt_t sockopts[3];
 
@@ -301,7 +302,7 @@ int net_server(const char *interface, const char *service, sockport_t port, int 
 
 /*
 
-=item C<int net_client(const char *host, const char *service, sockport_t port, long timeout, int rcvbufsz, int sndbufsz, sockaddr *addr, size_t *addrsize)>
+=item C<int net_client(const char *host, const char *service, sockport_t port, long timeout, int rcvbufsz, int sndbufsz, sockaddr_t *addr, size_t *addrsize)>
 
 Creates a TCP client socket and connects to the server listening at C<host>
 (as determined by I<gethostbyname(3)>) on the port number specified by
@@ -346,7 +347,7 @@ C<errno> set appropriately.
 
 */
 
-int net_client(const char *host, const char *service, sockport_t port, long timeout, int rcvbufsz, int sndbufsz, sockaddr *addr, size_t *addrsize)
+int net_client(const char *host, const char *service, sockport_t port, long timeout, int rcvbufsz, int sndbufsz, sockaddr_t *addr, size_t *addrsize)
 {
 	sockopt_t sockopts[3];
 
@@ -357,19 +358,19 @@ int net_client(const char *host, const char *service, sockport_t port, long time
 
 /*
 
-=item C<int net_udp_server(const char *interface, const char *service, sockport_t port, int rcvbufsz, int sndbufsz, sockaddr *addr, size_t *addrsize)>
+=item C<int net_udp_server(const char *interface, const char *service, sockport_t port, int rcvbufsz, int sndbufsz, sockaddr_t *addr, size_t *addrsize)>
 
-Equivalent to I<net_server()> except that a UDP server is socket is created.
-If C<interface> is equal to C<"/unix"> and C<service> is an absolute file
-system path, the server socket created will be a I<UNIX domain datagram
-socket>. On success, returns the new socket's file descriptor. On error,
-returns C<-1> with C<errno> set appropriately.
+Equivalent to I<net_server(3)> except that a UDP server is socket is
+created. If C<interface> is equal to C<"/unix"> and C<service> is an
+absolute file system path, the server socket created will be a I<UNIX domain
+datagram socket>. On success, returns the new socket's file descriptor. On
+error, returns C<-1> with C<errno> set appropriately.
 
 =cut
 
 */
 
-int net_udp_server(const char *interface, const char *service, sockport_t port, int rcvbufsz, int sndbufsz, sockaddr *addr, size_t *addrsize)
+int net_udp_server(const char *interface, const char *service, sockport_t port, int rcvbufsz, int sndbufsz, sockaddr_t *addr, size_t *addrsize)
 {
 	sockopt_t sockopts[3];
 
@@ -380,9 +381,9 @@ int net_udp_server(const char *interface, const char *service, sockport_t port, 
 
 /*
 
-=item C<int net_udp_client(const char *host, const char *service, sockport_t port, int rcvbufsz, int sndbufsz, sockaddr *addr, size_t *addrsize)>
+=item C<int net_udp_client(const char *host, const char *service, sockport_t port, int rcvbufsz, int sndbufsz, sockaddr_t *addr, size_t *addrsize)>
 
-Equivalent to I<net_client()> except that a UDP client socket is created.
+Equivalent to I<net_client(3)> except that a UDP client socket is created.
 If C<interface> is equal to C<"/unix"> and C<service> is an absolute file
 system path, the server socket created will be a I<UNIX domain datagram
 socket>. On success, returns the new socket's file descriptor. On error,
@@ -392,7 +393,7 @@ returns C<-1> with C<errno> set appropriately.
 
 */
 
-int net_udp_client(const char *host, const char *service, sockport_t port, int rcvbufsz, int sndbufsz, sockaddr *addr, size_t *addrsize)
+int net_udp_client(const char *host, const char *service, sockport_t port, int rcvbufsz, int sndbufsz, sockaddr_t *addr, size_t *addrsize)
 {
 	sockopt_t sockopts[3];
 
@@ -403,10 +404,10 @@ int net_udp_client(const char *host, const char *service, sockport_t port, int r
 
 /*
 
-=item C<int net_create_server(const char *interface, const char *service, sockport_t port, int type, int protocol, sockopt_t *sockopts, sockaddr *addr, size_t *addrsize)>
+=item C<int net_create_server(const char *interface, const char *service, sockport_t port, int type, int protocol, sockopt_t *sockopts, sockaddr_t *addr, size_t *addrsize)>
 
-Equivalent to I<net_server()> and I<net_udp_server()> only more general. The
-type of socket is specified by C<type> (e.g. C<SOCK_STREAM> or
+Equivalent to I<net_server(3)> and I<net_udp_server(3)> only more general.
+The type of socket is specified by C<type> (e.g. C<SOCK_STREAM> or
 C<SOCK_DGRAM>) and C<protocol> (usually zero). If C<sockopts> is not
 C<null>, the socket options specified are set before calling I<bind(2)>. On
 success, returns the new socket's file descriptor. On error, returns C<-1>
@@ -416,31 +417,31 @@ with C<errno> set appropriately.
 
 */
 
-static sockaddr *net_unaddr(sockaddr_un *un, size_t family, const char *path)
+static sockaddr_t *net_unaddr(sockaddr_un_t *un, size_t family, const char *path)
 {
-	memset(un, 0, sizeof(sockaddr_un));
+	memset(un, 0, sizeof(sockaddr_un_t));
 	un->sun_family = family;
 	strcpy(un->sun_path, path);
-	return (sockaddr *)un;
+	return (sockaddr_t *)un;
 }
 
-static sockaddr *net_inaddr(sockaddr_in *in, size_t family, const void *addr, size_t addrsize, sockport_t port)
+static sockaddr_t *net_inaddr(sockaddr_in_t *in, size_t family, const void *addr, size_t addrsize, sockport_t port)
 {
-	memset(in, 0, sizeof(sockaddr_in));
+	memset(in, 0, sizeof(sockaddr_in_t));
 	in->sin_family = family;
 	memcpy(&in->sin_addr, addr, addrsize);
 	in->sin_port = port;
-	return (sockaddr *)in;
+	return (sockaddr_t *)in;
 }
 
 #ifdef AF_INET6
-static sockaddr *net_in6addr(sockaddr_in6 *in6, size_t family, const void *addr, size_t addrsize, sockport_t port)
+static sockaddr_t *net_in6addr(sockaddr_in6_t *in6, size_t family, const void *addr, size_t addrsize, sockport_t port)
 {
-	memset(in6, 0, sizeof(sockaddr_in6));
+	memset(in6, 0, sizeof(sockaddr_in6_t));
 	in6->sin6_family = family;
 	memcpy(&in6->sin6_addr, addr, addrsize);
 	in6->sin6_port = port;
-	return (sockaddr *)in6;
+	return (sockaddr_t *)in6;
 }
 #endif
 
@@ -532,9 +533,9 @@ static sockport_t service_port(const char *service, int type, int port)
 	return htons(port);
 }
 
-static int is_multicast(sockaddr *address)
+static int is_multicast(sockaddr_t *address)
 {
-	sockaddr_any *addr = (sockaddr_any *)address;
+	sockaddr_any_t *addr = (sockaddr_any_t *)address;
 
 	switch (addr->any.sa_family)
 	{
@@ -550,11 +551,11 @@ static int is_multicast(sockaddr *address)
 	return 0;
 }
 
-int net_create_server(const char *interface, const char *service, sockport_t port, int type, int protocol, sockopt_t *sockopts, sockaddr *addr, size_t *addrsize)
+int net_create_server(const char *interface, const char *service, sockport_t port, int type, int protocol, sockopt_t *sockopts, sockaddr_t *addr, size_t *addrsize)
 {
 	int sockfd;
-	sockaddr_any localany;
-	sockaddr *localaddr;
+	sockaddr_any_t localany;
+	sockaddr_t *localaddr;
 	size_t localsize;
 	struct hostent *hostent;
 	int reuse_addr = 1;
@@ -668,10 +669,10 @@ int net_create_server(const char *interface, const char *service, sockport_t por
 
 /*
 
-=item C<int net_create_client(const char *host, const char *service, sockport_t port, sockport_t localport, int type, int protocol, long timeout, sockopt_t *sockopts, sockaddr *addr, size_t *addrsize)>
+=item C<int net_create_client(const char *host, const char *service, sockport_t port, sockport_t localport, int type, int protocol, long timeout, sockopt_t *sockopts, sockaddr_t *addr, size_t *addrsize)>
 
-Equivalent to I<net_client()> and I<net_udp_client()> only more general. The
-type of socket is specified by C<type> (e.g. C<SOCK_STREAM> or
+Equivalent to I<net_client(3)> and I<net_udp_client(3)> only more general.
+The type of socket is specified by C<type> (e.g. C<SOCK_STREAM> or
 C<SOCK_DGRAM>) and C<protocol> (usually zero). If C<localport> is not zero,
 it is the port (in host byte order) that the local endpoint binds to. If
 C<sockopts> is not C<null>, the socket options specified are set before
@@ -682,7 +683,7 @@ error, returns C<-1> with C<errno> set appropriately.
 
 */
 
-static int net_client_connect(sockaddr *remoteaddr, size_t remotesize, sockport_t localport, int type, int protocol, int timeout, sockopt_t *sockopts)
+static int net_client_connect(sockaddr_t *remoteaddr, size_t remotesize, sockport_t localport, int type, int protocol, int timeout, sockopt_t *sockopts)
 {
 	int sockfd;
 	int rc;
@@ -701,8 +702,8 @@ static int net_client_connect(sockaddr *remoteaddr, size_t remotesize, sockport_
 
 	if (type == SOCK_DGRAM && (localport || remoteaddr->sa_family == AF_LOCAL))
 	{
-		sockaddr_any localany;
-		sockaddr *localaddr;
+		sockaddr_any_t localany;
+		sockaddr_t *localaddr;
 		size_t localsize;
 
 		if (remoteaddr->sa_family == AF_LOCAL)
@@ -798,11 +799,11 @@ static int net_client_connect(sockaddr *remoteaddr, size_t remotesize, sockport_
 	return sockfd;
 }
 
-int net_create_client(const char *host, const char *service, sockport_t port, sockport_t localport, int type, int protocol, long timeout, sockopt_t *sockopts, sockaddr *addr, size_t *addrsize)
+int net_create_client(const char *host, const char *service, sockport_t port, sockport_t localport, int type, int protocol, long timeout, sockopt_t *sockopts, sockaddr_t *addr, size_t *addrsize)
 {
 	int sockfd;
-	sockaddr_any remoteany;
-	sockaddr *remoteaddr;
+	sockaddr_any_t remoteany;
+	sockaddr_t *remoteaddr;
 	size_t remotesize;
 	struct hostent *hostent = NULL;
 	struct hostent hostbuf[1];
@@ -919,7 +920,7 @@ int net_create_client(const char *host, const char *service, sockport_t port, so
 
 /*
 
-=item C<int net_multicast_sender(const char *group, const char *service, sockport_t port, sockopt_t *sockopts, sockaddr *addr, size_t *addrsize, const char *ifname, unsigned int ifindex, int ttl, unsigned int noloopback)>
+=item C<int net_multicast_sender(const char *group, const char *service, sockport_t port, sockopt_t *sockopts, sockaddr_t *addr, size_t *addrsize, const char *ifname, unsigned int ifindex, int ttl, unsigned int noloopback)>
 
 Creates a UDP multicast sender socket. C<group> specifies the multicast
 group that packets will be sent to.
@@ -956,10 +957,10 @@ prevent any process on the sending host from receiving the multicast packets
 sent via this socket. Multicast loopback is enabled by default.
 
 The socket is connected to the specified multicast group address so that
-I<send()> must be used to send packets, rather than I<sendto()>. This
+I<send(2)> must be used to send packets, rather than I<sendto(2)>. This
 reduces the time spent sending packets by one third because an unconnected
 UDP socket is temporarily connected to the destination address by the kernel
-every time I<sendto()> is called.
+every time I<sendto(2)> is called.
 
 On success, returns the new socket descriptor. On error, returns C<-1> with
 C<errno> set appropriately.
@@ -968,7 +969,7 @@ C<errno> set appropriately.
 
 */
 
-int net_multicast_sender(const char *group, const char *service, sockport_t port, sockopt_t *sockopts, sockaddr *addr, size_t *addrsize, const char *ifname, unsigned int ifindex, int ttl, unsigned int noloopback)
+int net_multicast_sender(const char *group, const char *service, sockport_t port, sockopt_t *sockopts, sockaddr_t *addr, size_t *addrsize, const char *ifname, unsigned int ifindex, int ttl, unsigned int noloopback)
 {
 	int sockfd;
 	unsigned int loopback = 0;
@@ -990,7 +991,7 @@ int net_multicast_sender(const char *group, const char *service, sockport_t port
 
 /*
 
-=item C<int net_multicast_receiver(const char *group, const char *service, sockport_t port, sockopt_t *sockopts, sockaddr *addr, size_t *addrsize, const char *ifname, unsigned int ifindex)>
+=item C<int net_multicast_receiver(const char *group, const char *service, sockport_t port, sockopt_t *sockopts, sockaddr_t *addr, size_t *addrsize, const char *ifname, unsigned int ifindex)>
 
 Creates a UDP multicast receiver socket. C<group> specifies the multicast
 group that the socket will join.
@@ -1018,7 +1019,7 @@ specifies the index of the interface on which to receive multicast packets.
 Otherwise, the kernel will choose the interface on which to receive
 multicast packets based on the routing table (which is the default
 behaviour). The new socket may join the same group on more interfaces by
-subsequent calls to I<net_multicast_join()>.
+subsequent calls to I<net_multicast_join(3)>.
 
 On success, returns the new socket descriptor. On error, returns C<-1> with
 C<errno> set appropriately.
@@ -1027,14 +1028,14 @@ C<errno> set appropriately.
 
 */
 
-int net_multicast_receiver(const char *group, const char *service, sockport_t port, sockopt_t *sockopts, sockaddr *addr, size_t *addrsize, const char *ifname, unsigned int ifindex)
+int net_multicast_receiver(const char *group, const char *service, sockport_t port, sockopt_t *sockopts, sockaddr_t *addr, size_t *addrsize, const char *ifname, unsigned int ifindex)
 {
-	sockaddr_any any[1];
+	sockaddr_any_t any[1];
 	size_t anysize = sizeof(any);
 	int sockfd;
 
 	if (!addr)
-		addr = (sockaddr *)any;
+		addr = (sockaddr_t *)any;
 
 	if (!addrsize)
 		addrsize = &anysize;
@@ -1050,7 +1051,7 @@ int net_multicast_receiver(const char *group, const char *service, sockport_t po
 
 /*
 
-=item C<int net_multicast_join(int sockfd, const sockaddr *addr, size_t addrsize, const char *ifname, unsigned int ifindex)>
+=item C<int net_multicast_join(int sockfd, const sockaddr_t *addr, size_t addrsize, const char *ifname, unsigned int ifindex)>
 
 Adds C<sockfd>'s membership to the multicast group specified by C<addr>
 whose size is C<addrsize>. If I<ifname> is not C<null>, it specifies the
@@ -1059,7 +1060,7 @@ C<ifindex> is not zero, it specifies the index of the interface on which to
 receive multicast packets. Otherwise, the kernel will choose the interface
 on which to receive multicast packets based on the routing table (which is
 the default behaviour). A multicast socket may join the same group on
-multiple interfaces by subsequent calls to I<net_multicast_join()>. Note
+multiple interfaces by subsequent calls to I<net_multicast_join(3)>. Note
 that there is a system imposed limit on the number of times a socket may
 join a multicast group (this limit can be about 20). On success, returns
 C<0>. On error, returns C<-1> with C<errno> set appropriately.
@@ -1131,9 +1132,9 @@ static unsigned int if_nametoindex(const char *ifname)
 #define IPV6_LEAVE_GROUP IPV6_DROP_MEMBERSHIP
 #endif
 
-int net_multicast_join(int sockfd, const sockaddr *addr, size_t addrsize, const char *ifname, unsigned int ifindex)
+int net_multicast_join(int sockfd, const sockaddr_t *addr, size_t addrsize, const char *ifname, unsigned int ifindex)
 {
-	sockaddr_any *any = (sockaddr_any *)addr;
+	sockaddr_any_t *any = (sockaddr_any_t *)addr;
 
 	switch (any->any.sa_family)
 	{
@@ -1163,7 +1164,7 @@ int net_multicast_join(int sockfd, const sockaddr *addr, size_t addrsize, const 
 				if (ioctl(sockfd, SIOCGIFADDR, ifreq) == -1)
 					return -1;
 
-				memcpy(&mreq->imr_interface, &((sockaddr_in *)&ifreq->ifr_addr)->sin_addr, sizeof mreq->imr_multiaddr);
+				memcpy(&mreq->imr_interface, &((sockaddr_in_t *)&ifreq->ifr_addr)->sin_addr, sizeof mreq->imr_multiaddr);
 			}
 
 			return setsockopt(sockfd, IPPROTO_IP, IP_ADD_MEMBERSHIP, mreq, sizeof mreq);
@@ -1197,7 +1198,7 @@ int net_multicast_join(int sockfd, const sockaddr *addr, size_t addrsize, const 
 
 /*
 
-=item C<int net_multicast_leave(int sockfd, const sockaddr *addr, size_t addrsize, const char *ifname, unsigned int ifindex)>
+=item C<int net_multicast_leave(int sockfd, const sockaddr_t *addr, size_t addrsize, const char *ifname, unsigned int ifindex)>
 
 Drops C<sockfd>'s membership from the multicast group specified by C<addr>
 whose size is C<addrsize>. If I<ifname> is not C<null>, it specifies the
@@ -1211,9 +1212,9 @@ error, returns C<-1> with C<errno> set appropriately.
 
 */
 
-int net_multicast_leave(int sockfd, const sockaddr *addr, size_t addrsize, const char *ifname, unsigned int ifindex)
+int net_multicast_leave(int sockfd, const sockaddr_t *addr, size_t addrsize, const char *ifname, unsigned int ifindex)
 {
-	sockaddr_any *any = (sockaddr_any *)addr;
+	sockaddr_any_t *any = (sockaddr_any_t *)addr;
 
 	switch (any->any.sa_family)
 	{
@@ -1243,7 +1244,7 @@ int net_multicast_leave(int sockfd, const sockaddr *addr, size_t addrsize, const
 				if (ioctl(sockfd, SIOCGIFADDR, ifreq) == -1)
 					return -1;
 
-				memcpy(&mreq->imr_interface, &((sockaddr_in *)&ifreq->ifr_addr)->sin_addr, sizeof mreq->imr_interface);
+				memcpy(&mreq->imr_interface, &((sockaddr_in_t *)&ifreq->ifr_addr)->sin_addr, sizeof mreq->imr_interface);
 			}
 
 			return setsockopt(sockfd, IPPROTO_IP, IP_DROP_MEMBERSHIP, mreq, sizeof mreq);
@@ -1294,7 +1295,7 @@ appropriately.
 
 int net_multicast_set_interface(int sockfd, const char *ifname, unsigned int ifindex)
 {
-	sockaddr_any any;
+	sockaddr_any_t any;
 	size_t size = sizeof any;
 
 	if (getsockname(sockfd, (void *)&any, (void *)&size) == -1)
@@ -1326,7 +1327,7 @@ int net_multicast_set_interface(int sockfd, const char *ifname, unsigned int ifi
 				if (ioctl(sockfd, SIOCGIFADDR, ifreq) == -1)
 					return -1;
 
-				memcpy(&inaddr, &((sockaddr_in *)&ifreq->ifr_addr)->sin_addr, sizeof inaddr);
+				memcpy(&inaddr, &((sockaddr_in_t *)&ifreq->ifr_addr)->sin_addr, sizeof inaddr);
 			}
 
 			return setsockopt(sockfd, IPPROTO_IP, IP_MULTICAST_IF, &inaddr, sizeof inaddr);
@@ -1364,7 +1365,7 @@ on. On error, returns C<-1> with C<errno> set appropriately.
 
 int net_multicast_get_interface(int sockfd)
 {
-	sockaddr_any any;
+	sockaddr_any_t any;
 	size_t size = sizeof any;
 
 	if (getsockname(sockfd, (void *)&any, (void *)&size) == -1)
@@ -1440,7 +1441,7 @@ set appropriately.
 
 int net_multicast_set_loopback(int sockfd, unsigned int loopback)
 {
-	sockaddr_any any;
+	sockaddr_any_t any;
 	size_t size = sizeof any;
 
 	if (getsockname(sockfd, (void *)&any, (void *)&size) == -1)
@@ -1484,7 +1485,7 @@ appropriately.
 
 int net_multicast_get_loopback(int sockfd)
 {
-	sockaddr_any any;
+	sockaddr_any_t any;
 	size_t size = sizeof any;
 
 	if (getsockname(sockfd, (void *)&any, (void *)&size) == -1)
@@ -1536,7 +1537,7 @@ returns C<0>. On error, returns C<-1> with C<errno> set appropriately.
 
 int net_multicast_set_ttl(int sockfd, int ttl)
 {
-	sockaddr_any any;
+	sockaddr_any_t any;
 	size_t size = sizeof any;
 
 	if (getsockname(sockfd, (void *)&any, (void *)&size) == -1)
@@ -1578,7 +1579,7 @@ C<-1> with C<errno> set appropriately.
 
 int net_multicast_get_ttl(int sockfd)
 {
-	sockaddr_any any;
+	sockaddr_any_t any;
 	size_t size = sizeof any;
 
 	if (getsockname(sockfd, (void *)&any, (void *)&size) == -1)
@@ -1720,18 +1721,18 @@ int net_tos_normal(int sockfd)
 
 =item C<struct hostent *net_gethostbyname(const char *name, struct hostent *hostbuf, void **buf, size_t *size, int *herrno)>
 
-A portable, reentrant I<gethostbyname()> that handles it's own memory
+A portable, reentrant I<gethostbyname(3)> that handles it's own memory
 allocation requirements. Looks up I<name>. On success, returns C<hostbuf>
 with any extra data in C<*buf>. C<*size> is the length of C<*buf> on entry
 and is updated to reflect the length on exit if a larger buffer was required
 to perform the lookup. On error, returns C<null> with C<*herrno> set
 appropriately if there was a lookup failure or with C<errno> set
 appropriately if there was a memory allocation failure. It is the caller's
-responsibility to deallocate C<*buf> using I<free()> when the lookup failed
+responsibility to deallocate C<*buf> using I<free(3)> when the lookup failed
 or when the results of the name lookup are no longer required.
 
-Note: If your system has any version of I<gethostbyname_r()>, it will be
-used. Otherwise, I<gethostbyname()> will be used. Even this might be
+Note: If your system has any version of I<gethostbyname_r(3)>, it will be
+used. Otherwise, I<gethostbyname(3)> will be used. Even this might be
 threadsafe if your system uses thread specific data to make it so.
 
     struct hostent hostbuf[1], *hostent;
@@ -1840,17 +1841,17 @@ struct hostent *net_gethostbyname(const char *name, struct hostent *hostbuf, voi
 
 =item C<struct servent *net_getservbyname(const char *name, const char *proto, struct servent *servbuf, void **buf, size_t *size)>
 
-A portable, reentrant I<getservbyname()> that handles it's own memory
+A portable, reentrant I<getservbyname(3)> that handles it's own memory
 allocation requirements. Looks up the service C<name> and C<proto>. On
 success, returns C<servbuf> with any extra data in C<*buf>. C<*size> is the
 length of C<*buf> on entry and is updated to reflect the length on exit if a
 larger buffer was required to perform the lookup. On error, returns C<null>
 with C<errno> set appropriately. It is the caller's responsibility to
-deallocate C<*buf> using I<free()> when the lookup failed or when the
+deallocate C<*buf> using I<free(3)> when the lookup failed or when the
 results of the name lookup are no longer required.
 
-Note: If your system has any version of I<getservbyname_r()>, it will be
-used. Otherwise, I<getservbyname()> will be used. Even this might be
+Note: If your system has any version of I<getservbyname_r(3)>, it will be
+used. Otherwise, I<getservbyname(3)> will be used. Even this might be
 threadsafe if your system uses thread specific data to make it so.
 
     struct servent servbuf[1], *servent;
@@ -1955,7 +1956,7 @@ C<optname>, C<optval> and C<optlen> parameters to be passed to
 I<setsockopt(2)>. The array must end with a structure whose C<optval>
 element is C<null>. On success, returns C<0>. On error, returns C<-1> with
 C<errno> set appropriately. If I<setsockopt(2)> returns an error,
-I<net_options()> will continue to set any further options but will
+I<net_options(3)> will continue to set any further options but will
 ultimately return an error itself.
 
 =cut
@@ -1996,17 +1997,17 @@ static void iface_release(net_interface_t *iface)
 
 =item C<List *net_interfaces(void)>
 
-Returns the list of network interfaces. For each interface, calls I<ioctl()>
-to obtain the interface's flags, hardware address, network address,
-broadcast address if applicable, destination address if applicable, MTU and
-index. On success, returns a list of I<net_interface_t> objects. It is the
-caller's responsibility to deallocate the list with I<list_release()>. On
-error, returns C<null> with C<errno> set appropriately. Note that on
-Solaris, neither the hardware address nor the index can be returned. This
-function guesses the index in this case which seems to work. If the
-C<RES_OPTIONS> environment variable contains the string C<"inet6">, then
-only IPv6 interfaces are returned. Otherwise, only IPv4 interfaces are
-returned.
+Returns the list of network interfaces. For each interface, calls
+I<ioctl(2)> to obtain the interface's flags, hardware address, network
+address, broadcast address if applicable, destination address if applicable,
+MTU and index. On success, returns a list of I<net_interface_t> objects. It
+is the caller's responsibility to deallocate the list with
+I<list_release(3)>. On error, returns C<null> with C<errno> set
+appropriately. Note that on Solaris, neither the hardware address nor the
+index can be returned. This function guesses the index in this case which
+seems to work. If the C<RES_OPTIONS> environment variable contains the
+string C<"inet6">, then only IPv6 interfaces are returned. Otherwise, only
+IPv4 interfaces are returned.
 
 =cut
 
@@ -2021,8 +2022,8 @@ List *net_interfaces(void)
 
 =item C<List *net_interfaces_with_locker(Locker *locker)>
 
-Equivalent to I<net_interfaces()> except that multiple threads accessing the
-returned list will be synchronised by C<locker>.
+Equivalent to I<net_interfaces(3)> except that multiple threads accessing
+the returned list will be synchronised by C<locker>.
 
 =cut
 
@@ -2046,7 +2047,7 @@ List *net_interfaces_with_locker(Locker *locker)
 
 =item C<List *net_interfaces_by_family(int family)>
 
-Equivalent to I<net_interfaces()> except that C<family> specifies the
+Equivalent to I<net_interfaces(3)> except that C<family> specifies the
 required address family.
 
 =cut
@@ -2062,8 +2063,8 @@ List *net_interfaces_by_family(int family)
 
 =item C<List *net_interfaces_by_family_with_locker(int family, Locker *locker)>
 
-Equivalent to I<net_interfaces_with_locker()> except that C<family> specifies
-the required address family.
+Equivalent to I<net_interfaces_with_locker(3)> except that C<family>
+specifies the required address family.
 
 =cut
 
@@ -2153,12 +2154,12 @@ List *net_interfaces_by_family_with_locker(int family, Locker *locker)
 		{
 #ifdef AF_INET6
 			case AF_INET6:
-				size = sizeof(struct sockaddr_in6);
+				size = sizeof(sockaddr_in6_t);
 				break;
 #endif
 			case AF_INET:
 			default:
-				size = sizeof(struct sockaddr);
+				size = sizeof(sockaddr_t);
 				break;
 		}
 #endif
@@ -2198,7 +2199,7 @@ List *net_interfaces_by_family_with_locker(int family, Locker *locker)
 #ifdef SIOCGIFHWADDR
 			if (ioctl(sockfd, SIOCGIFHWADDR, ifrcopy) == 0)
 			{
-				if (!(iface->hwaddr = mem_new(sockaddr)))
+				if (!(iface->hwaddr = mem_new(sockaddr_t)))
 				{
 					list_release(ret);
 					mem_release(buf);
@@ -2206,7 +2207,7 @@ List *net_interfaces_by_family_with_locker(int family, Locker *locker)
 					return NULL;
 				}
 
-				memcpy(iface->hwaddr, &ifrcopy->ifr_hwaddr, sizeof(sockaddr));
+				memcpy(iface->hwaddr, &ifrcopy->ifr_hwaddr, sizeof(sockaddr_t));
 			}
 #endif
 
@@ -2292,7 +2293,7 @@ List *net_interfaces_by_family_with_locker(int family, Locker *locker)
 
 Allocates and initialises a retransmission timeout estimator for providing
 reliability over UDP. It is the caller's responsibility to deallocate the
-estimator using I<rudp_release()> or I<rudp_destroy()>. Note that each
+estimator using I<rudp_release(3)> or I<rudp_destroy(3)>. Note that each
 retransmission timer may only be used for a single destination address. If a
 UDP socket communicates with multiple peers, a separate estimator must be
 used for each peer. On success, returns the RTO estimator. On error, returns
@@ -2511,16 +2512,16 @@ static int rudp_timeout(rudp_t *rudp)
 =item C<ssize_t net_rudp_transact(int sockfd, rudp_t *rudp, const void *obuf, size_t osize, void *ibuf, size_t isize)>
 
 Provides reliable (not infallible) UDP transactions over C<sockfd>, a socket
-created with I<net_udp_client()> or I<net_create_client>. Sends C<osize>
+created with I<net_udp_client(3)> or I<net_create_client>. Sends C<osize>
 bytes, starting at C<obuf>, to the address to which C<sockfd> is connected.
 C<rudp> is the retransmission timeout estimator as created by
-I<rudp_create()>. The message is prepended by an 8 byte header that contains
-a timestamp and a sequence number. This is required to enable calculation of
-the RTT. The peer must expect this header and include it verbatim in its
-response. Note that the same retransmission timeout estimator (C<rudp>)
-should be used for all transactions. Waits for a response. If the
-retransmission timer expires before a response is received, the
-retransmission timer is updated and the packet is retransmitted. This
+I<rudp_create(3)>. The message is prepended by an 8 byte header that
+contains a timestamp and a sequence number. This is required to enable
+calculation of the RTT. The peer must expect this header and include it
+verbatim in its response. Note that the same retransmission timeout
+estimator (C<rudp>) should be used for all transactions. Waits for a
+response. If the retransmission timer expires before a response is received,
+the retransmission timer is updated and the packet is retransmitted. This
 continues until either a response is received or the packet has been
 retransmitted three times with no response. If there is a response, at most
 I<isize> bytes are received in C<ibuf>. On success, returns the number of
@@ -2537,25 +2538,25 @@ ssize_t net_rudp_transact(int sockfd, rudp_t *rudp, const void *obuf, size_t osi
 
 /*
 
-=item C<ssize_t net_rudp_transactwith(int sockfd, rudp_t *rudp, const void *obuf, size_t osize, int oflags, void *ibuf, size_t isize, int iflags, sockaddr_any *addr, size_t addrsize)>
+=item C<ssize_t net_rudp_transactwith(int sockfd, rudp_t *rudp, const void *obuf, size_t osize, int oflags, void *ibuf, size_t isize, int iflags, sockaddr_any_t *addr, size_t addrsize)>
 
-Equivalent to I<net_rudp_transact()> except that C<sockfd> is a socket
-created with I<net_udp_server()> or I<net_create_server()>. C<addr> is the
-address of the peer. C<addrsize> is the size of C<addr>. I<sendmsg()> and
-I<recvmsg()> are used instead of using I<writev()> and I<readv()>. C<oflags>
-is passed to I<sendmsg()> as the C<flags> argument. C<iflags> is passed to
-I<recvmsg()> as the C<flags> argument. Note that each retransmission timer
-may only be used for a single destination address. If a UDP socket
-communicates with multiple peers, a separate estimator must be used for each
-peer. On success, returns the number of bytes received. On error, returns
-C<-1> with C<errno> set appropriately. The EXAMPLES section below contains
-the code for this function.
+Equivalent to I<net_rudp_transact(3)> except that C<sockfd> is a socket
+created with I<net_udp_server(3)> or I<net_create_server(3)>. C<addr> is the
+address of the peer. C<addrsize> is the size of C<addr>. I<sendmsg(2)> and
+I<recvmsg(2)> are used instead of using I<writev(2)> and I<readv(2)>.
+C<oflags> is passed to I<sendmsg(2)> as the C<flags> argument. C<iflags> is
+passed to I<recvmsg(2)> as the C<flags> argument. Note that each
+retransmission timer may only be used for a single destination address. If a
+UDP socket communicates with multiple peers, a separate estimator must be
+used for each peer. On success, returns the number of bytes received. On
+error, returns C<-1> with C<errno> set appropriately. The EXAMPLES section
+below contains the code for this function.
 
 =cut
 
 */
 
-ssize_t net_rudp_transactwith(int sockfd, rudp_t *rudp, const void *obuf, size_t osize, int oflags, void *ibuf, size_t isize, int iflags, sockaddr_any *addr, size_t addrsize)
+ssize_t net_rudp_transactwith(int sockfd, rudp_t *rudp, const void *obuf, size_t osize, int oflags, void *ibuf, size_t isize, int iflags, sockaddr_any_t *addr, size_t addrsize)
 {
 	struct { uint32_t sequence, timestamp; } ohdr[1], ihdr[1];
 	struct msghdr omsg[1], imsg[1];
@@ -2656,11 +2657,11 @@ recvagain:
 
 /*
 
-=item C<ssize_t net_pack(int sockfd, long timeout, int flags, const char *fmt, ...)>
+=item C<ssize_t net_pack(int sockfd, long timeout, int flags, const char *format, ...)>
 
-Creates a packet containing data packed by I<pack()> as specified by C<fmt>
-and sends it on the connected socket, C<sockfd>, with I<send(2)>. If
-C<timeout> is non-zero, it is the number of seconds to wait for the send
+Creates a packet containing data packed by I<pack(3)> as specified by
+C<format> and sends it on the connected socket, C<sockfd>, with I<send(2)>.
+If C<timeout> is non-zero, it is the number of seconds to wait for the send
 buffer to have enough space for the new data before timing out (This only
 applies to TCP sockets since UDP has no send buffer). C<flags> is passed to
 I<send(2)>. This is intended for use with UDP. It can work reliably with TCP
@@ -2669,7 +2670,7 @@ unpacking alternatively, each waiting for the other's response before making
 their next response. On success, returns the number of bytes packed and
 sent. On error, returns C<-1> with C<errno> set appropriately.
 
-Note, the I<net_pack()> functions can sometimes be inappropriate as they
+Note, the I<net_pack(3)> functions can sometimes be inappropriate as they
 inherently involve copying existing data into a new buffer before writing
 it. It is much faster to not copy the data at all. When possible (i.e. when
 the data is already in network byte order), use I<writev(2)> instead to
@@ -2679,13 +2680,13 @@ write multiple non-contiguous buffers in a single system call.
 
 */
 
-ssize_t net_pack(int sockfd, long timeout, int flags, const char *fmt, ...)
+ssize_t net_pack(int sockfd, long timeout, int flags, const char *format, ...)
 {
 	va_list args;
 	int rc;
 
-	va_start(args, fmt);
-	rc = net_vpack(sockfd, timeout, flags, fmt, args);
+	va_start(args, format);
+	rc = net_vpack(sockfd, timeout, flags, format, args);
 	va_end(args);
 
 	return rc;
@@ -2693,21 +2694,21 @@ ssize_t net_pack(int sockfd, long timeout, int flags, const char *fmt, ...)
 
 /*
 
-=item C<ssize_t net_vpack(int sockfd, long timeout, int flags, const char *fmt, va_list args)>
+=item C<ssize_t net_vpack(int sockfd, long timeout, int flags, const char *format, va_list args)>
 
-Equivalent to I<net_pack()> with the variable argument list specified
+Equivalent to I<net_pack(3)> with the variable argument list specified
 directly as for I<vprintf(3)>.
 
 =cut
 
 */
 
-ssize_t net_vpack(int sockfd, long timeout, int flags, const char *fmt, va_list args)
+ssize_t net_vpack(int sockfd, long timeout, int flags, const char *format, va_list args)
 {
 	char buf[MSG_SIZE];
 	int rc;
 
-	if ((rc = vpack(buf, MSG_SIZE, fmt, args)) == -1)
+	if ((rc = vpack(buf, MSG_SIZE, format, args)) == -1)
 		return -1;
 
 	if (timeout && write_timeout(sockfd, timeout, 0) == -1)
@@ -2718,28 +2719,28 @@ ssize_t net_vpack(int sockfd, long timeout, int flags, const char *fmt, va_list 
 
 /*
 
-=item C<ssize_t net_packto(int sockfd, long timeout, int flags, const sockaddr *to, size_t tosize, const char *fmt, ...)>
+=item C<ssize_t net_packto(int sockfd, long timeout, int flags, const sockaddr_t *to, size_t tosize, const char *format, ...)>
 
-Creates a packet containing data packed by I<pack()> as specified by C<fmt>
-and sends it on the unconnected socket, C<sockfd>, to the address specified
-by C<to> with length C<tosize> with I<sendto(2)>. C<flags> is passed to
-I<sendto(2)>. If C<timeout> is non-zero, it is the number of seconds to wait
-for the send buffer to have enough space for the new data before timing out.
-This only applies to TCP sockets since UDP has no send buffer. On success,
-returns the number of bytes packed and sent. On error, returns C<-1> with
-C<errno> set appropriately.
+Creates a packet containing data packed by I<pack(3)> as specified by
+C<format> and sends it on the unconnected socket, C<sockfd>, to the address
+specified by C<to> with length C<tosize> with I<sendto(2)>. C<flags> is
+passed to I<sendto(2)>. If C<timeout> is non-zero, it is the number of
+seconds to wait for the send buffer to have enough space for the new data
+before timing out. This only applies to TCP sockets since UDP has no send
+buffer. On success, returns the number of bytes packed and sent. On error,
+returns C<-1> with C<errno> set appropriately.
 
 =cut
 
 */
 
-ssize_t net_packto(int sockfd, long timeout, int flags, const sockaddr *to, size_t tosize, const char *fmt, ...)
+ssize_t net_packto(int sockfd, long timeout, int flags, const sockaddr_t *to, size_t tosize, const char *format, ...)
 {
 	va_list args;
 	int rc;
 
-	va_start(args, fmt);
-	rc = net_vpackto(sockfd, timeout, flags, to, tosize, fmt, args);
+	va_start(args, format);
+	rc = net_vpackto(sockfd, timeout, flags, to, tosize, format, args);
 	va_end(args);
 
 	return rc;
@@ -2747,21 +2748,21 @@ ssize_t net_packto(int sockfd, long timeout, int flags, const sockaddr *to, size
 
 /*
 
-=item C<ssize_t net_vpackto(int sockfd, long timeout, int flags, const sockaddr *to, size_t tosize, const char *fmt, va_list args)>
+=item C<ssize_t net_vpackto(int sockfd, long timeout, int flags, const sockaddr_t *to, size_t tosize, const char *format, va_list args)>
 
-Equivalent to I<net_packto()> with the variable argument list specified
+Equivalent to I<net_packto(3)> with the variable argument list specified
 directly as for I<vprintf(3)>.
 
 =cut
 
 */
 
-ssize_t net_vpackto(int sockfd, long timeout, int flags, const sockaddr *to, size_t tosize, const char *fmt, va_list args)
+ssize_t net_vpackto(int sockfd, long timeout, int flags, const sockaddr_t *to, size_t tosize, const char *format, va_list args)
 {
 	char buf[MSG_SIZE];
 	int rc;
 
-	if ((rc = vpack(buf, MSG_SIZE, fmt, args)) == -1)
+	if ((rc = vpack(buf, MSG_SIZE, format, args)) == -1)
 		return -1;
 
 	if (timeout && write_timeout(sockfd, timeout, 0) == -1)
@@ -2772,15 +2773,15 @@ ssize_t net_vpackto(int sockfd, long timeout, int flags, const sockaddr *to, siz
 
 /*
 
-=item C<ssize_t net_unpack(int sockfd, long timeout, int flags, const char *fmt, ...)>
+=item C<ssize_t net_unpack(int sockfd, long timeout, int flags, const char *format, ...)>
 
 Receives a packet of data on the connected socket, C<sockfd>, with
-I<recv(2)>, and unpacks it with I<unpack()> as specified by C<fmt>. C<flags>
-is passed to I<recv(2)>. C<timeout> is the number of seconds to wait before
-timing out. On success, returns the number of bytes received and unpacked.
-On error, returns C<-1> with C<errno> set appropriately.
+I<recv(2)>, and unpacks it with I<unpack(3)> as specified by C<format>.
+C<flags> is passed to I<recv(2)>. C<timeout> is the number of seconds to
+wait before timing out. On success, returns the number of bytes received and
+unpacked. On error, returns C<-1> with C<errno> set appropriately.
 
-Note, the I<net_unpack()> functions can sometimes be inappropriate as they
+Note, the I<net_unpack(3)> functions can sometimes be inappropriate as they
 inherently involve reading data into a single buffer and then copying it
 into multiple target buffers. It is much faster to not copy the data at all.
 When possible (i.e. when the data is already in network byte order), use
@@ -2791,13 +2792,13 @@ system call.
 
 */
 
-ssize_t net_unpack(int sockfd, long timeout, int flags, const char *fmt, ...)
+ssize_t net_unpack(int sockfd, long timeout, int flags, const char *format, ...)
 {
 	va_list args;
 	int rc;
 
-	va_start(args, fmt);
-	rc = net_vunpack(sockfd, timeout, flags, fmt, args);
+	va_start(args, format);
+	rc = net_vunpack(sockfd, timeout, flags, format, args);
 	va_end(args);
 
 	return rc;
@@ -2805,16 +2806,16 @@ ssize_t net_unpack(int sockfd, long timeout, int flags, const char *fmt, ...)
 
 /*
 
-=item C<ssize_t net_vunpack(int sockfd, long timeout, int flags, const char *fmt, va_list args)>
+=item C<ssize_t net_vunpack(int sockfd, long timeout, int flags, const char *format, va_list args)>
 
-Equivalent to I<net_unpack()> with the variable argument list specified
+Equivalent to I<net_unpack(3)> with the variable argument list specified
 directly as for I<vprintf(3)>.
 
 =cut
 
 */
 
-ssize_t net_vunpack(int sockfd, long timeout, int flags, const char *fmt, va_list args)
+ssize_t net_vunpack(int sockfd, long timeout, int flags, const char *format, va_list args)
 {
 	char buf[MSG_SIZE];
 	int rc;
@@ -2825,20 +2826,20 @@ ssize_t net_vunpack(int sockfd, long timeout, int flags, const char *fmt, va_lis
 	if ((rc = recv(sockfd, buf, MSG_SIZE, flags)) == -1)
 		return -1;
 
-	return vunpack(buf, rc, fmt, args);
+	return vunpack(buf, rc, format, args);
 }
 
 /*
 
-=item C<ssize_t net_unpackfrom(int sockfd, long timeout, int flags, sockaddr *from, size_t *fromsize, const char *fmt, ...)>
+=item C<ssize_t net_unpackfrom(int sockfd, long timeout, int flags, sockaddr_t *from, size_t *fromsize, const char *format, ...)>
 
 Receives a packet of data on the unconnected socket, C<sockfd>, with
-I<recvfrom(2)>, and unpacks it with I<unpack()> as specified by C<fmt>. If
-C<from> is non-C<null>, the source address of the message is stored there.
-C<fromsize> is a value-result parameter, initialized to the size of the
-C<from> buffer, and modified on return to indicate the actual size of the
-address stored there. C<flags> is passed to I<recvfrom(2)>. C<timeout> is
-the number of seconds to wait before timing out. On success, returns the
+I<recvfrom(2)>, and unpacks it with I<unpack(3)> as specified by C<format>.
+If C<from> is non-C<null>, the source address of the message is stored
+there. C<fromsize> is a value-result parameter, initialized to the size of
+the C<from> buffer, and modified on return to indicate the actual size of
+the address stored there. C<flags> is passed to I<recvfrom(2)>. C<timeout>
+is the number of seconds to wait before timing out. On success, returns the
 number of bytes received and unpacked. On error, returns C<-1> with C<errno>
 set appropriately.
 
@@ -2846,13 +2847,13 @@ set appropriately.
 
 */
 
-ssize_t net_unpackfrom(int sockfd, long timeout, int flags, sockaddr *from, size_t *fromsize, const char *fmt, ...)
+ssize_t net_unpackfrom(int sockfd, long timeout, int flags, sockaddr_t *from, size_t *fromsize, const char *format, ...)
 {
 	va_list args;
 	int rc;
 
-	va_start(args, fmt);
-	rc = net_vunpackfrom(sockfd, timeout, flags, from, fromsize, fmt, args);
+	va_start(args, format);
+	rc = net_vunpackfrom(sockfd, timeout, flags, from, fromsize, format, args);
 	va_end(args);
 
 	return rc;
@@ -2860,16 +2861,16 @@ ssize_t net_unpackfrom(int sockfd, long timeout, int flags, sockaddr *from, size
 
 /*
 
-=item C<ssize_t net_vunpackfrom(int sockfd, long timeout, int flags, sockaddr *from, size_t *fromsize, const char *fmt, va_list args)>
+=item C<ssize_t net_vunpackfrom(int sockfd, long timeout, int flags, sockaddr_t *from, size_t *fromsize, const char *format, va_list args)>
 
-Equivalent to I<net_unpackfrom()> with the variable argument list specified
+Equivalent to I<net_unpackfrom(3)> with the variable argument list specified
 directly as for I<vprintf(3)>.
 
 =cut
 
 */
 
-ssize_t net_vunpackfrom(int sockfd, long timeout, int flags, sockaddr *from, size_t *fromsize, const char *fmt, va_list args)
+ssize_t net_vunpackfrom(int sockfd, long timeout, int flags, sockaddr_t *from, size_t *fromsize, const char *format, va_list args)
 {
 	char buf[MSG_SIZE];
 	int rc;
@@ -2880,33 +2881,33 @@ ssize_t net_vunpackfrom(int sockfd, long timeout, int flags, sockaddr *from, siz
 	if ((rc = recvfrom(sockfd, buf, MSG_SIZE, flags, from, (void *)fromsize)) == -1)
 		return -1;
 
-	return vunpack(buf, rc, fmt, args);
+	return vunpack(buf, rc, format, args);
 }
 
 /*
 
-=item C<ssize_t pack(void *buf, size_t size, const char *fmt, ...)>
+=item C<ssize_t pack(void *buf, size_t size, const char *format, ...)>
 
-Packs data into C<buf> as described by C<fmt>. The arguments after C<fmt>
-contain the data to be packed. C<size> is the size of C<buf>. Returns the
-number of bytes packed on success, or -1 on error with C<errno> set
-appropriately.
+Packs data into C<buf> as described by C<format>. The arguments after
+C<format> contain the data to be packed. C<size> is the size of C<buf>.
+Returns the number of bytes packed on success, or -1 on error with C<errno>
+set appropriately.
 
-Note, this is based on the I<pack()> function in I<perl(1)> (in fact, the
+Note, this is based on the I<pack(3)> function in I<perl(1)> (in fact, the
 following documentation is from I<perlfunc(1)>) except that the C<*> count
 specifier has different semantics, the C<?> count specifier is new, there's
 no non C<nul>-terminated strings or machine dependant formats or uuencoding
 or BER integer compression, everything is in network byte order, and floats
-are represented as strings so I<pack()> is suitable for serialising data to
+are represented as strings so I<pack(3)> is suitable for serialising data to
 be written to disk or sent across a network to other hosts. OK, C<v> and
 C<w> specifically aren't in network order but sometimes that's needed too.
 
-C<fmt> can contain the following type specifiers:
+C<format> can contain the following type specifiers:
 
     a   A string with arbitrary binary data
     z   A nul terminated string, will be nul padded
     b   A bit string (rounded out to nearest byte boundary)
-    h   A hex string (rounded out to nearest byte boundary)
+    h   A hexadecimal string (rounded out to nearest byte boundary)
     c   A char (8 bits)
     s   A short (16 bits)
     i   An int (32 bits)
@@ -2933,7 +2934,7 @@ appear before the first corresponding target buffer argument. This enables
 unpacking packets that contain length fields without risking target buffer
 overflow.
 
-With all types except C<"a">, C<"z">, C<"b"> and C<"h"> the I<pack()>
+With all types except C<"a">, C<"z">, C<"b"> and C<"h"> the I<pack(3)>
 function will gobble up that many arguments.
 
 The C<"a"> and C<"z"> types gobble just one value, but pack it as a string
@@ -2967,19 +2968,19 @@ multiplicity of floating point formats around, this is done to safely
 transport real numbers across a network to another process.
 
 It is the caller's responsibility to ensure that there are sufficient
-arguments provided to satisfy the requirements of C<fmt>.
+arguments provided to satisfy the requirements of C<format>.
 
 =cut
 
 */
 
-ssize_t pack(void *buf, size_t size, const char *fmt, ...)
+ssize_t pack(void *buf, size_t size, const char *format, ...)
 {
 	va_list args;
 	int rc;
 
-	va_start(args, fmt);
-	rc = vpack(buf, size, fmt, args);
+	va_start(args, format);
+	rc = vpack(buf, size, format, args);
 	va_end(args);
 
 	return rc;
@@ -2987,10 +2988,10 @@ ssize_t pack(void *buf, size_t size, const char *fmt, ...)
 
 /*
 
-=item C<ssize_t vpack(void *buf, size_t size, const char *fmt, va_list args)>
+=item C<ssize_t vpack(void *buf, size_t size, const char *format, va_list args)>
 
-Equivalent to I<pack()> with the variable argument list specified
-directly as for I<vprintf(3)>.
+Equivalent to I<pack(3)> with the variable argument list specified directly
+as for I<vprintf(3)>.
 
 =cut
 
@@ -2998,11 +2999,11 @@ directly as for I<vprintf(3)>.
 
 #define GET_COUNT() \
 	count = 1; \
-	if (*fmt == '*') \
-		++fmt, count = va_arg(args, size_t); \
-	else if (isdigit((int)(unsigned int)*fmt)) \
-		for (count = 0; isdigit((int)(unsigned int)*fmt); ++fmt) \
-			count *= 10, count += *fmt - '0'; \
+	if (*format == '*') \
+		++format, count = va_arg(args, size_t); \
+	else if (isdigit((int)(unsigned int)*format)) \
+		for (count = 0; isdigit((int)(unsigned int)*format); ++format) \
+			count *= 10, count += *format - '0'; \
 	if ((ssize_t)count < 1) \
 		return set_errno(EINVAL);
 
@@ -3010,19 +3011,19 @@ directly as for I<vprintf(3)>.
 	if (p + (required) > pkt + size) \
 		return set_errno(ENOSPC);
 
-ssize_t vpack(void *buf, size_t size, const char *fmt, va_list args)
+ssize_t vpack(void *buf, size_t size, const char *format, va_list args)
 {
 	size_t count;
 	unsigned char *pkt = buf;
 	unsigned char *p = pkt;
 	char tmp[128];
 
-	if (!pkt || !fmt)
+	if (!pkt || !format)
 		return set_errno(EINVAL);
 
-	while (*fmt)
+	while (*format)
 	{
-		switch (*fmt++)
+		switch (*format++)
 		{
 			case 'a': /* A string with arbitrary binary data */
 			{
@@ -3292,20 +3293,20 @@ ssize_t vpack(void *buf, size_t size, const char *fmt, va_list args)
 
 /*
 
-=item C<ssize_t unpack(void *buf, size_t size, const char *fmt, ...)>
+=item C<ssize_t unpack(void *buf, size_t size, const char *format, ...)>
 
-Unpacks the data in C<buf> which was packed by I<pack()>. C<size> is the
-size of C<buf>. C<fmt> must be equivalent to the C<fmt> argument to the call
-to I<pack()> that packed the data. The remaining arguments must be pointers
-to variables that will hold the unpacked data or C<null>. If any are C<null>
-the corresponding data will be skipped (i.e. not unpacked). Unpacked C<"z">,
-C<"b"> and C<"h"> strings are always C<nul> terminated. It is the caller's
-responsibility to ensure that the pointers into which these strings are
-unpacked contain enough memory (count + 1 bytes). It is the caller's
-responsibility to ensure that the non-C<null> pointers into which C<"a">
-strings are unpacked also contain enough memory (count bytes). It is the
-caller's responsibility to ensure that there are sufficient arguments
-supplied to satisfy the requirements of C<fmt>, even if they are just
+Unpacks the data in C<buf> which was packed by I<pack(3)>. C<size> is the
+size of C<buf>. C<format> must be equivalent to the C<format> argument to
+the call to I<pack(3)> that packed the data. The remaining arguments must be
+pointers to variables that will hold the unpacked data or C<null>. If any
+are C<null> the corresponding data will be skipped (i.e. not unpacked).
+Unpacked C<"z">, C<"b"> and C<"h"> strings are always C<nul> terminated. It
+is the caller's responsibility to ensure that the pointers into which these
+strings are unpacked contain enough memory (count + 1 bytes). It is the
+caller's responsibility to ensure that the non-C<null> pointers into which
+C<"a"> strings are unpacked also contain enough memory (count bytes). It is
+the caller's responsibility to ensure that there are sufficient arguments
+supplied to satisfy the requirements of C<format>, even if they are just
 C<null> pointers. Returns the number of bytes unpacked on success, or -1 on
 error.
 
@@ -3313,13 +3314,13 @@ error.
 
 */
 
-ssize_t unpack(void *buf, size_t size, const char *fmt, ...)
+ssize_t unpack(void *buf, size_t size, const char *format, ...)
 {
 	va_list args;
 	int rc;
 
-	va_start(args, fmt);
-	rc = vunpack(buf, size, fmt, args);
+	va_start(args, format);
+	rc = vunpack(buf, size, format, args);
 	va_end(args);
 
 	return rc;
@@ -3327,9 +3328,9 @@ ssize_t unpack(void *buf, size_t size, const char *fmt, ...)
 
 /*
 
-=item C<ssize_t vunpack(void *buf, size_t size, const char *fmt, va_list args)>
+=item C<ssize_t vunpack(void *buf, size_t size, const char *format, va_list args)>
 
-Equivalent to I<unpack()> with the variable argument list specified
+Equivalent to I<unpack(3)> with the variable argument list specified
 directly as for I<vprintf(3)>.
 
 =cut
@@ -3338,21 +3339,21 @@ directly as for I<vprintf(3)>.
 
 #define GET_COUNT_LIMIT() \
 	limit = count = 1; \
-	if (*fmt == '*') \
-		++fmt, limit = count = va_arg(args, size_t); \
-	else if (*fmt == '?') \
+	if (*format == '*') \
+		++format, limit = count = va_arg(args, size_t); \
+	else if (*format == '?') \
 	{ \
 		size_t *countp = va_arg(args, size_t *); \
 		if (!countp) \
 			return set_errno(EINVAL); \
 		count = *countp; \
 		limit = va_arg(args, size_t); \
-		++fmt; \
+		++format; \
 	} \
-	else if (isdigit((int)(unsigned int)*fmt)) \
+	else if (isdigit((int)(unsigned int)*format)) \
 	{ \
-		for (count = 0; isdigit((int)(unsigned int)*fmt); ++fmt) \
-			count *= 10, count += *fmt - '0'; \
+		for (count = 0; isdigit((int)(unsigned int)*format); ++format) \
+			count *= 10, count += *format - '0'; \
 		limit = count; \
 	} \
 	if ((ssize_t)count < 1 || (ssize_t)limit < 1) \
@@ -3367,18 +3368,18 @@ directly as for I<vprintf(3)>.
 		action; \
 	}
 
-ssize_t vunpack(void *buf, size_t size, const char *fmt, va_list args)
+ssize_t vunpack(void *buf, size_t size, const char *format, va_list args)
 {
 	unsigned char *pkt = buf;
 	unsigned char *p = pkt;
 	size_t count, limit;
 
-	if (!pkt || !fmt)
+	if (!pkt || !format)
 		return set_errno(EINVAL);
 
-	while (*fmt)
+	while (*format)
 	{
-		switch (*fmt++)
+		switch (*format++)
 		{
 			case 'a': /* A string with arbitrary binary data */
 			{
@@ -3700,7 +3701,7 @@ ssize_t net_write(int sockfd, long timeout, const char *buf, size_t count)
 
 /*
 
-=item C<ssize_t net_expect(int sockfd, long timeout, const char *fmt, ...)>
+=item C<ssize_t net_expect(int sockfd, long timeout, const char *format, ...)>
 
 Expects and confirms a formatted text message from a remote connection on
 the socket, C<sockfd>. C<timeout> is the number of seconds to wait before
@@ -3715,20 +3716,20 @@ transit, the resent bytes can form part of a larger segment so the
 lead to lost data (read but not expected). This can only really be used
 safely when the application protocol involves each peer reading and writing
 alternatively, each waiting for the other's response before making their
-next response. In short, I<net_expect()> should only be used in concert with
-I<net_send()>.
+next response. In short, I<net_expect(3)> should only be used in concert
+with I<net_send(3)>.
 
 =cut
 
 */
 
-ssize_t net_expect(int sockfd, long timeout, const char *fmt, ...)
+ssize_t net_expect(int sockfd, long timeout, const char *format, ...)
 {
 	va_list args;
 	ssize_t rc;
 
-	va_start(args, fmt);
-	rc = net_vexpect(sockfd, timeout, fmt, args);
+	va_start(args, format);
+	rc = net_vexpect(sockfd, timeout, format, args);
 	va_end(args);
 
 	return rc;
@@ -3736,16 +3737,16 @@ ssize_t net_expect(int sockfd, long timeout, const char *fmt, ...)
 
 /*
 
-=item C<ssize_t net_vexpect(int sockfd, long timeout, const char *fmt, va_list args)>
+=item C<ssize_t net_vexpect(int sockfd, long timeout, const char *format, va_list args)>
 
-Equivalent to I<net_expect()> with the variable argument list specified
+Equivalent to I<net_expect(3)> with the variable argument list specified
 directly as for I<vprintf(3)>.
 
 =cut
 
 */
 
-ssize_t net_vexpect(int sockfd, long timeout, const char *fmt, va_list args)
+ssize_t net_vexpect(int sockfd, long timeout, const char *format, va_list args)
 {
 	char buf[MSG_SIZE + 1];
 	ssize_t bytes;
@@ -3758,12 +3759,12 @@ ssize_t net_vexpect(int sockfd, long timeout, const char *fmt, va_list args)
 
 	buf[bytes] = '\0';
 
-	return vsscanf(buf, fmt, args);
+	return vsscanf(buf, format, args);
 }
 
 /*
 
-=item C<ssize_t net_send(int sockfd, long timeout, const char *fmt, ...)>
+=item C<ssize_t net_send(int sockfd, long timeout, const char *format, ...)>
 
 Sends a formatted string (see I<printf(3)>) to a remote connection on the
 socket, C<sockfd>. C<timeout> is the number of seconds to wait before timing
@@ -3774,13 +3775,13 @@ C<-1> with C<errno> set appropriately.
 
 */
 
-ssize_t net_send(int sockfd, long timeout, const char *fmt, ...)
+ssize_t net_send(int sockfd, long timeout, const char *format, ...)
 {
 	va_list args;
 	ssize_t rc;
 
-	va_start(args, fmt);
-	rc = net_vsend(sockfd, timeout, fmt, args);
+	va_start(args, format);
+	rc = net_vsend(sockfd, timeout, format, args);
 	va_end(args);
 
 	return rc;
@@ -3788,21 +3789,21 @@ ssize_t net_send(int sockfd, long timeout, const char *fmt, ...)
 
 /*
 
-=item C<ssize_t net_vsend(int sockfd, long timeout, const char *fmt, va_list args)>
+=item C<ssize_t net_vsend(int sockfd, long timeout, const char *format, va_list args)>
 
-Equivalent to I<net_send()> with the variable argument list specified
+Equivalent to I<net_send(3)> with the variable argument list specified
 directly as for I<vprintf(3)>.
 
 =cut
 
 */
 
-ssize_t net_vsend(int sockfd, long timeout, const char *fmt, va_list args)
+ssize_t net_vsend(int sockfd, long timeout, const char *format, va_list args)
 {
 	char buf[MSG_SIZE + 1];
 	ssize_t bytes;
 
-	bytes = vsnprintf(buf, MSG_SIZE + 1, fmt, args);
+	bytes = vsnprintf(buf, MSG_SIZE + 1, format, args);
 	if (bytes == -1 || bytes > MSG_SIZE)
 		return set_errno(ENOSPC);
 
@@ -3815,19 +3816,19 @@ ssize_t net_vsend(int sockfd, long timeout, const char *fmt, va_list args)
 
 Sends the open file descriptor, C<fd>, to another process (related or
 unrelated) on the other end of the UNIX domain socket, C<sockfd>. Equivalent
-to I<send()> in all other respects. UNIX domain sockets can be created using
-I<net_client()> or I<net_server()> with a first argument of C<"/unix"> or
-using I<socketpair()> or I<pipe()> (under SVR4). It is safe to I<close()>
-(and even I<unlink()>) the file descriptor after sending it. The kernel
-won't really close it (or delete it) until the receiving process closes the
-descriptor. If the sender doesn't close C<fd>, both processes share the same
-file table entry in the kernel. This means sharing file position if the
-descriptor refers to a regular file. If the receiver doesn't receive the
-file descriptor with I<recvfd()> when it is sent, the descriptor will be
-closed. A file descriptor must always be passed along with some normal data.
-Linux doesn't support calling I<recv()> with a C<null> buffer or zero
-length. On success, returns C<0>. On error, returns C<-1> with C<errno> set
-appropriately.
+to I<send(2)> in all other respects. UNIX domain sockets can be created
+using I<net_client(3)> or I<net_server(3)> with a first argument of
+C<"/unix"> or using I<socketpair(2)> or I<pipe(2)> (under SVR4). It is safe
+to I<close(2)> (and even I<unlink(2)>) the file descriptor after sending it.
+The kernel won't really close it (or delete it) until the receiving process
+closes the descriptor. If the sender doesn't close C<fd>, both processes
+share the same file table entry in the kernel. This means sharing file
+position if the descriptor refers to a regular file. If the receiver doesn't
+receive the file descriptor with I<recvfd(3)> when it is sent, the
+descriptor will be closed. A file descriptor must always be passed along
+with some normal data. Linux doesn't support calling I<recv(2)> with a
+C<null> buffer or zero length. On success, returns C<0>. On error, returns
+C<-1> with C<errno> set appropriately.
 
 =cut
 
@@ -3835,10 +3836,24 @@ appropriately.
 
 ssize_t sendfd(int sockfd, const void *buf, size_t nbytes, int flags, int fd)
 {
-	struct msghdr msg[1];
+	struct msghdr mesg[1];
 	struct iovec iov[1];
 
 #ifdef HAVE_MSGHDR_MSG_CONTROL
+
+/* Solaris8 doesn't have these */
+
+#ifndef CMSG_ALIGN
+#define CMSG_ALIGN(len) (((len) + sizeof(size_t) - 1) & (size_t)~(sizeof(size_t) - 1))
+#endif
+
+#ifndef CMSG_SPACE
+#define CMSG_SPACE(len) (CMSG_ALIGN(sizeof(struct cmsghdr)) + CMSG_ALIGN(len))
+#endif
+
+#ifndef CMSG_LEN
+#define CMSG_LEN(len) (CMSG_ALIGN(sizeof(struct cmsghdr)) + (len))
+#endif
 
 	union
 	{
@@ -3849,10 +3864,10 @@ ssize_t sendfd(int sockfd, const void *buf, size_t nbytes, int flags, int fd)
 
 	struct cmsghdr *cmsg;
 
-	msg->msg_control = control.control;
-	msg->msg_controllen = sizeof control.control;
+	mesg->msg_control = control.control;
+	mesg->msg_controllen = sizeof control.control;
 
-	cmsg = CMSG_FIRSTHDR(msg);
+	cmsg = CMSG_FIRSTHDR(mesg);
 	cmsg->cmsg_len = CMSG_LEN(sizeof(int));
 	cmsg->cmsg_level = SOL_SOCKET;
 	cmsg->cmsg_type = SCM_RIGHTS;
@@ -3861,21 +3876,21 @@ ssize_t sendfd(int sockfd, const void *buf, size_t nbytes, int flags, int fd)
 
 #else
 
-	msg->msg_accrights = (caddr_t)&fd;
-	msg->msg_accrightslen = sizeof(int);
+	mesg->msg_accrights = (caddr_t)&fd;
+	mesg->msg_accrightslen = sizeof(int);
 
 #endif
 
-	msg->msg_name = NULL;
-	msg->msg_namelen = 0;
+	mesg->msg_name = NULL;
+	mesg->msg_namelen = 0;
 
-	msg->msg_iov = iov;
-	msg->msg_iovlen = 1;
+	mesg->msg_iov = iov;
+	mesg->msg_iovlen = 1;
 
 	iov->iov_base = (void *)buf;
 	iov->iov_len = nbytes;
 
-	return sendmsg(sockfd, msg, flags);
+	return sendmsg(sockfd, mesg, flags);
 }
 
 /*
@@ -3884,21 +3899,21 @@ ssize_t sendfd(int sockfd, const void *buf, size_t nbytes, int flags, int fd)
 
 Receives an open file descriptor (which is stored in C<*fd>) from another
 process (related or unrelated) on the other end of the UNIX domain socket,
-C<sockfd>. Equivalent to I<recv()> in all other respects. UNIX domain
-sockets can be created using I<net_client()> or I<net_server()> with a first
-argument of C<"/unix"> or using I<socketpair()> or I<pipe()> (under SVR4).
-If the sender doesn't close the file descriptor, both processes share the
-same file table entry in the kernel. This means sharing file position if the
-descriptor refers to a regular file. If the sender sends the same file
+C<sockfd>. Equivalent to I<recv(2)> in all other respects. UNIX domain
+sockets can be created using I<net_client(3)> or I<net_server(3)> with a
+first argument of C<"/unix"> or using I<socketpair(2)> or I<pipe(2)> (under
+SVR4). If the sender doesn't close the file descriptor, both processes share
+the same file table entry in the kernel. This means sharing file position if
+the descriptor refers to a regular file. If the sender sends the same file
 descriptor multiple times, all received file descriptors also share the same
 file table entry in the kernel. If the receiver doesn't receive the file
-descriptor with I<recvfd()> when it is sent with I<sendfd()>, the descriptor
-will be closed. A file descriptor must always be passed along with some
-normal data. Linux doesn't support calling I<recv()> with a C<null> buffer
-or zero length. Don't set C<MSG_PEEK> in C<flags> (the results are
-unpredictable). On success, returns C<0>. On error, returns C<-1> with
-C<errno> set appropriately. If the file descriptor was not passed, C<*fd> is
-set to C<-1>.
+descriptor with I<recvfd(3)> when it is sent with I<sendfd(3)>, the
+descriptor will be closed. A file descriptor must always be passed along
+with some normal data. Linux doesn't support calling I<recv(2)> with a
+C<null> buffer or zero length. Don't set C<MSG_PEEK> in C<flags> (the
+results are unpredictable). On success, returns C<0>. On error, returns
+C<-1> with C<errno> set appropriately. If the file descriptor was not
+passed, C<*fd> is set to C<-1>.
 
 =cut
 
@@ -3906,7 +3921,7 @@ set to C<-1>.
 
 ssize_t recvfd(int sockfd, void *buf, size_t nbytes, int flags, int *fd)
 {
-	struct msghdr msg[1];
+	struct msghdr mesg[1];
 	struct iovec iov[1];
 	ssize_t rc;
 
@@ -3921,38 +3936,38 @@ ssize_t recvfd(int sockfd, void *buf, size_t nbytes, int flags, int *fd)
 
 	struct cmsghdr *cmsg;
 
-	msg->msg_control = control.control;
-	msg->msg_controllen = sizeof control.control;
+	mesg->msg_control = control.control;
+	mesg->msg_controllen = sizeof control.control;
 
 #else
 
 	int newfd;
 
-	msg->msg_accrights = (caddr_t)&newfd;
-	msg->msg_accrightslen = sizeof(int);
+	mesg->msg_accrights = (caddr_t)&newfd;
+	mesg->msg_accrightslen = sizeof(int);
 
 #endif
 
 	if (!fd)
 		return set_errno(EINVAL);
 
-	msg->msg_name = NULL;
-	msg->msg_namelen = 0;
+	mesg->msg_name = NULL;
+	mesg->msg_namelen = 0;
 
-	msg->msg_iov = iov;
-	msg->msg_iovlen = 1;
+	mesg->msg_iov = iov;
+	mesg->msg_iovlen = 1;
 
 	iov->iov_base = buf;
 	iov->iov_len = nbytes;
 
-	if ((rc = recvmsg(sockfd, msg, flags)) <= 0)
+	if ((rc = recvmsg(sockfd, mesg, flags)) <= 0)
 		return -1;
 
 #ifdef HAVE_MSGHDR_MSG_CONTROL
 
 	*fd = -1;
 
-	if ((cmsg = CMSG_FIRSTHDR(msg)) && cmsg->cmsg_len == CMSG_LEN(sizeof(int)))
+	if ((cmsg = CMSG_FIRSTHDR(mesg)) && cmsg->cmsg_len == CMSG_LEN(sizeof(int)))
 	{
 		if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)
 			*fd = *((int *)CMSG_DATA(cmsg));
@@ -3960,7 +3975,7 @@ ssize_t recvfd(int sockfd, void *buf, size_t nbytes, int flags, int *fd)
 
 #else
 
-	*fd = (msg->msg_accrightslen == sizeof(int)) ? newfd : -1;
+	*fd = (mesg->msg_accrightslen == sizeof(int)) ? newfd : -1;
 
 #endif
 
@@ -3974,7 +3989,7 @@ C<ssize_t recvcred(int sockfd, void *buf, size_t nbytes, int flags, struct fcred
 
 Receives the user credentials of the process on the other end of the UNIX
 domain socket, C<sockfd> and stores them in C<*cred>. Equivalent to
-I<recv()> in all other respects. Requires that the C<LOCAL_CREDS> socket
+I<recv(2)> in all other respects. Requires that the C<LOCAL_CREDS> socket
 option (with level C<0>) has been set for C<sockfd> in advance. On datagram
 sockets, user credentials accompany every datagram. On stream sockets, user
 credentials are sent only once, the first time data is sent. On success,
@@ -4002,7 +4017,7 @@ struct fcred
 
 static ssize_t recvcred(int sockfd, void *buf, size_t nbytes, int flags, struct fcred *cred)
 {
-	struct msghdr msg[1];
+	struct msghdr mesg[1];
 	struct iovec iov[1];
 	ssize_t rc;
 
@@ -4015,24 +4030,24 @@ static ssize_t recvcred(int sockfd, void *buf, size_t nbytes, int flags, struct 
 
 	struct cmsghdr *cmsg;
 
-	msg->msg_control = control.control;
-	msg->msg_controllen = sizeof control.control;
+	mesg->msg_control = control.control;
+	mesg->msg_controllen = sizeof control.control;
 
-	msg->msg_name = NULL;
-	msg->msg_namelen = 0;
+	mesg->msg_name = NULL;
+	mesg->msg_namelen = 0;
 
-	msg->msg_iov = iov;
-	msg->msg_iovlen = 1;
+	mesg->msg_iov = iov;
+	mesg->msg_iovlen = 1;
 
 	iov->iov_base = buf;
 	iov->iov_len = nbytes;
 
-	if ((rc = recvmsg(sockfd, msg, flags)) == -1)
+	if ((rc = recvmsg(sockfd, mesg, flags)) == -1)
 		return rc;
 
 	if (cred)
 	{
-		if (msg->msg_controllen > sizeof(struct cmsghdr) || !(cmsg = CMSG_FIRSTHDR(msg)) || cmsg->cmsg_len != CMSG_LEN(sizeof(struct fcred)) || cmsg->cmsg_level != SOL_SOCKET || cmsg->cmsg_type != SCM_CREDS)
+		if (mesg->msg_controllen > sizeof(struct cmsghdr) || !(cmsg = CMSG_FIRSTHDR(mesg)) || cmsg->cmsg_len != CMSG_LEN(sizeof(struct fcred)) || cmsg->cmsg_level != SOL_SOCKET || cmsg->cmsg_type != SCM_CREDS)
 			memset(cred, 0, sizeof(struct fcred));
 		else
 			memcpy(cred, CMSG_DATA(cmsg), sizeof(struct fcred));
@@ -4144,7 +4159,7 @@ int mail(const char *server, const char *sender, const char *recipients, const c
 =head1 SOCKET OPTION NOTES
 
 Here is some vital information about socket options that never made it into
-the I<setsockopt()> manpage (where it would be most useful). It's from
+the I<setsockopt(2)> manpage (where it would be most useful). It's from
 I<"UNIX Network Programming: Networking APIs: Sockets and XTI (Volume 1)">
 by W. Richard Stevens.
 
@@ -4162,13 +4177,13 @@ C<SO_REUSEADDR> instead. This is what it's for.
 The other reason is to know when the peer has received all sent data. This
 probably doesn't work the way you want. It can only tell you when the peer
 TCP has acknowledged the data. It cannot tell you when the peer application
-has read the data. To do this, use I<shutdown()> with a second argument of
-C<SHUT_WR> and then call I<read()> until it returns 0. This tells you that
+has read the data. To do this, use I<shutdown(2)> with a second argument of
+C<SHUT_WR> and then call I<read(2)> until it returns 0. This tells you that
 the peer application has read all sent data, knows that it has read all sent
 data (because it received your FIN) and has closed it's half of the
-connection with either I<close()> or I<shutdown()> with a second argument of
-C<SHUT_WR> (because you have received the peer's FIN). Then you can
-I<close()> the socket safe in the knowledge that no data has been lost.
+connection with either I<close(2)> or I<shutdown(2)> with a second argument
+of C<SHUT_WR> (because you have received the peer's FIN). Then you can
+I<close(2)> the socket safe in the knowledge that no data has been lost.
 
 If you set C<SO_LINGER> with a zero timeout, the peer will think your
 application has crashed or aborted the connection (because it receives an
@@ -4182,7 +4197,7 @@ this option for every TCP server socket. This means that if your server
 dies, the new process that replaces it will be able to bind to the server's
 port immediately. This option is also needed when multiple copies of a
 multicast application need to run on the same host and C<SO_REUSEPORT> isn't
-defined. This option must be set before I<bind()>.
+defined. This option must be set before I<bind(2)>.
 
 =item C<TCP_NODELAY>
 
@@ -4195,21 +4210,21 @@ the Internet alone.
 Setting this option is often the wrong solution to a bad network programming
 practice. If an application protocol involves immediate responses to each
 message and exceptionally long delays are experienced, it's probably due to
-the message being sent with multiple small I<write()>s (e.g. application
-header first, then data) instead of a single I<write()>.
+the message being sent with multiple small I<write(2)>s (e.g. application
+header first, then data) instead of a single I<write(2)>.
 
-If a message is sent in small I<write()>s, the first I<write()> will result
-in a small segment being sent. If the data in that segment does not contain
-enough information for the peer to respond immediately, the peer TCP will
-not ACK the segment until the ACK timer expires (50ms - 200ms). This is the
-delayed ACK algorithm. The sending TCP will not send the second small
+If a message is sent in small I<write(2)>s, the first I<write(2)> will
+result in a small segment being sent. If the data in that segment does not
+contain enough information for the peer to respond immediately, the peer TCP
+will not ACK the segment until the ACK timer expires (50ms - 200ms). This is
+the delayed ACK algorithm. The sending TCP will not send the second small
 segment (containing the remainder of the message) until the first small
 segment has been acknowledged by the peer TCP. This is the Nagle Algorithm.
 
 The solution to this problem is not to disable the Nagle algorithm, but
 rather to modify the application so that the message is sent in a single
-call to I<writev()>. Avoid copying separate buffers into a single buffer and
-then calling I<write()> as it is less efficient.
+call to I<writev(2)>. Avoid copying separate buffers into a single buffer
+and then calling I<write(2)> as it is less efficient.
 
 This option should only be set when the peer application does not respond to
 each message and there can be no delay in sending the messages (e.g. real
@@ -4222,13 +4237,13 @@ applications like The X Window System).
 
 This option specifies how much unacknowledged data you are willing to have
 out in the network before you stop sending data and wait for some
-acknowledgement. For bulk transfers, the send and receive buffer sizes
-need to be set to the capacity of the pipe (i.e. the bandwidth-delay
-product) otherwise throughput will be limited by the buffer sizes rather
-than by the network. The bandwidth-delay product is the bandwidth of the
-network multiplied by the round trip time. Here are some examples. Note
-that these values are for raw bandwidth, not data bandwidth. Actual
-values will be smaller due to packet header overhead.
+acknowledgement. For bulk transfers, the send and receive buffer sizes need
+to be set to the capacity of the pipe (i.e. the bandwidth-delay product)
+otherwise throughput will be limited by the buffer sizes rather than by the
+network. The bandwidth-delay product is the bandwidth of the network
+multiplied by the round trip time. Here are some examples. Note that these
+values are for raw bandwidth, not data bandwidth. Actual values will be
+smaller due to packet header overhead.
 
  Network                   | Bandwidth(bps) | RTT(ms) | Buffer(bytes)
  --------------------------+----------------+---------+--------------
@@ -4282,11 +4297,11 @@ MSS). Here are some examples.
 Some TCP implementations automatically round the send and receive buffer
 sizes up to an even multiple of the MSS after establishing the connection.
 So if you set these options, do so before establishing the connection (i.e.
-before I<listen()> or I<connect()>). The net server and client functions set
-these options at the right time if requested.
+before I<listen(2)> or I<connect(2)>). The net server and client functions
+set these options at the right time if requested.
 
-This option, when set for UDP sockets, limits the maximum datagram size
-that can be sent.
+This option, when set for UDP sockets, limits the maximum datagram size that
+can be sent.
 
 =item C<SO_RCVBUF>
 
@@ -4295,7 +4310,7 @@ peer's receive buffer. If your application is willing to accept large
 amounts of data, it needs to advertise the fact by having a large receive
 buffer. If the long fat pipe TCP options are required (Window Scale), they
 must be negotiated during connection setup (in the SYN packets) so this
-option must be set before I<listen()> or I<connect()>. The net server and
+option must be set before I<listen(2)> or I<connect(2)>. The net server and
 client functions set this option at the right time if requested.
 
 This option, when set for UDP sockets, specifies how many received datagrams
@@ -4548,8 +4563,8 @@ passed to one of the socket functions.
 
 I<gethostbyname(3)> returned an address from an unsupported address family.
 
-The C<"l"> format was used with I<pack()> or I<unpack()> when the
-system doesn't support it or it wasn't compiled into I<libslack>.
+The C<"l"> format was used with I<pack(3)> or I<unpack(3)> when the system
+doesn't support it or it wasn't compiled into I<libslack>.
 
 =item EINVAL
 
@@ -4572,16 +4587,17 @@ An C<"X"> pack instruction is trying to go back past the start of the
 packet.
 
 The count argument to an C<"@"> pack instruction refers to a location before
-that where the instruction was encountered (i.e. it's trying to pack leftwards).
+that where the instruction was encountered (i.e. it's trying to pack
+leftwards).
 
-The C<fmt> argument to I<pack()> or I<unpack()> contains an illegal
+The C<format> argument to I<pack(3)> or I<unpack(3)> contains an illegal
 character.
 
 An unpack C<?> indirect count argument is C<null>.
 
 =item ENOSPC
 
-A message was too large to be sent with I<net_send()>.
+A message was too large to be sent with I<net_send(3)>.
 
 A packet was too small to store all of the data to be packed or unpacked.
 
@@ -4590,11 +4606,11 @@ subsequent limit argument (not enough space in the target buffer).
 
 =item ETIMEDOUT
 
-I<net_expect()> or I<net_send()> timed out.
+I<net_expect(3)> or I<net_send(3)> timed out.
 
 =item EPROTO (or EPROTOTYPE on Mac OS X)
 
-I<mail()> encountered an error in the dialogue with the SMTP server. This
+I<mail(3)> encountered an error in the dialogue with the SMTP server. This
 most likely cause of this is a missing or inadequate domain name for the
 sender address on systems where I<sendmail(8)> requires a real domain name.
 
@@ -4608,8 +4624,7 @@ MT-Safe
 
 A TCP server:
 
-    #include <stdio.h>
-    #include <unistd.h>
+    #include <slack/std.h>
     #include <slack/net.h>
 
     void provide_service(int fd) { ... }
@@ -4618,7 +4633,7 @@ A TCP server:
     {
         int servfd, clntfd;
 
-        if ((servfd = net_server(NULL, NULL, 30000, 0, 0, NULL, NULL)) == -1)
+        if ((servfd = net_server(NULL, "service", 30000, 0, 0, NULL, NULL)) == -1)
             return 1;
 
         while ((clntfd = accept(servfd, NULL, NULL)) != -1)
@@ -4638,8 +4653,7 @@ A TCP server:
 
 A TCP client:
 
-    #include <stdio.h>
-    #include <unistd.h>
+    #include <slack/std.h>
     #include <slack/net.h>
 
     void request_service(int fd) { ... }
@@ -4648,7 +4662,7 @@ A TCP client:
     {
         int sockfd;
 
-        if ((sockfd = net_client("localhost", NULL, 30000, 0, 5, 0, 0, NULL, NULL)) == -1)
+        if ((sockfd = net_client("localhost", "service", 30000, 0, 5, 0, 0, NULL, NULL)) == -1)
             return EXIT_FAILURE;
 
         request_service(sockfd);
@@ -4658,30 +4672,31 @@ A TCP client:
 
 A UDP server:
 
-    #include <stdio.h>
+    #include <slack/std.h>
     #include <slack/net.h>
-    #include <netinet/in.h>
 
     void provide_service(char *pkt) { ... }
 
     int main()
     {
         char pkt[8];
-        struct sockaddr_in inaddr;
-        size_t insize = sizeof inaddr;
+        sockaddr_any_t addr;
+        size_t addrsize;
         int servfd;
 
-        if ((servfd = net_udp_server(NULL, NULL, 30000, 0, 0, NULL, NULL)) == -1)
+        if ((servfd = net_udp_server(NULL, "service", 30000, 0, 0, NULL, NULL)) == -1)
             return EXIT_FAILURE;
 
         for (;;)
         {
-            if (recvfrom(servfd, pkt, 8, 0, (sockaddr *)&inaddr, &insize) == -1)
+		    addrsize = sizeof addr;
+
+            if (recvfrom(servfd, pkt, 8, 0, &addr.any, &addrsize) == -1)
                 return EXIT_FAILURE;
 
             provide_service(pkt);
 
-            if (sendto(servfd, pkt, 8, 0, (sockaddr *)&inaddr, insize) == -1)
+            if (sendto(servfd, pkt, 8, 0, &addr.any, addrsize) == -1)
                 return EXIT_FAILURE;
         }
 
@@ -4690,8 +4705,7 @@ A UDP server:
 
 A UDP client:
 
-    #include <stdio.h>
-    #include <unistd.h>
+    #include <slack/std.h>
     #include <slack/net.h>
 
     void build_request(char *pkt) { ... }
@@ -4700,7 +4714,7 @@ A UDP client:
     int main()
     {
         char pkt[8];
-        int sockfd = net_udp_client("localhost", NULL, 30000, 0, 0, NULL, NULL);
+        int sockfd = net_udp_client("localhost", "service", 30000, 0, 0, NULL, NULL);
         if (sockfd == -1)
             return EXIT_FAILURE;
 
@@ -4721,8 +4735,7 @@ A UDP client:
 
 A reliable UDP client:
 
-    #include <stdio.h>
-    #include <unistd.h>
+    #include <slack/std.h>
     #include <slack/net.h>
 
     void build_request(char *pkt) { ... }
@@ -4755,6 +4768,7 @@ A reliable UDP client:
 
 Expect/Send SMTP protocol:
 
+    #include <slack/std.h>
     #include <slack/net.h>
 
     int tinymail(char *sender, char *recipient, char *subject, char *message)
@@ -4817,29 +4831,29 @@ Pack examples from I<perlfunc(1)>:
     pack(pkt, 4, "aaaa", "abcd", "x", "y", "z"); // "axyz"
     pack(pkt, 14, "z14", "abcdefg");             // "abcdefg\0\0\0\0\0\0\0"
 
-    int bin(const char *bin)
+    int binary(const char *binstr)
     {
         char pkt[4], data[33];
-        size_t binlen;
+        size_t len;
         int ret;
 
-        binlen = strlen(bin);
-        memset(data, '0', 32 - binlen);
-        strlcpy(data + 32 - binlen, bin, 33);
+        len = strlen(binstr);
+        memset(data, '0', 32 - len);
+        strlcpy(data + 32 - len, binstr, 33);
         pack(pkt, 4, "b32", data);
         unpack(pkt, 4, "i", &ret);
         return ret;
     }
 
-    int hex(const char *hex)
+    int hexadecimal(const char *hexstr)
     {
         char pkt[4], data[9];
-        size_t hexlen;
+        size_t len;
         int ret;
 
-        hexlen = strlen(hex);
-        memset(data, '0', 8 - hexlen);
-        strlcpy(data + 8 - hexlen, hex, 9);
+        len = strlen(hexstr);
+        memset(data, '0', 8 - len);
+        strlcpy(data + 8 - len, hexstr, 9);
         pack(pkt, 4, "h8", data);
         unpack(pkt, 4, "i", &ret);
         return ret;
@@ -4857,39 +4871,39 @@ Packing long long integers is not portable (in ISO C 89, anyway).
 
 Every effort has been made to use threadsafe, reentrant host and service
 name lookups in the net client and server functions. If your system has any
-version of I<gethostbyname_r()> and I<getservbyname_r()>, they will be used.
-Some systems (e.g. Digital UNIX, HP-UX, Tru64 UNIX) have a threadsafe
-version of I<gethostbyname()> that uses thread specific data. Unfortunately,
-there's no way to determine whether or not your system's I<gethostbyname()>
-and I<getservbyname()> are threadsafe so it is possible (though unlikely)
-that the net client and servers functions are not reentrant on your system.
-This does not apply to Linux, Solaris, Digital UNIX, HP-UX or Tru64 UNIX
-(and others, no doubt) since these systems do have threadsafe versions of
-the host and service name lookup functions.
+version of I<gethostbyname_r(3)> and I<getservbyname_r(3)>, they will be
+used. Some systems (e.g. Digital UNIX, HP-UX, Tru64 UNIX) have a threadsafe
+version of I<gethostbyname(3)> that uses thread specific data.
+Unfortunately, there's no way to determine whether or not your system's
+I<gethostbyname(3)> and I<getservbyname(3)> are threadsafe so it is possible
+(though unlikely) that the net client and servers functions are not
+reentrant on your system. This does not apply to Linux, Solaris, Digital
+UNIX, HP-UX or Tru64 UNIX (and others, no doubt) since these systems do have
+threadsafe versions of the host and service name lookup functions.
 
 B<Note:> It's possible that the underlying DNS resolver functions on your
 system are not threadsafe. Versions of BIND's resolver library prior to BIND
 8.2 are not threadsafe. If your system uses such a version, then even
-I<gethostbyname_r()> isn't threadsafe. Fortunately, Solaris doesn't use
+I<gethostbyname_r(3)> isn't threadsafe. Fortunately, Solaris doesn't use
 libresolv by default and Linux uses the BIND 8.2 version of libresolv which
 has a new threadsafe API and thread specific data for the old API. It is
-unlikely that any system that provides I<gethostnyname_r()> would provide
-a non-threadsafe implementation.
+unlikely that any system that provides I<gethostnyname_r(3)> would provide a
+non-threadsafe implementation.
 
 There is a race condition that can cause a failure when creating a UNIX
 domain datagram client socket under Solaris and OpenBSD (but not under
 Linux). The problem is that UNIX domain datagram sockets must be bound to a
-path using I<bind()> otherwise they can't receive any replies from the
+path using I<bind(2)> otherwise they can't receive any replies from the
 server (since they have no address to send messages to). Linux lets us bind
 to C<""> which is the C<AF_LOCAL> equivalent of C<INADDR_ANY>. This is
 great. No actual path is created, each client gets it's own address and the
 client doesn't need to unlink the path when it's finished. Unfortunately,
 systems like Solaris and OpenBSD (and probably many others) don't support
-this. You have to bind to an actual file system path and I<bind()> will
+this. You have to bind to an actual file system path and I<bind(2)> will
 create an inode for the socket (which the client must unlink when finished).
 This means there's a race condition between creating the unique path and
 creating the inode with bind(). Fortunately, this isn't a security bug
-(correct me if I'm wrong) because I<bind()> fails if the path already
+(correct me if I'm wrong) because I<bind(2)> fails if the path already
 exists. Nor is it a denial of service, since it only affects clients. It's
 more of a denial of request. Also, the names used are not very predictable.
 The easy, elegant, portable solution is to never use UNIX domain datagram
@@ -4897,10 +4911,10 @@ sockets. Always use UNIX domain stream sockets instead. They don't have this
 problem. If you must use UNIX domain datagram sockets under Solaris, you
 have to unlink the socket path when finished.
 
-    sockaddr_any addr;
+    sockaddr_any_t addr;
     size_t addrsize = sizeof addr;
 
-    if (getsockname(sockfd, (sockaddr *)&addr, &addrsize) != -1)
+    if (getsockname(sockfd, (sockaddr_t *)&addr, &addrsize) != -1)
         if (*addr.un.sun_path)
             unlink(addr.un.sun_path);
 
@@ -4908,25 +4922,25 @@ This module provides no support for multiple simultaneous TCP connects in a
 single thread. Use multiple threads or processes instead.
 
 Solaris (at least 2.6 and 2.7) return C<-1> as the index for all network
-interfaces when I<ioctl()> is called with a command argument of
-C<SIOCGIFINDEX>. I<net_interfaces()> guesses the indexes when this happens.
+interfaces when I<ioctl(2)> is called with a command argument of
+C<SIOCGIFINDEX>. I<net_interfaces(3)> guesses the indexes when this happens.
 It starts at 1 for the first interface and increments by 1 for each
 subsequent interface which seems to work.
 
-Because I<net_interfaces()> under Solaris 2.6 and 2.7 has to guess the
+Because I<net_interfaces(3)> under Solaris 2.6 and 2.7 has to guess the
 indexes of all interfaces and because it only returns IPv4 or IPv6
 interfaces (but not both), the indexes will probably be wrong on these
 systems when there is a mix of IPv4 and IPv6 interfaces. Presumably,
 versions of Solaris that actually support IPv6 will have the
 I<ioctl(SIOCGIFINDEX)> bug fixed.
 
-Solaris doesn't return hardware addresses when I<ioctl()> is called with a
+Solaris doesn't return hardware addresses when I<ioctl(2)> is called with a
 command argument of C<SIOCGIFHWADDR> so the I<net_interface_t> elements in
 the list returned by net_interfaces() always have C<null> hwaddr fields.
 
 Linux 2.2 returns C<0.0.0.0> as the address of the outgoing IPv4 multicast
-interface when I<getsockopt()> is called with the C<IP_MULTICAST_IF>
-command. This means that I<net_multicast_get_interface()> always returns
+interface when I<getsockopt(2)> is called with the C<IP_MULTICAST_IF>
+command. This means that I<net_multicast_get_interface(3)> always returns
 C<0> under Linux 2.2. Linux 2.4.9 does not have this bug.
 
 The TOS functions are inherently protocol specific. They only work with IPv4
@@ -4960,7 +4974,7 @@ L<printf(3)|printf(3)>
 
 =head1 AUTHOR
 
-20011109 raf <raf@raf.org>
+20020916 raf <raf@raf.org>
 
 =cut
 
@@ -5116,7 +5130,7 @@ int main(int ac, char **av)
 	int server;
 	int client;
 	int errors = 0;
-	char *fmt;
+	char *format;
 	void *a, *a2;
 	char *z, *z2;
 	char *b, *b2;
@@ -5151,7 +5165,7 @@ int main(int ac, char **av)
 	int no_mailserver = 0;
 	int no_multicast = 1;
 	int no_rudp = 1;
-	sockaddr_any addr;
+	sockaddr_any_t addr;
 	size_t addrsize = sizeof addr;
 	int rc;
 
@@ -5184,7 +5198,7 @@ int main(int ac, char **av)
 		return EXIT_SUCCESS;
 	}
 
-	printf("Testing: net\n");
+	printf("Testing: %s\n", "net");
 
 	/* Test TCP client and server sockets */
 
@@ -5203,10 +5217,10 @@ int main(int ac, char **av)
 			default:
 			{
 				int s;
-				sockaddr_any addr;
+				sockaddr_any_t addr;
 				size_t addrsize = sizeof addr;
 
-				if (read_timeout(server, 5, 0) == -1 || (s = accept(server, (sockaddr *)&addr, &addrsize)) == -1)
+				if (read_timeout(server, 5, 0) == -1 || (s = accept(server, (sockaddr_t *)&addr, &addrsize)) == -1)
 					++errors, printf("Test2: accept() failed (%s)\n", strerror(errno));
 				else
 				{
@@ -5274,14 +5288,14 @@ int main(int ac, char **av)
 			default:
 			{
 				char test[4];
-				sockaddr_any addr;
+				sockaddr_any_t addr;
 				size_t addrsize = sizeof addr;
 
-				if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 4, 0, (sockaddr *)&addr, &addrsize) == -1)
+				if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 4, 0, (sockaddr_t *)&addr, &addrsize) == -1)
 					++errors, printf("Test14: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 				else if (memcmp(test, "HELO", 4))
 					++errors, printf("Test15: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-				else if (write_timeout(server, 5, 0) == -1 || sendto(server, "OLEH", 4, 0, (sockaddr *)&addr, addrsize) == -1)
+				else if (write_timeout(server, 5, 0) == -1 || sendto(server, "OLEH", 4, 0, (sockaddr_t *)&addr, addrsize) == -1)
 					++errors, printf("Test16: sendto(server, OLEH) failed (%s)\n", strerror(errno));
 
 				errors += wait_for_child(pid);
@@ -5333,10 +5347,10 @@ int main(int ac, char **av)
 			default:
 			{
 				int s;
-				sockaddr_any addr;
+				sockaddr_any_t addr;
 				size_t addrsize = sizeof addr;
 
-				if (read_timeout(server, 5, 0) == -1 || (s = accept(server, (sockaddr *)&addr, &addrsize)) == -1)
+				if (read_timeout(server, 5, 0) == -1 || (s = accept(server, (sockaddr_t *)&addr, &addrsize)) == -1)
 					++errors, printf("Test24: accept() failed (%s)\n", strerror(errno));
 				else
 				{
@@ -5406,14 +5420,14 @@ int main(int ac, char **av)
 			default:
 			{
 				char test[4];
-				sockaddr_any addr;
+				sockaddr_any_t addr;
 				size_t addrsize = sizeof addr;
 
-				if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 4, 0, (sockaddr *)&addr, &addrsize) == -1)
+				if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 4, 0, (sockaddr_t *)&addr, &addrsize) == -1)
 					++errors, printf("Test36: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 				else if (memcmp(test, "HELO", 4))
 					++errors, printf("Test37: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-				else if (write_timeout(server, 5, 0) == -1 || sendto(server, "OLEH", 4, 0, (sockaddr *)&addr, addrsize) == -1)
+				else if (write_timeout(server, 5, 0) == -1 || sendto(server, "OLEH", 4, 0, (sockaddr_t *)&addr, addrsize) == -1)
 					++errors, printf("Test38: sendto(server, OLEH) failed (%s)\n", strerror(errno));
 
 				errors += wait_for_child(pid);
@@ -5429,7 +5443,7 @@ int main(int ac, char **av)
 				else
 				{
 					char test[4];
-					sockaddr_any any;
+					sockaddr_any_t any;
 					size_t size = sizeof any;
 
 					if (write_timeout(client, 5, 0) == -1 || send(client, "HELO", 4, 0) == -1)
@@ -5441,7 +5455,7 @@ int main(int ac, char **av)
 					if (close(client) == -1)
 						++errors, printf("Test43: close(client) failed (%s)\n", strerror(errno));
 
-					if (getsockname(client, (sockaddr *)&any, &size) != -1)
+					if (getsockname(client, (sockaddr_t *)&any, &size) != -1)
 						if (*any.un.sun_path)
 							unlink(any.un.sun_path);
 				}
@@ -5458,7 +5472,7 @@ int main(int ac, char **av)
 
 	/* Test pack() and unpack() */
 
-	fmt = "a10z*b*h*c2s2i3v2w2fd4pxX@*";
+	format = "a10z*b*h*c2s2i3v2w2fd4pxX@*";
 	a = "\000\001\002\000\003\004\000\005\006\000";
 	z = "hello world";
 	b = "001001001001001001";
@@ -5481,7 +5495,7 @@ int main(int ac, char **av)
 	dd = -5.1e-10;
 	p = a;
 
-	pkt_len = pack(pkt, 1024, fmt,
+	pkt_len = pack(pkt, 1024, format,
 		a,
 		strlen(z) + 1, z,
 		strlen(b), b,
@@ -5496,9 +5510,9 @@ int main(int ac, char **av)
 	);
 
 	if (pkt_len == -1)
-		++errors, printf("Test45: pack(\"%s\") failed (%s)\n", fmt, strerror(errno));
+		++errors, printf("Test45: pack(\"%s\") failed (%s)\n", format, strerror(errno));
 	else if (pkt_len != 1024)
-		++errors, printf("Test45: pack(\"%s\") failed (returned %d, not %d)\n", fmt, pkt_len, 1024);
+		++errors, printf("Test45: pack(\"%s\") failed (returned %d, not %d)\n", format, pkt_len, 1024);
 	else
 	{
 		a2 = malloc(10);
@@ -5508,7 +5522,7 @@ int main(int ac, char **av)
 
 		if (a2 && z2 && b2 && h2)
 		{
-			pkt_len = unpack(pkt, pkt_len, fmt,
+			pkt_len = unpack(pkt, pkt_len, format,
 				a2,
 				strlen(z) + 1, z2,
 				strlen(b), b2,
@@ -5523,9 +5537,9 @@ int main(int ac, char **av)
 			);
 
 			if (pkt_len == -1)
-				++errors, printf("Test46: unpack(\"%s\") failed (%s)\n", fmt, strerror(errno));
+				++errors, printf("Test46: unpack(\"%s\") failed (%s)\n", format, strerror(errno));
 			else if (pkt_len != 1024)
-				++errors, printf("Test46: unpack(\"%s\") failed (returned %d, not %d)\n", fmt, pkt_len, 1024);
+				++errors, printf("Test46: unpack(\"%s\") failed (returned %d, not %d)\n", format, pkt_len, 1024);
 			else
 			{
 				if (memcmp(a, a2, 10))
@@ -5584,7 +5598,7 @@ int main(int ac, char **av)
 			dc2 = 0.0;
 			p2 = NULL;
 
-			pkt_len = unpack(pkt, pkt_len, fmt,
+			pkt_len = unpack(pkt, pkt_len, format,
 				NULL,
 				strlen(z) + 1, z2,
 				strlen(b), NULL,
@@ -5599,9 +5613,9 @@ int main(int ac, char **av)
 			);
 
 			if (pkt_len == -1)
-				++errors, printf("Test68: unpack(\"%s\", NULL) failed (%s)\n", fmt, strerror(errno));
+				++errors, printf("Test68: unpack(\"%s\", NULL) failed (%s)\n", format, strerror(errno));
 			else if (pkt_len != 1024)
-				++errors, printf("Test68: unpack(\"%s\", NULL) failed (returned %d, not %d)\n", fmt, pkt_len, 1024);
+				++errors, printf("Test68: unpack(\"%s\", NULL) failed (returned %d, not %d)\n", format, pkt_len, 1024);
 			else
 			{
 				if (strcmp(z, z2))
@@ -5636,7 +5650,7 @@ int main(int ac, char **av)
 
 		if (memcmp(pkt, pkt_cmp, 104) || memcmp(pkt + 108, pkt_cmp + 108, 1024 - 108))
 		{
-			++errors, printf("Test78: pack(\"%s\") failed (packed data looks wrong)\n", fmt);
+			++errors, printf("Test78: pack(\"%s\") failed (packed data looks wrong)\n", format);
 			print_pkt("good packet", pkt_cmp, 1024);
 			print_pkt("bad packet", pkt, 1024);
 		}
@@ -5681,31 +5695,31 @@ int main(int ac, char **av)
 
 	/* Test packing sizes */
 
-#define TEST_SIZE(i, fmt, size, pfmt, cast, data1, data2, data2ref, test) \
-	pkt_len = pack(pkt, (size), (fmt), (data1)); \
+#define TEST_SIZE(i, format, size, pformat, cast, data1, data2, data2ref, test) \
+	pkt_len = pack(pkt, (size), (format), (data1)); \
 	if (pkt_len == -1) \
-		++errors, printf("Test%d: pack(%d, \"%s\") failed (%s)\n", (i), (size), (fmt), strerror(errno)); \
+		++errors, printf("Test%d: pack(%d, \"%s\") failed (%s)\n", (i), (size), (format), strerror(errno)); \
 	else if ((size) && pkt_len != (size)) \
-		++errors, printf("Test%d: pack(%d, \"%s\") failed (size = %d, not %d)\n", (i), (size), (fmt), pkt_len, (size)); \
+		++errors, printf("Test%d: pack(%d, \"%s\") failed (size = %d, not %d)\n", (i), (size), (format), pkt_len, (size)); \
 	else \
 	{ \
-		pkt_len = unpack(pkt, (size), (fmt), (data2ref)); \
+		pkt_len = unpack(pkt, (size), (format), (data2ref)); \
 		if (pkt_len == -1) \
-			++errors, printf("Test%d: unpack(%d, \"%s\") failed (%s)\n", (i), (size), (fmt), strerror(errno)); \
+			++errors, printf("Test%d: unpack(%d, \"%s\") failed (%s)\n", (i), (size), (format), strerror(errno)); \
 		else if ((size) && pkt_len != (size)) \
-			++errors, printf("Test%d: unpack(%d, \"%s\") failed (size = %d, not %d)\n", (i), (size), (fmt), pkt_len, (size)); \
+			++errors, printf("Test%d: unpack(%d, \"%s\") failed (size = %d, not %d)\n", (i), (size), (format), pkt_len, (size)); \
 		else if (test) \
 		{ \
 			char a[128], b[128]; \
-			snprintf(a, 128, pfmt, cast data1); \
-			snprintf(b, 128, pfmt, cast data2); \
-			++errors, printf("Test%d: unpack(%d, \"%s\") failed (%s != %s)\n", (i), (size), (fmt), a, b); \
+			snprintf(a, 128, pformat, cast data1); \
+			snprintf(b, 128, pformat, cast data2); \
+			++errors, printf("Test%d: unpack(%d, \"%s\") failed (%s != %s)\n", (i), (size), (format), a, b); \
 		} \
 	}
 
-#define TEST_SINT(i, fmt, size, data1, data2) TEST_SIZE(i, fmt, size, "%ld", (signed   long), data1, data2, &data2, data2 != data1)
-#define TEST_UINT(i, fmt, size, data1, data2) TEST_SIZE(i, fmt, size, "%lu", (unsigned long), data1, data2, &data2, data2 != data1)
-#define TEST_STR(i, fmt, size, pfmt, len, data1, data2) TEST_SIZE(i, fmt, size, pfmt, (char *), data1, data2, data2, memcmp(data1, data2, len))
+#define TEST_SINT(i, format, size, data1, data2) TEST_SIZE(i, format, size, "%ld", (signed   long), data1, data2, &data2, data2 != data1)
+#define TEST_UINT(i, format, size, data1, data2) TEST_SIZE(i, format, size, "%lu", (unsigned long), data1, data2, &data2, data2 != data1)
+#define TEST_STR(i, format, size, pformat, len, data1, data2) TEST_SIZE(i, format, size, pformat, (char *), data1, data2, data2, memcmp(data1, data2, len))
 
 	TEST_SINT(84, "c", 1, sc, sc2)
 	TEST_UINT(85, "c", 1, uc, uc2)
@@ -5753,23 +5767,23 @@ int main(int ac, char **av)
 
 	/* Test unpacking with '?' */
 
-#define TEST_VARSIZE(i, pfmt, ufmt, size, len1, data1, len2ref, data2limit, data2) \
-	pkt_len = pack(pkt, (size), (pfmt), (len1), (len1), (data1)); \
+#define TEST_VARSIZE(i, pformat, uformat, size, len1, data1, len2ref, data2limit, data2) \
+	pkt_len = pack(pkt, (size), (pformat), (len1), (len1), (data1)); \
 	if (pkt_len == -1) \
-		++errors, printf("Test%d: pack(%d, \"%s\") failed (%s)\n", (i), (size), (pfmt), strerror(errno)); \
+		++errors, printf("Test%d: pack(%d, \"%s\") failed (%s)\n", (i), (size), (pformat), strerror(errno)); \
 	else if ((size) && pkt_len != (size)) \
-		++errors, printf("Test%d: pack(%d, \"%s\") failed (size = %d, not %d)\n", (i), (size), (pfmt), pkt_len, (size)); \
+		++errors, printf("Test%d: pack(%d, \"%s\") failed (size = %d, not %d)\n", (i), (size), (pformat), pkt_len, (size)); \
 	else \
 	{ \
-		pkt_len = unpack(pkt, (size), (ufmt), (len2ref), (len2ref), (len1), (data2)); \
+		pkt_len = unpack(pkt, (size), (uformat), (len2ref), (len2ref), (len1), (data2)); \
 		if (pkt_len == -1) \
-			++errors, printf("Test%d: unpack(%d, \"%s\") failed (%s)\n", (i), (size), (ufmt), strerror(errno)); \
+			++errors, printf("Test%d: unpack(%d, \"%s\") failed (%s)\n", (i), (size), (uformat), strerror(errno)); \
 		else if ((size) && pkt_len != (size)) \
-			++errors, printf("Test%d: unpack(%d, \"%s\") failed (size = %d, not %d)\n", (i), (size), (ufmt), pkt_len, (size)); \
+			++errors, printf("Test%d: unpack(%d, \"%s\") failed (size = %d, not %d)\n", (i), (size), (uformat), pkt_len, (size)); \
 		else if (*(len2ref) != (len1)) \
-			++errors, printf("Test%d: unpack(%d, \"%s\") failed (unpacked length field = %d, not %d\n", (i), (size), (pfmt), *(len2ref), (len1)); \
+			++errors, printf("Test%d: unpack(%d, \"%s\") failed (unpacked length field = %d, not %d\n", (i), (size), (pformat), *(len2ref), (len1)); \
 		else if (memcmp((data1), (data2), (len1))) \
-			++errors, printf("Test%d: unpack(%d, \"%s\") failed (%.*s != %.*s)\n", (i), (size), (fmt), (len1), (char *)(data1), (len1), (char *)(data2)); \
+			++errors, printf("Test%d: unpack(%d, \"%s\") failed (%.*s != %.*s)\n", (i), (size), (format), (len1), (char *)(data1), (len1), (char *)(data2)); \
 	}
 
 	a2 = malloc(10);
@@ -6212,11 +6226,11 @@ int main(int ac, char **av)
 
 	/* Test truncation of string data */
 
-#define TEST_TRUNC(i, fmt, size, pfmt, len, data1, data2, init) \
+#define TEST_TRUNC(i, format, size, pformat, len, data1, data2, init) \
 	memset(data2, init, 1024); \
-	TEST_STR(i, fmt, size, pfmt, len, data1, data2) \
+	TEST_STR(i, format, size, pformat, len, data1, data2) \
 	if (data2[len] != 0) \
-		++errors, printf("Test%d: unpack(%s, trunc) failed (%s[%d] == %d, not %d)\n", i, fmt, #fmt, len, ((char *)data1)[len], 0);
+		++errors, printf("Test%d: unpack(%s, trunc) failed (%s[%d] == %d, not %d)\n", i, format, #format, len, ((char *)data1)[len], 0);
 
 	TEST_TRUNC(486, "a3", 3, "%3.3s", 3, a, tstmem, '\0')
 	TEST_TRUNC(487, "z3", 3, "%s", 3, z, tstmem, ' ')
@@ -6240,10 +6254,10 @@ int main(int ac, char **av)
 			default:
 			{
 				int s;
-				sockaddr_any addr;
+				sockaddr_any_t addr;
 				size_t addrsize = sizeof addr;
 
-				if (read_timeout(server, 5, 0) == -1 || (s = accept(server, (sockaddr *)&addr, &addrsize)) == -1)
+				if (read_timeout(server, 5, 0) == -1 || (s = accept(server, (sockaddr_t *)&addr, &addrsize)) == -1)
 					++errors, printf("Test491: accept() failed (%s)\n", strerror(errno));
 				else
 				{
@@ -6311,16 +6325,16 @@ int main(int ac, char **av)
 			{
 				int neti;
 				char netz[5];
-				sockaddr_any addr;
+				sockaddr_any_t addr;
 				size_t addrsize = sizeof addr;
 
-				if (net_unpackfrom(server, 5, 0, (sockaddr *)&addr, &addrsize, "iz4", &neti, netz) == -1)
+				if (net_unpackfrom(server, 5, 0, (sockaddr_t *)&addr, &addrsize, "iz4", &neti, netz) == -1)
 					++errors, printf("Test503: net_unpackfrom(server, \"iz4\", 37, HELO) failed (%s)\n", strerror(errno));
 				else if (neti != 37)
 					++errors, printf("Test504: net_unpackfrom(server, \"iz4\", 37, HELO) failed (%d != %d)\n", neti, 37);
 				else if (strcmp(netz, "HELO"))
 					++errors, printf("Test505: net_unpackfrom(server, \"iz4\", 37, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", netz, "HELO");
-				else if (net_packto(server, 5, 0, (sockaddr *)&addr, addrsize, "iz4", neti + 1, "OLEH") == -1)
+				else if (net_packto(server, 5, 0, (sockaddr_t *)&addr, addrsize, "iz4", neti + 1, "OLEH") == -1)
 					++errors, printf("Test506: net_packto(server, \"iz4\", 38, OLEH) failed (%s)\n", strerror(errno));
 
 				errors += wait_for_child(pid);
@@ -6422,10 +6436,10 @@ int main(int ac, char **av)
 			default:
 			{
 				int s;
-				sockaddr_any addr;
+				sockaddr_any_t addr;
 				size_t addrsize = sizeof addr;
 
-				if (read_timeout(server, 5, 0) == -1 || (s = accept(server, (sockaddr *)&addr, &addrsize)) == -1)
+				if (read_timeout(server, 5, 0) == -1 || (s = accept(server, (sockaddr_t *)&addr, &addrsize)) == -1)
 					++errors, printf("Test520: failed to perform test: accept() failed (%s)\n", strerror(errno));
 				else
 				{
@@ -6547,7 +6561,7 @@ int main(int ac, char **av)
 
 					case 0:
 					{
-						sockaddr_any addr[1];
+						sockaddr_any_t addr[1];
 						size_t addrsize = sizeof addr;
 						int client = 0;
 						errors = 0;
@@ -6623,16 +6637,16 @@ int main(int ac, char **av)
 			default:
 			{
 				char test[12];
-				sockaddr_any addr;
+				sockaddr_any_t addr;
 				size_t addrsize = sizeof addr;
 
 				/* Respond immediately */
 
-				if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr *)&addr, &addrsize) == -1)
+				if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
 					++errors, printf("Test553: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 				else if (memcmp(test + 8, "HELO", 4))
 					++errors, printf("Test554: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-				else if (write_timeout(server, 5, 0) == -1 || sendto(server, test, 12, 0, (sockaddr *)&addr, addrsize) == -1)
+				else if (write_timeout(server, 5, 0) == -1 || sendto(server, test, 12, 0, (sockaddr_t *)&addr, addrsize) == -1)
 					++errors, printf("Test555: sendto(server, HELO) failed (%s)\n", strerror(errno));
 
 				if (av[1] && !strcmp(av[1], "rudp"))
@@ -6641,70 +6655,70 @@ int main(int ac, char **av)
 
 					/* Respond after 1 retransmission */
 
-					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr *)&addr, &addrsize) == -1)
+					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
 						++errors, printf("Test556: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test577: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
 						++errors, printf("Test558: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test559: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (write_timeout(server, 5, 0) == -1 || sendto(server, test, 12, 0, (sockaddr *)&addr, addrsize) == -1)
+					else if (write_timeout(server, 5, 0) == -1 || sendto(server, test, 12, 0, (sockaddr_t *)&addr, addrsize) == -1)
 						++errors, printf("Test560: sendto(server, HELO) failed (%s)\n", strerror(errno));
 
 					/* Respond after 2 retransmissions */
 
-					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr *)&addr, &addrsize) == -1)
+					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
 						++errors, printf("Test561: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test562: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
 						++errors, printf("Test563: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test564: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 20, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 20, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
 						++errors, printf("Test565: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test566: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (write_timeout(server, 5, 0) == -1 || sendto(server, test, 12, 0, (sockaddr *)&addr, addrsize) == -1)
+					else if (write_timeout(server, 5, 0) == -1 || sendto(server, test, 12, 0, (sockaddr_t *)&addr, addrsize) == -1)
 						++errors, printf("Test567: sendto(server, HELO) failed (%s)\n", strerror(errno));
 
 					/* Respond after 3 retransmissions */
 
-					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr *)&addr, &addrsize) == -1)
+					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
 						++errors, printf("Test568: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test569: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
 						++errors, printf("Test570: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test571: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 20, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 20, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
 						++errors, printf("Test572: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test573: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 40, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 40, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
 						++errors, printf("Test574: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test575: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (write_timeout(server, 5, 0) == -1 || sendto(server, test, 12, 0, (sockaddr *)&addr, addrsize) == -1)
+					else if (write_timeout(server, 5, 0) == -1 || sendto(server, test, 12, 0, (sockaddr_t *)&addr, addrsize) == -1)
 						++errors, printf("Test576: sendto(server, HELO) failed (%s)\n", strerror(errno));
 
 					/* Don't respond at all */
 
-					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr *)&addr, &addrsize) == -1)
+					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
 						++errors, printf("Test577: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test578: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
 						++errors, printf("Test579: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test580: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 20, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 20, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
 						++errors, printf("Test581: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test582: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 40, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 40, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
 						++errors, printf("Test583: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test584: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
@@ -6786,7 +6800,7 @@ int main(int ac, char **av)
 
 	/* Test net_rudp_transactwith() */
 
-	if ((server = net_udp_server(NULL, NULL, 30000, 0, 0, (sockaddr *)&addr, &addrsize)) == -1)
+	if ((server = net_udp_server(NULL, NULL, 30000, 0, 0, (sockaddr_t *)&addr, &addrsize)) == -1)
 		++errors, printf("Test600: net_udp_server(NULL, 30000) failed: %s\n", strerror(errno));
 	else
 	{
@@ -6804,81 +6818,81 @@ int main(int ac, char **av)
 
 				/* Respond immediately */
 
-				if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr *)&addr, &addrsize) == -1)
+				if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
 					++errors, printf("Test601: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 				else if (memcmp(test + 8, "HELO", 4))
 					++errors, printf("Test602: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-				else if (write_timeout(server, 5, 0) == -1 || sendto(server, test, 12, 0, (sockaddr *)&addr, addrsize) == -1)
+				else if (write_timeout(server, 5, 0) == -1 || sendto(server, test, 12, 0, (sockaddr_t *)&addr, addrsize) == -1)
 					++errors, printf("Test603: sendto(server, HELO) failed (%s)\n", strerror(errno));
 
 				if (av[1] && !strcmp(av[1], "rudp"))
 				{
 					/* Respond after 1 retransmission */
 
-					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr *)&addr, &addrsize) == -1)
+					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
 						++errors, printf("Test604: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test625: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
 						++errors, printf("Test606: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test607: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (write_timeout(server, 5, 0) == -1 || sendto(server, test, 12, 0, (sockaddr *)&addr, addrsize) == -1)
+					else if (write_timeout(server, 5, 0) == -1 || sendto(server, test, 12, 0, (sockaddr_t *)&addr, addrsize) == -1)
 						++errors, printf("Test608: sendto(server, HELO) failed (%s)\n", strerror(errno));
 
 					/* Respond after 2 retransmissions */
 
-					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr *)&addr, &addrsize) == -1)
+					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
 						++errors, printf("Test609: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test610: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
 						++errors, printf("Test611: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test612: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 20, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 20, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
 						++errors, printf("Test613: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test614: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (write_timeout(server, 5, 0) == -1 || sendto(server, test, 12, 0, (sockaddr *)&addr, addrsize) == -1)
+					else if (write_timeout(server, 5, 0) == -1 || sendto(server, test, 12, 0, (sockaddr_t *)&addr, addrsize) == -1)
 						++errors, printf("Test615: sendto(server, HELO) failed (%s)\n", strerror(errno));
 
 					/* Respond after 3 retransmissions */
 
-					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr *)&addr, &addrsize) == -1)
+					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
 						++errors, printf("Test616: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test617: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
 						++errors, printf("Test618: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test619: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 20, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 20, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
 						++errors, printf("Test620: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test621: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 40, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 40, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
 						++errors, printf("Test622: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test623: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (write_timeout(server, 5, 0) == -1 || sendto(server, test, 12, 0, (sockaddr *)&addr, addrsize) == -1)
+					else if (write_timeout(server, 5, 0) == -1 || sendto(server, test, 12, 0, (sockaddr_t *)&addr, addrsize) == -1)
 						++errors, printf("Test624: sendto(server, HELO) failed (%s)\n", strerror(errno));
 
 					/* Don't respond at all */
 
-					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr *)&addr, &addrsize) == -1)
+					if (read_timeout(server, 5, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
 						++errors, printf("Test625: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test626: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 10, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
 						++errors, printf("Test627: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test628: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 20, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 20, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
 						++errors, printf("Test629: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test630: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
-					else if (read_timeout(server, 40, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr *)&addr, &addrsize) == -1)
+					else if (read_timeout(server, 40, 0) == -1 || recvfrom(server, test, 12, 0, (sockaddr_t *)&addr, &addrsize) == -1)
 						++errors, printf("Test631: recvfrom(server, HELO) failed (%s)\n", strerror(errno));
 					else if (memcmp(test + 8, "HELO", 4))
 						++errors, printf("Test632: recvfrom(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
@@ -6999,10 +7013,10 @@ int main(int ac, char **av)
 				default:
 				{
 					int s;
-					sockaddr_any addr;
+					sockaddr_any_t addr;
 					size_t addrsize = sizeof addr;
 
-					if (read_timeout(server, 5, 0) == -1 || (s = accept(server, (sockaddr *)&addr, &addrsize)) == -1)
+					if (read_timeout(server, 5, 0) == -1 || (s = accept(server, (sockaddr_t *)&addr, &addrsize)) == -1)
 						++errors, printf("Test649: accept() failed (%s)\n", strerror(errno));
 					else
 					{

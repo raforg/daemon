@@ -19,7 +19,7 @@
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
 
-# 20011109 raf <raf@raf.org>
+# 20020916 raf <raf@raf.org>
 
 # Uncomment this to override the default value of 600 seconds
 # as the minimum amount of time that a client can live if it
@@ -36,8 +36,8 @@
 # DAEMON_DEFINES += -DNDEBUG
 
 DAEMON_NAME := daemon
-DAEMON_VERSION := 0.5
-DAEMON_DATE := 20011109
+DAEMON_VERSION := 0.6
+DAEMON_DATE := 20020916
 DAEMON_URL := http://libslack.org/daemon/
 DAEMON_ID := $(DAEMON_NAME)-$(DAEMON_VERSION)
 DAEMON_DIST := $(DAEMON_ID).tar.gz
@@ -62,33 +62,51 @@ DAEMON_MODULES := daemon
 
 DAEMON_HTMLDIR := $(DATA_INSDIR)/$(DAEMON_NAME)/doc
 
+DAEMON_CONFDIR := $(CONF_INSDIR)
+
 DAEMON_CFILES := $(patsubst %, $(DAEMON_SRCDIR)/%.c, $(DAEMON_MODULES))
 DAEMON_OFILES := $(patsubst %, $(DAEMON_SRCDIR)/%.o, $(DAEMON_MODULES))
 DAEMON_PODFILES := $(DAEMON_CFILES)
 DAEMON_MANFILES := $(patsubst %.c, %.$(APP_MANSECT), $(DAEMON_PODFILES))
 DAEMON_HTMLFILES := $(patsubst %.c, %.$(APP_MANSECT).html, $(DAEMON_PODFILES))
+DAEMON_CONFFILE := $(DAEMON_NAME).conf
+DAEMON_MANLINK := $(DAEMON_CONFFILE).$(FMT_MANSECT)
+
+ifeq ($(MAN_GZIP), 1)
+DAEMON_MANFILES := $(patsubst %, %.gz, $(DAEMON_MANFILES))
+DAEMON_MANLINK := $(patsubst %, %.gz, $(DAEMON_MANLINK))
+endif
 
 TAG_FILES += $(DAEMON_HFILES) $(DAEMON_CFILES)
 DEPEND_CFILES += $(DAEMON_CFILES)
 DEPEND_HFILES += $(DAEMON_HFILES)
 
+ifeq ($(DAEMON_SRCDIR), .)
+DAEMON_MAIN := 1
+endif
+
 ALL_TARGETS += daemon
 MAN_TARGETS += man-daemon
 HTML_TARGETS += html-daemon
+ifeq ($(DAEMON_MAIN), 1)
 INSTALL_TARGETS += install-daemon
 UNINSTALL_TARGETS += uninstall-daemon
+endif
 DIST_TARGETS += dist-daemon
 RPM_TARGETS += rpm-daemon
 DEB_TARGETS += deb-daemon
-PKG_TARGETS += pkg-daemon
+SOL_TARGETS += sol-daemon
 OBSD_TARGETS += obsd-daemon
+FBSD_TARGETS += fbsd-daemon
 
-CLEAN_FILES += $(DAEMON_OFILES) $(DAEMON_MANFILES) $(DAEMON_HTMLFILES)
-CLOBBER_FILES += $(DAEMON_TARGET) $(DAEMON_SRCDIR)/tags
+CLEAN_FILES += $(DAEMON_OFILES) $(DAEMON_MANFILES) $(DAEMON_HTMLFILES) $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE)
+CLOBBER_FILES += $(DAEMON_TARGET) $(DAEMON_SRCDIR)/tags $(DAEMON_SRCDIR)/debian configure-stamp build-stamp
+DEBIAN_CLOBBER_FILES += $(DAEMON_TARGET) $(DAEMON_SRCDIR)/tags
 
 DAEMON_RPM_FILES += $(patsubst %, $(APP_INSDIR)/%, $(notdir $(DAEMON_TARGET)))
 DAEMON_RPM_DOCFILES += $(patsubst %, $(APP_MANDIR)/%, $(notdir $(DAEMON_MANFILES)))
-DAEMON_PKG := RAFOdmn
+DAEMON_RPM_DOCFILES += $(patsubst %, $(FMT_MANDIR)/%, $(notdir $(DAEMON_MANLINK)))
+DAEMON_SOL := RAFOdmn
 
 DAEMON_CPPFLAGS += $(DAEMON_DEFINES) $(patsubst %, -I%, $(DAEMON_INCDIRS))
 DAEMON_CCFLAGS += $(CCFLAGS)
@@ -96,6 +114,7 @@ DAEMON_CCFLAGS += $(CCFLAGS)
 DAEMON_CFLAGS += $(DAEMON_CPPFLAGS) $(DAEMON_CCFLAGS)
 DAEMON_LIBS += slack
 DAEMON_LIBS += pthread
+DAEMON_LIBS += util
 
 # Uncomment these on Solaris for sockets
 #

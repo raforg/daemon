@@ -22,7 +22,7 @@
 
 # Revert to system implementation of rwlocks
 #
-# 20011109 raf <raf@raf.org>
+# 20020916 raf <raf@raf.org>
 
 perl -pi \
 	-e 's/test_pthread_rwlock/pthread_rwlock/g;' \

@@ -46,21 +46,24 @@ INSTALL
 ~~~~~~~
 Currently, this is only known to work on the following systems:
 
-    Linux Redhat 6.x/7.x
-    Solaris 2.6
-    OpenBSD 2.9
+    Linux-2.2/2.4 (Redhat 6.x/7.x, Debian 2.2r6/3.0r0)
+    Solaris 2.6/8
+    OpenBSD 2.9/3.1
+    FreeBSD 4.5
 
-Compiling on Solaris 2.6 requires running conf/solaris-cc (If you have the
-Sun WorkShop C compiler) or conf/solaris-gcc (If you have gcc) in the source
-directory. Compiling on OpenBSD 2.9 requires running conf/openbsd. It is
-ready to compile on Linux as distributed so it is not necessary to run
-conf/linux. There isn't a real configure script yet so you will no doubt
-encounter problems on other systems. An ISO C and POSIX/XPG4 environment
-will help greatly.
+Compiling on Solaris 2.6 requires running conf/solaris6-cc (If you have the
+Sun WorkShop C compiler) or conf/solaris6-gcc (If you have gcc) in the source
+directory. If you have Solaris 8, run the conf/solaris8-[g]cc scripts
+instead. Compiling on OpenBSD requires running conf/openbsd. Compiling on
+FreeBSD requires running conf/freebsd. It is ready to compile on Linux as
+distributed so it is not necessary to run conf/linux.
 
-If your system doesn't have snprintf(3), GNU getopt_long(3), vsscanf(3),
-strcasecmp(3), strncasecmp(3), strlcpy(3) or strlcat(3), uncomment the
-relevant lines in the libslack/config.h file to include them in libslack.
+There isn't a real configure script yet so you will no doubt encounter
+problems on other systems. An ISO C and POSIX/XPG4 environment will help
+greatly. If your system doesn't have snprintf(3), GNU getopt_long(3),
+vsscanf(3), strcasecmp(3), strncasecmp(3), strlcpy(3) or strlcat(3),
+uncomment the relevant lines in the libslack/config.h file to include them
+in libslack.
 
 If your system doesn't have POSIX 1003.2 compliant regex functions, or they
 are buggy, either: install the GNU implementation,
@@ -78,19 +81,23 @@ LinuxThreads-0.9 and the latest corresponding version of glibc.
 If you have a linux-2.4.x system, you must have at least glibc-2.2.1
 and glibc-linuxthreads-2.2.1. They are available from
 http://ftp.gnu.org/pub/gnu/glibc/. Older versions can be used but
-they are buggy and I don't want to hear about it.
+they have some very nasty bugs.
 
 First, uninstall any previous version:
 
-    cd libslack-0.4
+    libslack-config --uninstall
+
+Or:
+
+    cd /usr/local/src/libslack-0.5
     make uninstall
 
 To build and test:
 
-    tar xzf libslack-0.5.tar.gz
-    cd libslack-0.5
-    conf/<your-system>   # if applicable (i.e. solaris-[g]cc, openbsd)
-    make
+    tar xzf libslack-0.5.1.tar.gz
+    cd libslack-0.5.1
+    conf/<your-system>   # i.e. linux, solaris[68]-[g]cc, openbsd, freebsd
+    make                 # must be gnu make
     make test
 
 To install libslack and its manpages (into /usr/local by default):
@@ -109,37 +116,39 @@ For more details:
 
     make help
 
-There is one manpage for each module in libslack (as well as one for each
-function). The module manpages are agent(3), coproc(3), daemon(3), err(3),
-fio(3), hsort(3), lim(3), link(3), list(3), locker(3), map(3), mem(3), msg(3),
-net(3), prog(3), prop(3), pseudo(3), sig(3) and str(3). If necessary, the
-manpages getopt(3), snprintf(3) and vsscanf(3) are created as well.
+There is one manpage for each module in libslack (as well as a symlink for
+each function). The module manpages are agent(3), coproc(3), daemon(3),
+err(3), fio(3), hsort(3), lim(3), link(3), list(3), locker(3), map(3),
+mem(3), msg(3), net(3), prog(3), prop(3), pseudo(3), sig(3) and str(3). If
+necessary, the manpages getopt(3), snprintf(3) and vsscanf(3) are created as
+well.
 
 BINARY PACKAGES
 ~~~~~~~~~~~~~~~
 To install from the RPM binary package (into /usr by default):
 
-    rpm -i libslack-0.5-1.i386.rpm
+    rpm -i libslack-0.5.1-1.i386.rpm
 
 To install from the RPM binary package into somewhere other than /usr:
 
-    rpm --prefix=/usr/local -i libslack-0.5-1.i386.rpm
+    rpm --prefix=/usr/local -i libslack-0.5.1-1.i386.rpm
 
-To install from the (relocatable) Debian binary package (into /usr):
+To install from the (relocatable) Solaris8 binary package (into /opt/libslack):
 
-    dpkg -i libslack_0.5_i386.deb
-
-To install from the (relocatable) Solaris binary package (into /opt/libslack):
-
-    gunzip libslack-0.5.sun4u.pkg.gz
-    pkgadd -d libslack-0.5.sun4u.pkg
+    gunzip libslack-0.5.1.sun4u.pkg.gz
+    pkgadd -d libslack-0.5.1.sun4u.pkg
 
 Install from the OpenBSD binary package (into /usr/local):
 
-	pkg_add libslack-0.5-obsd-i386.tar.gz
+    pkg_add libslack-0.5.1-obsd-i386.tar.gz
+
+Install from the FreeBSD binary package (into /usr/local):
+
+    pkg_add libslack-0.5.1-fbsd-i386.tar.gz
 
 REQUIREMENTS
 ~~~~~~~~~~~~
+Requires GNU make to compile.
 Requires perl to run the scripts in the conf directory.
 Repuires perl to install per-function manpage links.
 Requires an ISO C compiler like gcc to compile the source.
@@ -180,20 +189,25 @@ filesystem entry is needed for the client and it must be unlinked after use.
 It's also possible for a malicious local user to deny a client access to the
 server. The solution is to always use UNIX domain stream sockets.
 
-Solaris 2.6 has an inadequate snprintf() function so libslack provides it's
-own implementation. When configured for Solaris, this snprintf() function
-will behave exactly like the system's snprintf() function, even though it
-has incorrect behaviour with respect to the ISO C standard. I thought this
-was better than having thousands of module tests apparently "fail".
+Solaris has an inadequate snprintf() function so libslack provides it's own
+implementation. When configured for Solaris, this snprintf() function will
+format exactly like the system's sprintf() function, even though it has
+incorrect behaviour with respect to the ISO C standard. I thought this was
+better than having thousands of module tests apparently "fail".
 
 OpenBSD
 ~~~~~~~
 Has the same UNIX domain datagram socket problem as Solaris.
 
+FreeBSD
+~~~~~~~
+Has the same UNIX domain datagram socket problem as Solaris.
+Can't lock fifos so fifo_open() can't guarantee a unique reader.
+
 COPYING
 ~~~~~~~
-libslack - A UNIX/C library of general utilities for programmers with slack
-Copyright (C) 1999-2001 raf <raf@raf.org>
+libslack - A UNIX/C library of general utilities for programmers with Slack
+Copyright (C) 1999-2002 raf <raf@raf.org>
 
     This library is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -305,7 +319,7 @@ MT-Disciplined
 raf
 http://raf.org/papers/mt-disciplined.html, 2001
 
-Scalable Makefiles
+Scalable Makefiles [NOT WRITTEN]
 raf
 http://raf.org/papers/scalable-makefiles.html, 2001
 
@@ -338,10 +352,10 @@ Simon & Schuster, 1994
 
 HISTORY
 ~~~~~~~
-0.1
+0.1 (19991020)
     - Initial version
 
-0.2
+0.2 (19991223)
     - Decoupled core file prevention from daemon_init()
       into its own function, daemon_prevent_core()
     - Decoupled signal handling from daemon_init()
@@ -360,7 +374,7 @@ HISTORY
     - Added pathetic conf/linux and conf/solaris scripts
     - Added manpages
 
-0.3
+0.3 (20000902)
     - Started using GNU getopt_long() instead of getopt_long_only()
     - Added -DSVR4 in conf/solaris (doh!)
     - Added conditional compilation of debug functions
@@ -378,7 +392,7 @@ HISTORY
     - Added socks.h
     - Added daemon_revoke_privileges(), daemon_file_is_safe() to daemon module
 
-0.4
+0.4 (20010215)
     - Fixed memory usage bugs
     - Changed net server/client functions to use service name else port number
     - Fixed security bug: daemon_file_is_safe() wasn't following symlinks (doh!)
@@ -432,7 +446,7 @@ HISTORY
     - Renamed _* functions in err module to *f (not ANSI compliant)
     - Removed MANIFEST
 
-0.5
+0.5 (20011109)
     - Fixed Makefile bug: decoupled libslack optlevel from module test optlevel
     - Fixed API bug: str_length_unlocked() was static
     - Fixed API bug: prop_locker() prototype wasn't in prop.h
@@ -507,23 +521,44 @@ HISTORY
     - Added read locked versions of map_apply() and list_apply()
     - Added make and dist-html-slack (manpages as html.tar.gz)
 
+0.5.1 (20020916)
+    - Added HEADER FILES section to libslack(3) manpage
+    - Added #include <slack/std.h> to example sections of module manpages
+    - Added conf/freebsd (mmoraes@teleias.com)
+    - Added tools/prefix utility (add prefix to all libslack identifiers)
+    - Added manpage for tools/analyse-debug-locker utility
+    - Separated stdout and stderr in coproc_open() and coproc_close()
+    - Changed coproc open functions to take action() and data arguments
+    - Exposed daemon_pidfile()
+    - Added daemon_is_running()
+    - Added daemon_stop()
+    - Renamed sighandler_t to signal_handler_t (glibc clash - gdr@gno.org)
+    - Ported to Solaris 8
+    - Split Solaris configuration scripts into conf/solaris[68]-[g]cc
+    - Added support for installing gzipped manpages
+    - Stopped generating debian package (until it's a shared library)
+    - Added make fbsd fbsd-daemon fbsd-slack (freebsd binary packages)
+    - Added support for absolute path in daemon_pidfile()
+    - Added daemon_getpid()
+    - Added libslack-config --upgrade option
+    - Added lame ./config script that just calls existing lame conf/* scripts
+
 TODO
 ~~~~
-    - Port to FreeBSD, Mac OS X, Cygwin
+    - Port to Mac OS X (again), NetBSD, Cygwin[?]
     - Decouple memory type and allocation strategy from List/Map/String code
     - Check out/incorporate Kiem-Phong Vo's error handling architecture [?]
     - Use autoconf and libtool (then add devel/static/dynamic packages)
     - Add sub libraries (str/list/map, daemon/net/agent, mtdisc, memdisc) [?]
-    - Add debian source package creation [?]
-    - Add API prefix utility
+    - Add debian source package creation for libslack (after libtool)
     - Make sure net module interoperates with openssl
-    - Add scan/print money/numbers/dates/times according to a locale
-    - Add bit vector module
-    - Use PER for pack/unpack [?]
+    - Add scan/print money/numbers/dates/times according to a locale [?]
+    - Add bitstring module
     - Write Scalable Makefiles paper
-    - Write fast/slow lane paper
+    - Write fast/slow lane paper (requires access to a gigabit network)
+    - Add more examples to the manpages
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 URL: http://libslack.org/
-Date: 20011109
+Date: 20020916
 Author: raf <raf@raf.org>

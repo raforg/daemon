@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2001 raf <raf@raf.org>
+* Copyright (C) 1999-2002 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,20 +18,21 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20011109 raf <raf@raf.org>
+* 20020916 raf <raf@raf.org>
 */
 
 /*
 
 =head1 NAME
 
-I<vsscanf()> - I<sscanf()> with a I<va_list> parameter
+I<vsscanf(3)> - I<sscanf(3)> with a I<va_list> parameter
 
 =head1 SYNOPSIS
 
+    #include <slack/std.h>
     #include <slack/vsscanf.h>
 
-    int vsscanf(const char *str, const char *fmt, va_list args);
+    int vsscanf(const char *str, const char *format, va_list args);
 
 =head1 DESCRIPTION
 
@@ -40,16 +41,16 @@ as for I<vprintf(3)>.
 
 Note that this may not be identical in behaviour to the I<sscanf(3)> on your
 system because this was implemented from scratch for systems that lack
-I<vsscanf()>. So your I<sscanf(3)> and this I<vsscanf()> share no common
-code. Your I<sscanf(3)> may support extensions that I<vsscanf()> does not
-support. I<vsscanf()> complies with all of the relevant ISO C requirements
-for I<sscanf()> except:
+I<vsscanf(3)>. So your I<sscanf(3)> and this I<vsscanf(3)> share no common
+code. Your I<sscanf(3)> may support extensions that I<vsscanf(3)> does not
+support. I<vsscanf(3)> complies with all of the relevant ISO C requirements
+for I<sscanf(3)> except:
 
 =over 4
 
 =item *
 
-C<fmt> may not be a multibyte character string; and
+C<format> may not be a multibyte character string; and
 
 =item *
 
@@ -63,10 +64,10 @@ pointers as a hexadecimal number with or without a preceeded C<0x>.
 
 MT-Safe if and only if no thread calls I<setlocale(3)>. Since locales are
 inherently non-threadsafe as they are currently defined, this shouldn't be a
-problem. Just call C<setlocale(LC_ALL, "")> once after program initialisation
-and never again (at least not after creating any threads). If it is a problem,
-just change C<localeconv()->decimal_point[0]> in the source to C<'.'> and it
-will be MT-Safe at the expense of losing locale support.
+problem. Just call C<setlocale(LC_ALL, "")> once after program
+initialisation and never again (at least not after creating any threads). If
+it is a problem, just change C<localeconv()->decimal_point[0]> in the source
+to C<'.'> and it will be MT-Safe at the expense of losing locale support.
 
 =head1 NOTE
 
@@ -83,7 +84,7 @@ a pointer to C<float>, or by C<L> if it is a pointer to I<long double>."
 
 I have chosen to disregard the I<gcc(1)> warnings in favour of the standard.
 If you see the above warnings when compiling the unit tests for
-I<vsscanf()>, just ignore them.
+I<vsscanf(3)>, just ignore them.
 
 =head1 SEE ALSO
 
@@ -92,7 +93,7 @@ L<sscanf(3)|sscanf(3)>
 
 =head1 AUTHOR
 
-20011109 raf <raf@raf.org>
+20020916 raf <raf@raf.org>
 
 =cut
 
@@ -103,13 +104,13 @@ L<sscanf(3)|sscanf(3)>
 
 #include <locale.h>
 
-int vsscanf(const char *str, const char *fmt, va_list args)
+int vsscanf(const char *str, const char *format, va_list args)
 {
 	const char *f, *s;
 	const char point = localeconv()->decimal_point[0];
 	int cnv = 0;
 
-	for (s = str, f = fmt; *f; ++f)
+	for (s = str, f = format; *f; ++f)
 	{
 		if (*f == '%')
 		{
@@ -309,12 +310,12 @@ int vsscanf(const char *str, const char *fmt, va_list args)
 #include <math.h>
 #include <float.h>
 
-int test_sscanf(const char *str, const char *fmt, ...)
+int test_sscanf(const char *str, const char *format, ...)
 {
 	int rc;
 	va_list args;
-	va_start(args, fmt);
-	rc = vsscanf(str, fmt, args);
+	va_start(args, format);
+	rc = vsscanf(str, format, args);
 	va_end(args);
 	return rc;
 }
@@ -347,7 +348,7 @@ int main(int ac, char **av)
 		return EXIT_SUCCESS;
 	}
 
-	printf("Testing: vsscanf\n");
+	printf("Testing: %s\n", "vsscanf");
 
 	/* Test one of everything */
 
@@ -399,9 +400,9 @@ int main(int ac, char **av)
 
 	/* Test different numeric bases */
 
-#define TEST_NUM(i, var, tst, str, fmt) \
-	rc1 = sscanf(str, fmt, &s##var##1, &var##1, &l##var##1); \
-	rc2 = test_sscanf(str, fmt, &s##var##2, &var##2, &l##var##2); \
+#define TEST_NUM(i, var, tst, str, format) \
+	rc1 = sscanf(str, format, &s##var##1, &var##1, &l##var##1); \
+	rc2 = test_sscanf(str, format, &s##var##2, &var##2, &l##var##2); \
 	if (rc1 != rc2) \
 		++errors, printf("Test%d: failed (returned %d, not %d)\n", (i), rc2, rc1); \
 	if (s##var##1 != s##var##2) \
@@ -411,9 +412,9 @@ int main(int ac, char **av)
 	if (l##var##1 != l##var##2) \
 		++errors, printf("Test%d: failed (%%l%c scanned %ld, not %ld)\n", (i), tst, l##var##2, l##var##1)
 
-#define TEST_STR(i, len, str, fmt) \
-	rc1 = sscanf(str, fmt, b1, c1, s1); \
-	rc2 = test_sscanf(str, fmt, b2, c2, s2); \
+#define TEST_STR(i, len, str, format) \
+	rc1 = sscanf(str, format, b1, c1, s1); \
+	rc2 = test_sscanf(str, format, b2, c2, s2); \
 	if (rc1 != rc2) \
 		++errors, printf("Test%d: failed (returned %d, not %d)\n", (i), rc2, rc1); \
 	if (strcmp(b1, b2)) \
@@ -450,15 +451,15 @@ int main(int ac, char **av)
 
 	/* Test error reporting */
 
-#define TEST_ERR(i, str, fmt) \
-	rc1 = sscanf(str, fmt); \
-	rc2 = test_sscanf(str, fmt); \
+#define TEST_ERR(i, str, format) \
+	rc1 = sscanf(str, format); \
+	rc2 = test_sscanf(str, format); \
 	if (rc1 != rc2) \
 		++errors, printf("Test%d: failed (returned %d, not %d)\n", (i), rc2, rc1)
 
-#define TEST_ERR_ARG(i, str, fmt, var) \
-	rc1 = sscanf(str, fmt, &var##1); \
-	rc2 = test_sscanf(str, fmt, &var##1); \
+#define TEST_ERR_ARG(i, str, format, var) \
+	rc1 = sscanf(str, format, &var##1); \
+	rc2 = test_sscanf(str, format, &var##1); \
 	if (rc1 != rc2) \
 		++errors, printf("Test%d: failed (returned %d, not %d)\n", (i), rc2, rc1)
 

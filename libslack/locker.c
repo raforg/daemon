@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2001 raf <raf@raf.org>
+* Copyright (C) 1999-2002 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20011109 raf <raf@raf.org>
+* 20020916 raf <raf@raf.org>
 */
 
 /*
@@ -29,6 +29,7 @@ I<libslack(locker)> - abstract locking, rwlocks
 
 =head1 SYNOPSIS
 
+    #include <slack/std.h>
     #include <slack/locker.h>
 
     typedef struct Locker Locker;
@@ -163,13 +164,13 @@ struct Locker
 =item C<Locker *locker_create_mutex(pthread_mutex_t *mutex)>
 
 Creates a I<Locker> object that will operate on the mutex lock, C<mutex>.
-I<locker_tryrdlock()> and I<locker_trywrlock()> will call
-I<pthread_mutex_trylock()>. I<locker_rdlock()> and I<locker_wrlock()> will
-call I<pthread_mutex_lock()>. I<locker_unlock()> will call
-I<pthread_mutex_unlock()>. It is the caller's responsibility to initialise
+I<locker_tryrdlock(3)> and I<locker_trywrlock(3)> will call
+I<pthread_mutex_trylock(3)>. I<locker_rdlock(3)> and I<locker_wrlock(3)>
+will call I<pthread_mutex_lock(3)>. I<locker_unlock(3)> will call
+I<pthread_mutex_unlock(3)>. It is the caller's responsibility to initialise
 C<mutex> if necessary before use and to destroy C<mutex> if necessary after
-use. On success, returns the new I<Locker> object. On error, returns
-C<null> with C<errno> set appropriately.
+use. On success, returns the new I<Locker> object. On error, returns C<null>
+with C<errno> set appropriately.
 
 =cut
 
@@ -193,14 +194,14 @@ Locker *locker_create_mutex(pthread_mutex_t *mutex)
 =item C<Locker *locker_create_rwlock(pthread_rwlock_t *rwlock)>
 
 Creates a I<Locker> object that will operate on the readers/writer lock,
-C<rwlock>. I<locker_tryrdlock()> will call I<pthread_rwlock_tryrdlock()>.
-I<locker_rdlock()> will call I<pthread_rwlock_rdlock()>.
-I<locker_trywrlock()> will call I<pthread_rwlock_trywrlock()>.
-I<locker_wrlock()> will call I<pthread_rwlock_wrlock()>. I<locker_unlock()>
-will call I<pthread_rwlock_unlock()>. It is the caller's responsibility to
-initialise C<rwlock> if necessary before use and to destroy C<rwlock> if
-necessary after use. On success, returns the new I<Locker> object. On error,
-returns C<null> with C<errno> set appropriately.
+C<rwlock>. I<locker_tryrdlock(3)> will call I<pthread_rwlock_tryrdlock(3)>.
+I<locker_rdlock(3)> will call I<pthread_rwlock_rdlock(3)>.
+I<locker_trywrlock(3)> will call I<pthread_rwlock_trywrlock(3)>.
+I<locker_wrlock(3)> will call I<pthread_rwlock_wrlock(3)>.
+I<locker_unlock(3)> will call I<pthread_rwlock_unlock(3)>. It is the
+caller's responsibility to initialise C<rwlock> if necessary before use and
+to destroy C<rwlock> if necessary after use. On success, returns the new
+I<Locker> object. On error, returns C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -225,7 +226,7 @@ Locker *locker_create_rwlock(pthread_rwlock_t *rwlock)
 
 =item C<Locker *locker_create_debug_mutex(pthread_mutex_t *mutex)>
 
-Equivalent to I<locker_create_mutex()> except that debug messages are
+Equivalent to I<locker_create_mutex(3)> except that debug messages are
 printed to standard output before and after each locking function is called
 to help locate deadlocks. The debug messages look like:
 
@@ -284,7 +285,7 @@ Locker *locker_create_debug_mutex(pthread_mutex_t *mutex)
 
 =item C<Locker *locker_create_debug_rwlock(pthread_rwlock_t *rwlock)>
 
-Equivalent to I<locker_create_rwlock()> except that debug messages are
+Equivalent to I<locker_create_rwlock(3)> except that debug messages are
 printed to standard output before and after each locking function is called
 to help locate deadlocks. The debug messages look like:
 
@@ -343,9 +344,9 @@ Locker *locker_create_debug_rwlock(pthread_rwlock_t *rwlock)
 =item C<Locker *locker_create(void *lock, lockerf_t *tryrdlock, lockerf_t *rdlock, lockerf_t *trywrlock, lockerf_t *wrlock, lockerf_t *unlock)>
 
 Creates a I<Locker> object that will operate on the synchronisation
-variable, C<lock>. I<locker_tryrdlock()> will call C<tryrdlock>.
-I<locker_rdlock()> will call C<rdlock>. I<locker_trywrlock()> will call
-C<trywrlock>. I<locker_wrlock()> will call C<wrlock>. I<locker_unlock()>
+variable, C<lock>. I<locker_tryrdlock(3)> will call C<tryrdlock>.
+I<locker_rdlock(3)> will call C<rdlock>. I<locker_trywrlock(3)> will call
+C<trywrlock>. I<locker_wrlock(3)> will call C<wrlock>. I<locker_unlock(3)>
 will call C<unlock>. It is the caller's responsibility to initialise C<lock>
 if necessary before use and to destroy C<lock> if necessary after use. None
 of the arguments may be C<null>. On success, returns the new I<Locker>
@@ -422,9 +423,10 @@ void *locker_destroy(Locker **locker)
 =item C<int locker_tryrdlock(Locker *locker)>
 
 Tries to claim a read lock on the synchronisation variable managed by
-C<locker>. See I<pthread_mutex_trylock()> and I<pthread_rwlock_tryrdlock()>
-for details. On success, returns C<0>. On error, returns the error code from
-the underlying I<pthread> library function.
+C<locker>. See I<pthread_mutex_trylock(3)> and
+I<pthread_rwlock_tryrdlock(3)> for details. On success, returns C<0>. On
+error, returns the error code from the underlying I<pthread> library
+function.
 
 =cut
 
@@ -437,11 +439,10 @@ int (locker_tryrdlock)(Locker *locker)
 
 /*
 
-
 =item C<int locker_rdlock(Locker *locker)>
 
 Claims a read lock on the synchronisation variable managed by C<locker>. See
-I<pthread_mutex_lock()> and I<pthread_rwlock_rdlock()> for details. On
+I<pthread_mutex_lock(3)> and I<pthread_rwlock_rdlock(3)> for details. On
 success, returns C<0>. On error, returns the error code from the underlying
 I<pthread> library function.
 
@@ -456,13 +457,13 @@ int (locker_rdlock)(Locker *locker)
 
 /*
 
-
 =item C<int locker_trywrlock(Locker *locker)>
 
 Tries to claim a write lock on the synchronisation variable managed by
-C<locker>. See I<pthread_mutex_trylock()> and I<pthread_rwlock_trywrlock()>
-for details. On success, returns C<0>. On error, returns the error code from
-the underlying I<pthread> library function.
+C<locker>. See I<pthread_mutex_trylock(3)> and
+I<pthread_rwlock_trywrlock(3)> for details. On success, returns C<0>. On
+error, returns the error code from the underlying I<pthread> library
+function.
 
 =cut
 
@@ -475,11 +476,10 @@ int (locker_trywrlock)(Locker *locker)
 
 /*
 
-
 =item C<int locker_wrlock(Locker *locker)>
 
 Claims a write lock on the synchronisation variable managed by C<locker>.
-See I<pthread_mutex_lock()> and I<pthread_rwlock_wrlock()> for details. On
+See I<pthread_mutex_lock(3)> and I<pthread_rwlock_wrlock(3)> for details. On
 success, returns C<0>. On error, returns the error code from the underlying
 I<pthread> library function.
 
@@ -494,11 +494,10 @@ int (locker_wrlock)(Locker *locker)
 
 /*
 
-
 =item C<int locker_unlock(Locker *locker)>
 
 Unlocks the synchronisation variable managed by C<locker>. See
-I<pthread_mutex_unlock()> and I<pthread_rwlock_unlock()> for details. On
+I<pthread_mutex_unlock(3)> and I<pthread_rwlock_unlock(3)> for details. On
 success, returns C<0>. On error, returns the error code from the underlying
 I<pthread> library function.
 
@@ -573,7 +572,7 @@ int pthread_rwlock_init(pthread_rwlock_t *rwlock, const pthread_rwlockattr_t *at
 =item I<int pthread_rwlock_destroy(pthread_rwlock_t *rwlock)>
 
 Destroys the readers/writer lock, C<rwlock>, that was initialised by
-I<pthread_rwlock_init()>. It is the caller's responsibility to deallocate
+I<pthread_rwlock_init(3)>. It is the caller's responsibility to deallocate
 the memory pointed to by C<rwlock> if necessary. On success, returns C<0>.
 On error, returns an error code.
 
@@ -818,9 +817,9 @@ int pthread_rwlockattr_init(pthread_rwlockattr_t *attr)
 =item I<int pthread_rwlockattr_destroy(pthread_rwlockattr_t *attr)>
 
 Destroys the readers/writer lock attribute object, C<rwlock>, that was
-initialised by I<pthread_rwlockattr_init()>. Note that the memory pointed to
-by C<attr> may also need to be deallocated separately. On success, returns
-C<0>. On error, returns an error code.
+initialised by I<pthread_rwlockattr_init(3)>. Note that the memory pointed
+to by C<attr> may also need to be deallocated separately. On success,
+returns C<0>. On error, returns an error code.
 
 =cut
 
@@ -861,7 +860,7 @@ int pthread_rwlockattr_getpshared(const pthread_rwlockattr_t *attr, int *pshared
 
 Sets the C<pshared> attribute of C<attr> to C<pshared>. On success, returns
 C<0>. On error, returns an error code. Note that under Linux, C<pshared>
-must be C<PTHREAD_PROCESS_PRIVATE> or I<pthread_rwlock_init()> will
+must be C<PTHREAD_PROCESS_PRIVATE> or I<pthread_rwlock_init(3)> will
 subsequently fail.
 
 =cut
@@ -910,7 +909,7 @@ L<http://raf.org/papers/mt-disciplined.html|http://raf.org/papers/mt-disciplined
 
 =head1 AUTHOR
 
-20011109 raf <raf@raf.org>
+20020916 raf <raf@raf.org>
 
 =cut
 
@@ -1168,7 +1167,7 @@ int main(int ac, char **av)
 		return EXIT_SUCCESS;
 	}
 
-	printf("Testing: locker\n");
+	printf("Testing: %s\n", "locker");
 
 	/*
 	** Note: Debug lockers are not tested by default. Invoke the test with

@@ -20,9 +20,9 @@
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
 
-# Modify the macros.mk make include files to compile on solaris
+# Modify the macros.mk make include files to exercise optional code
 #
-# 20011109 raf <raf@raf.org>
+# 20020916 raf <raf@raf.org>
 
 perl -pi \
 	-e 's/^# (GETOPT := getopt)$/$1/;' \

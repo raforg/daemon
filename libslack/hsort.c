@@ -6,6 +6,7 @@ I<hsort(3)> - generic heap sort
 
 =head1 SYNOPSIS
 
+    #include <slack/std.h>
     #include <slack/hsort.h>
 
     typedef int hsort_cmp_t(const void *, const void *);
@@ -14,14 +15,14 @@ I<hsort(3)> - generic heap sort
 
 =head1 DESCRIPTION
 
-I<hsort()> is an implementation of the heap sort algorithm. It sorts a table
-of data in place. C<base> points to the element at the base of the table.
-C<n> is the number of elements in the table. C<size> is the size of the
-elements in bytes. C<cmp> is the comparison function, which is called with
-two arguments that point to the elements being compared. As the function
-must return an integer less than, equal to, or greater than zero, so must
-the first argument to be considered be less than, equal to, or greater than
-the second.
+I<hsort(3)> is an implementation of the heap sort algorithm. It sorts a
+table of data in place. C<base> points to the element at the base of the
+table. C<n> is the number of elements in the table. C<size> is the size of
+the elements in bytes. C<cmp> is the comparison function, which is called
+with two arguments that point to the elements being compared. As the
+function must return an integer less than, equal to, or greater than zero,
+so must the first argument to be considered be less than, equal to, or
+greater than the second.
 
 =head1 NOTES
 
@@ -36,7 +37,7 @@ unpredictable.
 MT-Safe
 
 Note that the array being sorted will still have to be write locked during
-I<hsort()> if it is accessed by other threads.
+I<hsort(3)> if it is accessed by other threads.
 
 =head1 SEE ALSO
 
@@ -270,7 +271,7 @@ int main(int ac, char **av)
 		return EXIT_SUCCESS;
 	}
 
-	printf("Testing: hsort\n");
+	printf("Testing: %s\n", "hsort");
 
 	string[0] = "abc";
 	string[1] = "def";

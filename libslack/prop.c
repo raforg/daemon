@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2001 raf <raf@raf.org>
+* Copyright (C) 1999-2002 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20011109 raf <raf@raf.org>
+* 20020916 raf <raf@raf.org>
 */
 
 /*
@@ -29,6 +29,7 @@ I<libslack(prop)> - program properties file module
 
 =head1 SYNOPSIS
 
+    #include <slack/std.h>
     #include <slack/prop.h>
 
     const char *prop_get(const char *name);
@@ -66,13 +67,13 @@ properties. The client can change properties at runtime and save the current
 properties back to disk (to the user-defined, program-specific properties
 file).
 
-Program names (as returned by I<prog_name()>) are converted into file name
+Program names (as returned by I<prog_name(3)>) are converted into file name
 suffixes by replacing every occurrence of the file path separator (C<'/'>)
 with a C<'-'>. Properties files consist of one property per line. Each
-property is specified by its name, followed by C<'='> followed by its
-value. The name must not have a C<'='> in it unless it is quoted with a
-C<'\'>. The properties files may also contain blank lines and comments
-(C<'#'> until the end of the line).
+property is specified by its name, followed by C<'='> followed by its value.
+The name must not have a C<'='> in it unless it is quoted with a C<'\'>. The
+properties files may also contain blank lines and comments (C<'#'> until the
+end of the line).
 
 =over 4
 
@@ -275,8 +276,8 @@ Parses a line from a properties file. C<path> if the path of the properties
 file. C<line> is the text to parse. C<lineno> is the current line number.
 The property parsed, if any, is added to C<map>. Emits error messages when
 syntax errors occur. That's probably a mistake. To suppress the error
-messages, call I<prog_err_none()> first and restore error message afterwards
-with something like I<prog_err_stderr()>.
+messages, call I<prog_err_none(3)> first and restore error message afterwards
+with something like I<prog_err_stderr(3)>.
 
 */
 
@@ -388,7 +389,7 @@ static Prop *prop_load(const char *path, Prop *defaults)
 
 C<int prop_init(void)>
 
-Initialises the I<prop> module. Loads properties from the following locations:
+Initialises the L<prop(3)|prop(3)> module. Loads properties from the following locations:
 
     /etc/properties/app             - system-wide, generic properties
     $HOME/.properties/app           - user-defined, generic properties
@@ -556,7 +557,7 @@ const char *prop_get_or(const char *name, const char *default_value)
 
 =item C<const char *prop_set(const char *name, const char *value)>
 
-Sets the property named C<name> to a copy of C<value>. If I<prop_save()> is
+Sets the property named C<name> to a copy of C<value>. If I<prop_save(3)> is
 called after a call to this function, the new property will be saved to disk
 and will be available the next time this program is executed. On success,
 returns the copy of C<value>. On error, returns C<null> with C<errno> set
@@ -642,7 +643,7 @@ int prop_get_int_or(const char *name, int default_value)
 
 =item C<int prop_set_int(const char *name, int value)>
 
-Sets the property named C<name> to C<value>. If I<prop_save()> is called
+Sets the property named C<name> to C<value>. If I<prop_save(3)> is called
 after a call to this function, the new property will be saved to disk and
 will be available the next time this program is executed. On success,
 returns C<value>. On error, returns C<0>.
@@ -699,7 +700,7 @@ double prop_get_double_or(const char *name, double default_value)
 
 =item C<double prop_set_double(const char *name, double value)>
 
-Sets the property named C<name> to C<value>. If I<prop_save()> is called
+Sets the property named C<name> to C<value>. If I<prop_save(3)> is called
 after a call to this function, the new property will be saved to disk and
 will be available the next time this program is executed. On success,
 returns C<value>. On error, returns C<0.0>.
@@ -807,7 +808,7 @@ int prop_get_bool_or(const char *name, int default_value)
 
 =item C<int prop_set_bool(const char *name, int value)>
 
-Sets the property named C<name> to C<value>. If I<prop_save()> is called
+Sets the property named C<name> to C<value>. If I<prop_save(3)> is called
 after a call to this function, the new property will be saved to disk and
 will be available the next time this program is executed. On success,
 returns C<value>. On error, returns C<0>.
@@ -826,10 +827,10 @@ int prop_set_bool(const char *name, int value)
 =item C<int prop_unset(const char *name)>
 
 Removes the property named C<name>. Property removal is only saved to disk
-when I<prop_save()> is called, if the property existed only in the
+when I<prop_save(3)> is called, if the property existed only in the
 user-defined, program-specific properties file, or was created by the
-program at runtime. On success, returns C<0>. On error, returns C<-1>
-with C<errno> set appropriately.
+program at runtime. On success, returns C<0>. On error, returns C<-1> with
+C<errno> set appropriately.
 
 =cut
 
@@ -1082,10 +1083,10 @@ int prop_clear(void)
 
 =item C<int prop_locker(Locker *locker)>
 
-Sets the locking strategy for the prop module to C<locker>. This is only
-needed in multi threaded programs. It must only be called once, from the
-main thread. On success, returns C<0>. On error, returns C<-1> with C<errno>
-set appropriately.
+Sets the locking strategy for the L<prop(3)|prop(3)> module to C<locker>.
+This is only needed in multi threaded programs. It must only be called once,
+from the main thread. On success, returns C<0>. On error, returns C<-1> with
+C<errno> set appropriately.
 
 =cut
 
@@ -1115,7 +1116,7 @@ On error, C<errno> is set either by an underlying function, or as follows:
 
 When there is no prog_name or home directory or when there is a parse error
 in a properties file or if the F<~/.properties> exists but is not a
-directory. I<prop_locker()> sets this when an attempt is made to change the
+directory. I<prop_locker(3)> sets this when an attempt is made to change the
 locker that has already been set.
 
 =back
@@ -1133,6 +1134,7 @@ MT-Disciplined
 
 =head1 EXAMPLE
 
+    #include <slack/std.h>
     #include <slack/prog.h>
     #include <slack/prop.h>
     #include <slack/err.h>
@@ -1162,8 +1164,8 @@ MT-Disciplined
 
 =head1 BUGS
 
-This only provides coarse grained persistence. If multiple instances
-of the same program are setting properties, the last to exit wins.
+This only provides coarse grained persistence. If multiple instances of the
+same program are setting properties, the last to exit wins.
 
 =head1 SEE ALSO
 
@@ -1172,7 +1174,7 @@ L<prog(3)|prog(3)>
 
 =head1 AUTHOR
 
-20011109 raf <raf@raf.org>
+20020916 raf <raf@raf.org>
 
 =cut
 
@@ -1293,7 +1295,7 @@ int main(int ac, char **av)
 		return EXIT_SUCCESS;
 	}
 
-	printf("Testing: prop\n");
+	printf("Testing: %s\n", "prop");
 	prog_init();
 
 	val = prop_set(key, value);

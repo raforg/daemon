@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2001 raf <raf@raf.org>
+* Copyright (C) 1999-2002 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20011109 raf <raf@raf.org>
+* 20020916 raf <raf@raf.org>
 */
 
 /* Define if defining _POSIX_SOURCE breaks things */
@@ -141,7 +141,7 @@
 /* Define if struct ifreq has ifr_mtu */
 #define HAVE_IFREQ_IFR_MTU 1
 
-/* Define if struct sockaddr has sa_len */
+/* Define if struct sockaddr_t has sa_len */
 /* #undef HAVE_SOCKADDR_SA_LEN */
 
 /* Define if we have if_indextoname() */
@@ -173,6 +173,9 @@
 
 /* Define if *printf() has non standard Solaris negative width behaviour */
 /* #undef HAVE_PRINTF_WITH_SOLARIS_NEGATIVE_WIDTH_BEHAVIOUR */
+
+/* Define if *printf() has non standard Solaris8 zero precision alternate octal behaviour */
+/* #undef HAVE_PRINTF_WITH_SOLARIS8_ZERO_PRECISION_ALT_OCTAL_BEHAVIOUR */
 
 /* Define if we have the UNIX domain wildcard (i.e. can bind to "") */
 #define HAVE_UNIX_DOMAIN_WILDCARD 1
@@ -221,4 +224,3 @@
 
 /* Define if we have ptsname() */
 #define HAVE_PTSNAME 1
-

@@ -19,38 +19,48 @@
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
 
-# 20011109 raf <raf@raf.org>
+# 20020916 raf <raf@raf.org>
 
 CC := gcc
 # CC := cc
 AR := ar
 RANLIB := ranlib
-PREFIX := /usr/local
+POD2MAN := pod2man
+POD2HTML := pod2html
+GZIP := gzip -f -9
+
+DESTDIR := 
+PREFIX := $(DESTDIR)/usr/local
 APP_INSDIR := $(PREFIX)/bin
 LIB_INSDIR := $(PREFIX)/lib
 MAN_INSDIR := $(PREFIX)/man
 HDR_INSDIR := $(PREFIX)/include
 DATA_INSDIR := $(PREFIX)/share
+CONF_INSDIR := /etc
 APP_MANSECT := 1
 LIB_MANSECT := 3
+FMT_MANSECT := 5
 APP_MANDIR := $(MAN_INSDIR)/man$(APP_MANSECT)
 LIB_MANDIR := $(MAN_INSDIR)/man$(LIB_MANSECT)
+FMT_MANDIR := $(MAN_INSDIR)/man$(FMT_MANSECT)
 APP_MANSECTNAME := User Commands
 LIB_MANSECTNAME := C Library Functions - libslack
+FMT_MANSECTNAME := File Formats
+MAN_GZIP := 1
 
-CCFLAGS += -O3
+#CCFLAGS += -O3
 CCFLAGS += -Wall -pedantic
 
 # CCFLAGS += -xO4
 
-CLEAN_FILES += tags core Makefile.bak .makefile.bak pod2html-*
+CLEAN_FILES += tags core Makefile.bak .makefile.bak pod2htm*
 
 DAEMON_SRCDIR := .
 DAEMON_INCDIRS := libslack
 DAEMON_LIBDIRS := libslack
 include $(DAEMON_SRCDIR)/macros.mk
 
-.PHONY: all ready test check man html install uninstall dist rpm deb pkg
+.PHONY: all ready test check man html install uninstall dist rpm deb sol obsd fbsd
 
 all: ready $(ALL_TARGETS)
 ready: $(READY_TARGETS)
@@ -62,8 +72,9 @@ uninstall: $(UNINSTALL_TARGETS)
 dist: $(DIST_TARGETS)
 rpm: $(RPM_TARGETS)
 deb: $(DEB_TARGETS)
-pkg: $(PKG_TARGETS)
+sol: $(SOL_TARGETS)
 obsd: $(OBSD_TARGETS)
+fbsd: $(FBSD_TARGETS)
 
 .PHONY: help help-macros depend clean clobber distclean
 
@@ -88,8 +99,9 @@ help::
 	echo " dist                 -- makes the distribution: ../$(DAEMON_DIST)"; \
 	echo " rpm                  -- makes source and binary rpm packages"; \
 	echo " deb                  -- makes binary debian package"; \
-	echo " pkg                  -- makes binary solaris package"; \
+	echo " sol                  -- makes binary solaris package"; \
 	echo " obsd                 -- makes binary openbsd package"; \
+	echo " fbsd                 -- makes binary freebsd package"; \
 	echo
 
 help-macros::
@@ -100,10 +112,13 @@ help-macros::
 	echo "MAN_INSDIR = $(MAN_INSDIR)"; \
 	echo "HDR_INSDIR = $(HDR_INSDIR)"; \
 	echo "DATA_INSDIR = $(DATA_INSDIR)"; \
+	echo "CONF_INSDIR = $(CONF_INSDIR)"; \
 	echo "APP_MANSECT = $(APP_MANSECT)"; \
 	echo "LIB_MANSECT = $(LIB_MANSECT)"; \
+	echo "FMT_MANSECT = $(FMT_MANSECT)"; \
 	echo "APP_MANDIR = $(APP_MANDIR)"; \
 	echo "LIB_MANDIR = $(LIB_MANDIR)"; \
+	echo "FMT_MANDIR = $(FMT_MANDIR)"; \
 	echo "TAG_FILES = $(TAG_FILES)"; \
 	echo "DEPEND_CFILES = $(DEPEND_CFILES)"; \
 	echo "DEPEND_HFILES = $(DEPEND_HFILES)"; \
@@ -117,10 +132,11 @@ help-macros::
 	echo "UNINSTALL_TARGETS = $(UNINSTALL_TARGETS)"; \
 	echo "CLEAN_FILES = $(CLEAN_FILES)"; \
 	echo "CLOBBER_FILES = $(CLOBBER_FILES)"; \
+	echo "DEBIAN_CLOBBER_FILES = $(DEBIAN_CLOBBER_FILES)"; \
 	echo "DIST_TARGETS = $(DIST_TARGETS)"; \
 	echo "RPM_TARGETS = $(RPM_TARGETS)"; \
 	echo "DEB_TARGETS = $(DEB_TARGETS)"; \
-	echo "PKG_TARGETS = $(PKG_TARGETS)"; \
+	echo "SOL_TARGETS = $(SOL_TARGETS)"; \
 	echo "BSD_TARGETS = $(BSD_TARGETS)"; \
 	echo
 

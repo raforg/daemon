@@ -4,7 +4,7 @@
 
 [ "${0%/*}" = "$0" ] && path="./" || path="${0%/*}/"
 
-${path}check-pod-prototypes.pl *.c
-${path}check-pod-header.pl *.c
-${path}check-pod-synopsis.pl *.c
+${path}check-pod-prototypes *.c
+${path}check-pod-header *.c
+${path}check-pod-synopsis *.c
 

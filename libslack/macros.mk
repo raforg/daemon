@@ -18,7 +18,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
-# 20011109 raf <raf@raf.org>
+# 20020916 raf <raf@raf.org>
 
 # Uncomment these to override the defines in daemon.h and prog.h
 #
@@ -86,7 +86,7 @@ SLACK_TEST_CCFLAGS += -Wno-long-long
 # SLACK_DEFINES += -DNO_DEBUG_LOCKERS=1
 
 SLACK_NAME := slack
-SLACK_VERSION := 0.5
+SLACK_VERSION := 0.5.1
 SLACK_URL := http://libslack.org/
 SLACK_ID := lib$(SLACK_NAME)-$(SLACK_VERSION)
 SLACK_DIST := $(SLACK_ID).tar.gz
@@ -115,6 +115,12 @@ SLACK_APP_PODNAMES := $(patsubst %.pod, %, $(SLACK_APP_PODS))
 SLACK_APP_MANFILES := $(patsubst %, $(SLACK_SRCDIR)/%.$(APP_MANSECT), $(SLACK_APP_PODNAMES))
 SLACK_APP_HTMLFILES := $(patsubst %, $(SLACK_SRCDIR)/%.$(APP_MANSECT).html, $(SLACK_APP_PODNAMES))
 
+ifeq ($(MAN_GZIP), 1)
+SLACK_LIB_MANFILES := $(patsubst %, %.gz, $(SLACK_LIB_MANFILES))
+SLACK_APP_MANFILES := $(patsubst %, %.gz, $(SLACK_APP_MANFILES))
+MAN_SUFFIX := .gz
+endif
+
 SLACK_TESTDIR := $(SLACK_SRCDIR)/test
 SLACK_TESTS := $(patsubst %, $(SLACK_TESTDIR)/%, $(SLACK_MODULES))
 
@@ -128,18 +134,25 @@ TAG_FILES += $(SLACK_HFILES) $(SLACK_CFILES)
 DEPEND_HFILES += $(SLACK_HFILES)
 DEPEND_CFILES += $(SLACK_CFILES)
 
+ifeq ($(SLACK_SRCDIR), .)
+SLACK_MAIN := 1
+endif
+
 ALL_TARGETS += slack
 READY_TARGETS += ready-slack
 TEST_TARGETS += test-slack
 MAN_TARGETS += man-slack
 HTML_TARGETS += html-slack
+ifeq ($(SLACK_MAIN), 1)
 INSTALL_TARGETS += install-slack
 UNINSTALL_TARGETS += uninstall-slack
+endif
 DIST_TARGETS += dist-slack
 RPM_TARGETS += rpm-slack
-DEB_TARGETS += deb-slack
-PKG_TARGETS += pkg-slack
+DEB_TARGETS +=
+SOL_TARGETS += sol-slack
 OBSD_TARGETS += obsd-slack
+FBSD_TARGETS += fbsd-slack
 
 CLEAN_FILES += $(SLACK_OFILES) $(SLACK_CONFIG) $(SLACK_LIB_MANFILES) $(SLACK_APP_MANFILES) $(SLACK_LIB_HTMLFILES) $(SLACK_APP_HTMLFILES) $(SLACK_SRCDIR)/pod2html-*
 CLOBBER_FILES += $(SLACK_TARGET) $(SLACK_SRCDIR)/tags $(SLACK_TESTDIR) $(SLACK_INCLINK)
@@ -150,8 +163,8 @@ SLACK_RPM_FILES += $(APP_INSDIR)/$(notdir $(SLACK_CONFIG))
 SLACK_RPM_FILES += $(patsubst %, $(HDR_INSDIR)/$(SLACK_NAME)/%, $(notdir $(SLACK_HFILES)))
 SLACK_RPM_DOCFILES += $(patsubst %, $(APP_MANDIR)/%, $(notdir $(SLACK_APP_MANFILES)))
 SLACK_RPM_DOCFILES += $(patsubst %, $(LIB_MANDIR)/%, $(notdir $(SLACK_LIB_MANFILES)))
-SLACK_RPM_DOCFILES += $(foreach MODULE, $(SLACK_MODULES), $(patsubst %, $(LIB_MANDIR)/%.$(LIB_MANSECT), $(shell perl -n -e 'print $$1, "\n" if /^=item C<(?:const )?\w+[\s*]*(\w+)\(.*\)>$$/ or /^=item C< \#define (\w+)\(.*\)>$$/' "$(SLACK_SRCDIR)/$(MODULE).c")))
-SLACK_PKG := RAFOslk
+SLACK_RPM_DOCFILES += $(foreach MODULE, $(SLACK_MODULES), $(patsubst %, $(LIB_MANDIR)/%.$(LIB_MANSECT)$(MAN_SUFFIX), $(shell perl -n -e 'print $$1, "\n" if /^=item C<(?:const )?\w+[\s*]*(\w+)\(.*\)>$$/ or /^=item C< \#define (\w+)\(.*\)>$$/' "$(SLACK_SRCDIR)/$(MODULE).c")))
+SLACK_SOL := RAFOslk
 
 SLACK_CPPFLAGS += $(SLACK_DEFINES) $(patsubst %, -I%, $(SLACK_INCDIRS))
 SLACK_CCFLAGS += $(CCFLAGS)

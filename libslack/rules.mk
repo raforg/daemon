@@ -18,7 +18,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
-# 20011109 raf <raf@raf.org>
+# 20020916 raf <raf@raf.org>
 
 ifneq ($(SLACK_TARGET),./$(SLACK_NAME))
 
@@ -32,10 +32,7 @@ $(SLACK_TARGET): $(SLACK_OFILES)
 	$(AR) cr $(SLACK_TARGET) $(SLACK_OFILES)
 	$(RANLIB) $(SLACK_TARGET)
 
-$(SLACK_SRCDIR)/%.o: $(SLACK_SRCDIR)/%.c
-	$(CC) $(SLACK_CFLAGS) -o $@ -c $<
-
-.PHONY: ready-slack test-slack
+.PHONY: ready-slack test-slack man-slack html-slack
 
 ready-slack:
 	@[ -h $(SLACK_INCLINK) ] || ln -s . $(SLACK_INCLINK)
@@ -43,38 +40,13 @@ ready-slack:
 test-slack: $(SLACK_TESTS)
 	@cd $(SLACK_TESTDIR); for test in $(patsubst $(SLACK_TESTDIR)/%, %, $(SLACK_TESTS)); do echo; ./$$test; done
 
-$(SLACK_TESTDIR)/%: $(SLACK_SRCDIR)/%.c $(SLACK_TARGET)
-	@[ -d $(SLACK_TESTDIR) ] || mkdir $(SLACK_TESTDIR)
-	$(CC) -DTEST $(SLACK_TEST_CFLAGS) -o $@ $< $(SLACK_TEST_LDFLAGS)
-
-.PHONY: man-slack html-slack
-
 man-slack: $(SLACK_LIB_MANFILES) $(SLACK_APP_MANFILES)
-
-$(SLACK_SRCDIR)/%.$(LIB_MANSECT): $(SLACK_SRCDIR)/%.c
-	pod2man --center='$(LIB_MANSECTNAME)' --section=$(LIB_MANSECT) $< > $@
-
-$(SLACK_SRCDIR)/%.$(LIB_MANSECT): $(SLACK_SRCDIR)/%.pod
-	pod2man --center='$(LIB_MANSECTNAME)' --section=$(LIB_MANSECT) $< > $@
-
-$(SLACK_SRCDIR)/%.$(APP_MANSECT): $(SLACK_SRCDIR)/%.pod
-	pod2man --center='$(APP_MANSECTNAME)' --section=$(APP_MANSECT) $< > $@
 
 html-slack: $(SLACK_LIB_HTMLFILES) $(SLACK_APP_HTMLFILES)
 
-$(SLACK_SRCDIR)/%.$(LIB_MANSECT).html: $(SLACK_SRCDIR)/%.c
-	pod2html --noindex < $< > $@ 2>/dev/null
-	@perl -p -i -e 's/\&amp;lt;/\&lt;/g;s/\&amp;gt;/\&gt;/g' $@
-
-$(SLACK_SRCDIR)/%.$(LIB_MANSECT).html: $(SLACK_SRCDIR)/%.pod
-	pod2html --noindex < $< > $@ 2>/dev/null
-
-$(SLACK_SRCDIR)/%.$(APP_MANSECT).html: $(SLACK_SRCDIR)/%.pod
-	pod2html --noindex < $< > $@ 2>/dev/null
-
 .PHONY: install-slack install-slack-bin install-slack-lib install-slack-config install-slack-h install-slack-man install-slack-html
 
-install-slack: install-slack-bin install-slack-h install-slack-man # XXX mangz
+install-slack: install-slack-bin install-slack-h install-slack-man
 
 install-slack-bin: install-slack-lib install-slack-config
 
@@ -122,7 +94,7 @@ install-slack-man: man-slack
 	do \
 		for func in `perl -n -e 'print $$1, "\n" if /^=item C<(?:const )?\w+[\s*]*(\w+)\(.*\)>$$/ or /^=item C< \#define (\w+)\(.*\)>$$/' "$(SLACK_SRCDIR)/$$module.c"`; \
 		do \
-			[ -f $(LIB_MANDIR)/$$func.$(LIB_MANSECT) ] || ln -s $$module.$(LIB_MANSECT) $(LIB_MANDIR)/$$func.$(LIB_MANSECT); \
+			[ -f $(LIB_MANDIR)/$$func.$(LIB_MANSECT)$(MAN_SUFFIX) ] || ln -s $$module.$(LIB_MANSECT)$(MAN_SUFFIX) $(LIB_MANDIR)/$$func.$(LIB_MANSECT)$(MAN_SUFFIX); \
 		done; \
 	done
 
@@ -144,17 +116,17 @@ uninstall-slack-config:
 
 uninstall-slack-h:
 	rm -f $(patsubst %, $(HDR_INSDIR)/$(SLACK_NAME)/%, $(notdir $(SLACK_HFILES)))
-	rmdir $(HDR_INSDIR)/$(SLACK_NAME)
+	rmdir $(HDR_INSDIR)/$(SLACK_NAME) || exit 0
 
 uninstall-slack-man:
 	@rm -f $(patsubst %, $(APP_MANDIR)/%, $(notdir $(SLACK_APP_MANFILES)))
 	@rm -f $(patsubst %, $(LIB_MANDIR)/%, $(notdir $(SLACK_LIB_MANFILES)))
-	@rm -f $(foreach MODULE, $(SLACK_MODULES), $(patsubst %, $(LIB_MANDIR)/%.$(LIB_MANSECT), $(shell perl -n -e 'print $$1, "\n" if /^=item C<(?:const )?\w+[\s*]*(\w+)\(.*\)>$$/ or /^=item C< \#define (\w+)\(.*\)>$$/' "$(SLACK_SRCDIR)/$(MODULE).c")))
+	@rm -f $(foreach MODULE, $(SLACK_MODULES), $(patsubst %, $(LIB_MANDIR)/%.$(LIB_MANSECT)$(MAN_SUFFIX), $(shell perl -n -e 'print $$1, "\n" if /^=item C<(?:const )?\w+[\s*]*(\w+)\(.*\)>$$/ or /^=item C< \#define (\w+)\(.*\)>$$/' "$(SLACK_SRCDIR)/$(MODULE).c")))
 
 uninstall-slack-html:
 	@rm -f $(patsubst %, $(SLACK_HTMLDIR)/%, $(notdir $(SLACK_APP_HTMLFILES) $(SLACK_LIB_HTMLFILES)))
 
-.PHONY: dist-slack dist-html-slack rpm-slack deb-slack pkg-slack obsd-slack
+.PHONY: dist-slack dist-html-slack rpm-slack deb-slack sol-slack obsd-slack fbsd-slack
 
 dist-slack: distclean
 	@set -e; \
@@ -183,12 +155,14 @@ dist-html-slack: html-slack
 	ls -l $$up/$(SLACK_HTML_DIST)
 
 REDHAT := /usr/src/redhat
+#RPMBUILD := rpm     # rpm 3.x
+RPMBUILD := rpmbuild # rpm 4.x
 
 rpm-slack: $(SLACK_SRCDIR)/libslack.spec
 	@set -e; \
 	up="`pwd`/.."; \
 	cp $$up/$(SLACK_DIST) $(REDHAT)/SOURCES; \
-	rpm --buildroot "/tmp/$(SLACK_NAME)" -ba $(SLACK_SRCDIR)/libslack.spec; \
+	$(RPMBUILD) --buildroot "/tmp/$(SLACK_NAME)" -ba $(SLACK_SRCDIR)/libslack.spec; \
 	rm -rf $(SLACK_SRCDIR)/libslack.spec "/tmp/$(SLACK_NAME)"; \
 	mv $(REDHAT)/SRPMS/$(SLACK_ID)-*.src.rpm $$up; \
 	mv $(REDHAT)/RPMS/*/$(SLACK_ID)-*.*.rpm $$up; \
@@ -265,9 +239,7 @@ $(SLACK_SRCDIR)/libslack.control:
 			print "Version: $(SLACK_VERSION)\n"; \
 			print "Maintainer: raf <raf\@raf.org>\n"; \
 			print "Section: utils\n"; \
-			print "Priority: extra\n"; \
-			print "Provides: libslack\n"; \
-			print "Conflicts: libslack\n"; \
+			print "Priority: optional\n"; \
 			print "Architecture: '"$$DEB_BUILD_ARCH"'\n"; \
 			print "Description: $$summary"; \
 			print $$description; \
@@ -275,7 +247,7 @@ $(SLACK_SRCDIR)/libslack.control:
 		} \
 	' < $(SLACK_SRCDIR)/README > $(SLACK_SRCDIR)/libslack.control
 
-pkg-slack: $(SLACK_SRCDIR)/libslack.pkginfo
+sol-slack: $(SLACK_SRCDIR)/libslack.pkginfo
 	@set -e; \
 	base="`pwd`"; \
 	up="$$base/.."; \
@@ -285,7 +257,7 @@ pkg-slack: $(SLACK_SRCDIR)/libslack.pkginfo
 	cd $(SLACK_SRCDIR)/solaris/build; \
 	tar xzf $$up/$(SLACK_DIST); \
 	cd $(SLACK_ID); \
-	conf/solaris-cc; \
+	conf/solaris8-cc; \
 	make PREFIX=../../install FINAL_PREFIX="$(PREFIX)" all install-slack; \
 	cd "$$base"; \
 	mv $(SLACK_SRCDIR)/libslack.pkginfo $(SLACK_SRCDIR)/solaris/info/pkginfo; \
@@ -293,12 +265,12 @@ pkg-slack: $(SLACK_SRCDIR)/libslack.pkginfo
 	pkgproto . > ../info/prototype; \
 	echo "i pkginfo" >> ../info/prototype; \
 	cd ../info; \
-	pkgmk -o -b ../install -r ../install $(SLACK_PKG); \
+	pkgmk -o -b ../install -r ../install $(SLACK_SOL); \
 	cd "$$base"; \
 	rm -rf $(SLACK_SRCDIR)/solaris; \
 	arch="`uname -m`"; \
-	pkgtrans /var/spool/pkg $(SLACK_ID).$$arch.pkg $(SLACK_PKG); \
-	rm -rf /var/spool/pkg/$(SLACK_PKG); \
+	pkgtrans /var/spool/pkg $(SLACK_ID).$$arch.pkg $(SLACK_SOL); \
+	rm -rf /var/spool/pkg/$(SLACK_SOL); \
 	mv /var/spool/pkg/$(SLACK_ID).$$arch.pkg $$up; \
 	gzip $$up/$(SLACK_ID).$$arch.pkg
 
@@ -310,7 +282,7 @@ $(SLACK_SRCDIR)/libslack.pkginfo:
 		chop($$description = $$_) if $$section eq "README" && /^\w/; \
 		if ($$section ne "README") \
 		{ \
-			print "PKG=\"$(SLACK_PKG)\"\n"; \
+			print "PKG=\"$(SLACK_SOL)\"\n"; \
 			print "NAME=\"$$description\"\n"; \
 			print "VERSION=\"$(SLACK_VERSION)\"\n"; \
 			print "CATEGORY=\"application\"\n"; \
@@ -367,6 +339,54 @@ $(SLACK_SRCDIR)/obsd-slack-description:
 		} \
 	' < $(SLACK_SRCDIR)/README > $(SLACK_SRCDIR)/obsd-slack-description
 
+fbsd-slack: $(SLACK_SRCDIR)/fbsd-slack-oneline $(SLACK_SRCDIR)/fbsd-slack-description
+	@set -e; \
+	base="`pwd`"; \
+	up="$$base/.."; \
+	mkdir -p "$$base/fbsd-$(SLACK_NAME)/build"; \
+	mkdir -p "$$base/fbsd-$(SLACK_NAME)/install"; \
+	cd "$$base/fbsd-$(SLACK_NAME)/build"; \
+	tar xzf "$$up/$(SLACK_DIST)"; \
+	cd ./$(SLACK_ID); \
+	conf/freebsd; \
+	make PREFIX=../../install FINAL_PREFIX="$(PREFIX)" all install-slack; \
+	cd "$$base"; \
+	echo "@name $(SLACK_ID)" > $(SLACK_SRCDIR)/fbsd-slack-packinglist; \
+	echo "@cwd $(PREFIX)" >> $(SLACK_SRCDIR)/fbsd-slack-packinglist; \
+	echo "@srcdir $$base/fbsd-$(SLACK_NAME)/install" >> $(SLACK_SRCDIR)/fbsd-slack-packinglist; \
+	for file in $(patsubst $(PREFIX)/%, %, $(sort $(SLACK_RPM_FILES) $(SLACK_RPM_DOCFILES))); do echo $$file >> $(SLACK_SRCDIR)/fbsd-slack-packinglist; done; \
+	echo "@dirrm include/slack" >> $(SLACK_SRCDIR)/fbsd-slack-packinglist; \
+	pkg_create -f $(SLACK_SRCDIR)/fbsd-slack-packinglist -c $(SLACK_SRCDIR)/fbsd-slack-oneline -d $(SLACK_SRCDIR)/fbsd-slack-description -v $(SLACK_NAME); \
+	arch="`uname -m`"; \
+	mv $(SLACK_NAME).tgz "$$up/$(SLACK_ID)-fbsd-$$arch.tar.gz"; \
+	rm -rf "$$base/fbsd-$(SLACK_NAME)" $(SLACK_SRCDIR)/fbsd-slack-packinglist $(SLACK_SRCDIR)/fbsd-slack-oneline $(SLACK_SRCDIR)/fbsd-slack-description
+
+$(SLACK_SRCDIR)/fbsd-slack-oneline:
+	@perl -ne ' \
+		next if /^~+$$/; \
+		chop($$section = $$_), next if /^[A-Z]+$$/; \
+		chop($$description = $$_) if $$section eq "README" && /^\w/; \
+		if ($$section ne "README") \
+		{ \
+			my ($$name, $$desc) = $$description =~ /^(\w+) - (.*)$$/; \
+			$$desc =~ s/general //; \
+			print "$$desc\n"; \
+			exit; \
+		} \
+	' < $(SLACK_SRCDIR)/README > $(SLACK_SRCDIR)/fbsd-slack-oneline
+
+$(SLACK_SRCDIR)/fbsd-slack-description:
+	@perl -ne ' \
+		next if /^~+$$/; \
+		chop($$section = $$_), next if /^[A-Z]+$$/; \
+		$$description .= $$_ if $$section eq "DESCRIPTION"; \
+		if ($$section ne "README" && $$section ne "DESCRIPTION") \
+		{ \
+			print $$description; \
+			exit; \
+		} \
+	' < $(SLACK_SRCDIR)/README > $(SLACK_SRCDIR)/fbsd-slack-description
+
 # Present make targets separately in help if we are not alone
 
 ifneq ($(SLACK_SRCDIR), .)
@@ -398,8 +418,9 @@ help::
 	echo " dist-html-slack       -- makes a tarball of libslack's html manpages"; \
 	echo " rpm-slack             -- makes binary and source rpm packages for libslack"; \
 	echo " deb-slack             -- makes a binary deb package for libslack"; \
-	echo " pkg-slack             -- makes a binary solaris pkg for libslack"; \
+	echo " sol-slack             -- makes a binary solaris pkg for libslack"; \
 	echo " obsd-slack            -- makes a binary openbsd pkg for libslack"; \
+	echo " fbsd-slack            -- makes a binary freebsd pkg for libslack"; \
 	echo
 endif
 
@@ -448,4 +469,37 @@ help-macros::
 
 distclean::
 	@rm -f $(SLACK_INCLINK)
+
+$(SLACK_SRCDIR)/%.o: $(SLACK_SRCDIR)/%.c
+	$(CC) $(SLACK_CFLAGS) -o $@ -c $<
+
+$(SLACK_TESTDIR)/%: $(SLACK_SRCDIR)/%.c $(SLACK_TARGET)
+	@[ -d $(SLACK_TESTDIR) ] || mkdir $(SLACK_TESTDIR)
+	$(CC) -DTEST $(SLACK_TEST_CFLAGS) -o $@ $< $(SLACK_TEST_LDFLAGS)
+
+ifneq ($(findstring quotes,$(shell $(POD2MAN) --help 2>&1)),)
+NOQUOTES := --quotes=none
+endif
+
+$(SLACK_SRCDIR)/%.$(LIB_MANSECT): $(SLACK_SRCDIR)/%.c
+	$(POD2MAN) --center='$(LIB_MANSECTNAME)' --section=$(LIB_MANSECT) $(NOQUOTES) $< > $@
+
+$(SLACK_SRCDIR)/%.$(LIB_MANSECT): $(SLACK_SRCDIR)/%.pod
+	$(POD2MAN) --center='$(LIB_MANSECTNAME)' --section=$(LIB_MANSECT) $(NOQUOTES) $< > $@
+
+$(SLACK_SRCDIR)/%.$(APP_MANSECT): $(SLACK_SRCDIR)/%.pod
+	$(POD2MAN) --center='$(APP_MANSECTNAME)' --section=$(APP_MANSECT) $(NOQUOTES) $< > $@
+
+$(SLACK_SRCDIR)/%.gz: $(SLACK_SRCDIR)/%
+	$(GZIP) $<
+
+$(SLACK_SRCDIR)/%.$(LIB_MANSECT).html: $(SLACK_SRCDIR)/%.c
+	$(POD2HTML) --noindex < $< > $@ 2>/dev/null
+	@perl -p -i -e 's/\&amp;lt;/\&lt;/g;s/\&amp;gt;/\&gt;/g' $@
+
+$(SLACK_SRCDIR)/%.$(LIB_MANSECT).html: $(SLACK_SRCDIR)/%.pod
+	$(POD2HTML) --noindex < $< > $@ 2>/dev/null
+
+$(SLACK_SRCDIR)/%.$(APP_MANSECT).html: $(SLACK_SRCDIR)/%.pod
+	$(POD2HTML) --noindex < $< > $@ 2>/dev/null
 
