@@ -1,0 +1,224 @@
+#
+# libslack - http://libslack.org/
+#
+# Copyright (C) 1999-2001 raf <raf@raf.org>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+# or visit http://www.gnu.org/copyleft/gpl.html
+#
+# 20010215 raf <raf@raf.org>
+
+=head1 NAME
+
+I<libslack> - A UNIX/C library of general utilities for programmers with slack
+
+=head1 SYNOPSIS
+
+    gcc -o app app.c `libslack-config --cflags --libs`
+
+    #include <slack/lib.h>
+
+    #include <slack/daemon.h>
+    #include <slack/err.h>
+    #include <slack/fio.h>
+    #include <slack/getopt.h>
+    #include <slack/hsort.h>
+    #include <slack/lib.h>
+    #include <slack/lim.h>
+    #include <slack/list.h>
+    #include <slack/map.h>
+    #include <slack/mem.h>
+    #include <slack/msg.h>
+    #include <slack/net.h>
+    #include <slack/prog.h>
+    #include <slack/prop.h>
+    #include <slack/sig.h>
+    #include <slack/snprintf.h>
+    #include <slack/socks.h>
+    #include <slack/std.h>
+    #include <slack/str.h>
+    #include <slack/thread.h>
+    #include <slack/vsscanf.h>
+
+=head1 DESCRIPTION
+
+Libslack is a library of general utilities designed to make UNIX/C programming
+a bit easier on the eye. It is a seemingly random collection of modules and
+functions that I find commonly useful.
+
+It's a small library with lots of functionality, accurately documented and
+thoroughly tested. Good library naming conventions are not rigorously observed
+on the principle that common operations should always be easy to write and code
+should always be easy to read.
+
+=head1 FEATURES
+
+=over 4
+
+=item Program Framework
+
+The "framework" parts of I<libslack> are bound to be the most objectionable.
+Nobody likes frameworks. Don't worry, there isn't much to it. If you don't
+like it, pretend it's not there. 
+
+I<Libslack> provides the ability for programs to identify themselves,
+perform command line option processing in a single line of code and produce
+"standard" GNU style C<--help>, C<--version> and usage messages. Debug and
+verbose messaging is also provided and is enabled by the use of "standard"
+C<--debug> and C<--verbose> command line options. 
+
+Messages (including error, debug and verbose messages) are provided with
+clean call syntax and flexible semantics. Messages can be directed to log
+files, file descriptors, syslog or multiplexed to any of the above (and to
+anywhere else (e.g. dialog boxes) if you implement your own message
+handlers) without complicating the call syntax. 
+
+ANSI C imposes extreme restrictions on signal handlers. POSIX imposes less
+extreme but still annoying restrictions. I<Libslack> contains functions that
+provide a level of abstraction between the signal handlers that you write
+and the real (ANSI C compliant) signal handlers. This allows you to write
+unrestricted signal handlers. 
+
+Coarse grained persistence of simple configuration information is provided
+by the use of Java style properties files in "well-known" locations.
+
+=item Daemon Services
+
+I<Libslack> provides functions that make writing daemons trivial. It
+includes functions to become a daemon and to optionally create a locked pid
+file to ensure that only a single instance of a named daemon is ever active
+at the same time. There are also functions to streamline the parsing of
+simple configuration files (like those commonly found in the C</etc>
+directory). There are also functions that help you write more secure
+daemons.
+
+=item Network Services
+
+I<Libslack> provides functions to simplify the implementation of TCP/IP
+network servers and clients and the (text or binary) application protocols
+that they use. Network servers and clients (IPv4 or IPv6) can be setup in a
+single line of code. Text protocols are implemented by sequences of expect
+and send functions. Binary protocol packets can be packed and unpacked
+(using functions lifted from I<Perl>). There's also a function to send mail.
+
+=item Data Types
+
+I<Libslack> provides a generic growable array data type called I<List>, a
+generic growable hash table data type called I<Map> and a decent I<String>
+data type that comes with heaps of functions (many lifted from I<Perl>).
+
+=item Miscellaneous
+
+I<Libslack> contains convenience/shorthand functions for random things such
+as reading a line with any line ending, fifo and file control, retrieving
+POSIX.1 limits, parsing syslog facility/priority pairs, dynamic allocation
+of multi-dimensional arrays, memory pools, secure memory, secure memory
+pools, There's also a heap sort function. And there are also implementations
+of GNU getopt_long(), snprintf() and vsscanf() for systems that don't have
+them.
+
+=back
+
+=head1 MODULES
+
+Libslack contains the following modules:
+
+    daemon   - becoming a daemon
+    err      - message/error/debug/verbosity messaging
+    fio      - fifo and file control and some I/O
+    getopt   - GNU getopt_long() for systems that don't have it
+    hsort    - heap sort (by Stephen Russell)
+    lim      - POSIX.1 limits convenience functions
+    list     - list data type
+    map      - map (hash table) data type
+    mem      - memory helper functions
+    msg      - message handling and syslog helper functions
+    net      - network functions (clients/servers, expect/send, pack/unpack, mail)
+    prog     - program framework and flexible command linr option handling
+    prop     - program properties files
+    sig      - ANSI C compliant signal handling
+    snprintf - safe sprintf() for systems that don't have it (by Theo de Raadt)
+    str      - string data type (tr, regexpr, regsub, fmt, trim, lc, uc, ...)
+    thread   - abstract locking, pthread shortcuts, rwlocks, barriers
+    vsscanf  - sscanf() with va_list argument for systems that don't have it
+
+Each module, as well as each function, has its own section 3 manpage.
+
+=head1 MAILING LISTS
+
+The following mailing lists exist for libslack related discussion:
+
+=over 4
+
+ slack-announce.libslack.org - Announcements
+ slack-users@libslack.org    - User forum
+ slack-dev@libslack.org      - Development forum
+
+=back
+
+To subscribe to any of these mailing lists, send a mail message to
+I<listname>C<-request@libslack.org> with C<subscribe> as the message body.
+e.g.
+
+ $ mail slack-announce-request@libslack.org
+ subscribe
+ .
+ $ mail slack-users-request@libslack.org
+ subscribe
+ .
+ $ mail slack-dev-request@libslack.org
+ subscribe
+ .
+
+Or you can send a mail message to C<majordomo@libslack.org> with
+C<subscribe> I<listname> in the message body. This way, you can
+subscribe to multiple lists at the same time.
+e.g.
+
+ $ mail majordomo@libslack.org
+ subscribe slack-announce
+ subscribe slack-users
+ subscribe slack-dev
+ .
+
+A digest version of each mailing list is also available. Subscribe to
+digests as above but append C<-digest> to the listname.
+
+=head1 SEE ALSO
+
+L<http://libslack.org/|http://libslack.org/>,
+L<daemon(3)|daemon(3)>,
+L<err(3)|err(3)>,
+L<fio(3)|fio(3)>,
+L<getopt(3)|getopt(3)>,
+L<hsort(3)|hsort(3)>,
+L<lim(3)|lim(3)>,
+L<list(3)|list(3)>,
+L<map(3)|map(3)>,
+L<mem(3)|mem(3)>,
+L<msg(3)|msg(3)>,
+L<net(3)|net(3)>,
+L<prog(3)|prog(3)>,
+L<prop(3)|prop(3)>,
+L<sig(3)|sig(3)>,
+L<snprintf(3)|snprintf(3)>,
+L<str(3)|str(3)>,
+L<thread(3)|thread(3)>,
+L<vsscanf(3)|vsscanf(3)>
+
+=head1 AUTHOR
+
+20010215 raf <raf@raf.org>
+

@@ -1,7 +1,7 @@
 /*
 * daemon - http://libslack.org/daemon/
 *
-* Copyright (C) 1999, 2000 raf <raf@raf.org>
+* Copyright (C) 1999-2001 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20000902 raf <raf@raf.org>
+* 20010215 raf <raf@raf.org>
 */
 
 /*
@@ -29,21 +29,21 @@ I<daemon> - turns other processes into daemons
 
 =head1 SYNOPSIS
 
-    daemon [options] cmd arg...
-    options:
+ daemon [options] cmd arg...
+ options:
 
-      -h, --help                     - Print a help message then exit
-      -V, --version                  - Print a version message then exit
-      -v, --verbose=level            - Set the verbosity level
-      -d, --debug=level              - Set the debug level
+   -h, --help                     - Print a help message then exit
+   -V, --version                  - Print a version message then exit
+   -v, --verbose[=level]          - Set the verbosity level
+   -d, --debug[=level]            - Set the debug level
 
-      -n, --name=name                - Name the client exclusively
-      -u, --user=user[.group]        - Run the client as user[.group]
-      -r, --respawn                  - Respawn the client
-      -c, --core                     - Allow core file generation
-      -s, --syslog=facility.priority - Send client's output to syslog
-      -l, --log=facility.priority    - Send daemon's output to syslog
-      -C, --config=path              - Specify the configuration file
+   -n, --name=name                - Name the client exclusively
+   -u, --user=user[.group]        - Run the client as user[.group]
+   -r, --respawn                  - Respawn the client
+   -c, --core                     - Allow core file generation
+   -s, --syslog=facility.priority - Send client's output to syslog
+   -l, --log=facility.priority    - Send daemon's output to syslog
+   -C, --config=path              - Specify the configuration file
 
 =head1 DESCRIPTION
 
@@ -108,16 +108,16 @@ invoked by I<inetd(8)>.
 If the C<--name> option is supplied, create and lock a file containing the
 process id of the I<daemon> process. The presence of this locked file
 prevents two instances of a daemon with the same name from running at the
-same time.
+same time. The default location of the pidfile is C</var/run> on Linux and
+C</etc> on Solaris for I<root> or I</tmp> for ordinary users.
 
 =back
 
-If the C<--user> option is supplied, I<daemon> changes the user id (and
-possibly the group id). Only root can use this option.
-
 I<Daemon> then spawns the client command specified on its command line and
-waits for it to terminate. If the C<--syslog> option is supplied, the client's
-standard output and error are captured by I<daemon> and sent to the I<syslog>
+waits for it to terminate. If the C<--user> option is supplied, I<daemon>
+changes the user id and group id of the client process. Only root can use
+this option. If the C<--syslog> option is supplied, the client's standard
+output and error are captured by I<daemon> and sent to the I<syslog>
 destination specified in the C<--syslog> option.
 
 When the client terminates, I<daemon> respawns it if the C<--respawn> option
@@ -143,23 +143,25 @@ Display a help message and exit.
 
 Display a version message and exit.
 
-=item C<-v=>I<level>, C<--verbose=>I<level>
+=item C<-v>I<[level]>, C<--verbose>I<[=level]>
 
-Set the message verbosity level to I<level>. I<daemon> does not have any
-verbose messages so this has no effect.
+Set the message verbosity level to I<level> (or 1 if I<level> is not
+supplied). I<daemon> does not have any verbose messages so this has no
+effect.
 
-=item C<-d=>I<level>, C<--debug=>I<level>
+=item C<-d>I<[level]>, C<--debug>I<[=level]>
 
-Set the debug message level to I<level>. Set to level 8 for a trace of all
-functions called. Set to level 9 for more detail. Debug messages are sent
-to the I<syslog(3)> facility, C<daemon.debug>.
+Set the debug message level to I<level> (or 1 if I<level> is not supplied).
+Set to level 1 for a trace of all functions called. Set to level 2 for more
+detail. Debug messages are sent to the I<syslog(3)> facility,
+C<daemon.debug>.
 
 =item C<-n=>I<name>, C<--name=>I<name>
 
 Create and lock a pid file (C</var/run/>I<name>C<.pid>), ensuring that only
 one daemon with the given I<name> is active at the same time.
 
-=item C<-u=>I<user.[group]>, C<--user=>I<user[.group]>
+=item C<-u=>I<user[.group]>, C<--user=>I<user[.group]>
 
 Run the client as a different user (and group). This only works for root.
 
@@ -227,42 +229,76 @@ and a different one for its standard error.
 You can't use spaces in client names in the configuration file.
 
 If you specify (in the configuration file) that all clients allow core file
-generation, there is no way to countermand that for any client. So don't do
-that. The same applies to respawning but that shouldn't be problem.
+generation, there is no way to countermand that for any client (without
+using an alternative configuration file). So don't do that. The same applies
+to respawning but that shouldn't be problem.
 
 It is possible for the client process to obtain a controlling terminal under
 I<BSD> (and even under I<SVR4> if C<SVR4> was not defined or
 C<NO_EXTRA_SVR4_FORK> was defined when I<libslack> is compiled). If anything
 calls I<open(2)> on a terminal device without the C<O_NOCTTY> flag, the
-process doing so will obtain a controlling terminal.
+process doing so will obtain a controlling terminal and then be susceptible
+to termination by a C<SIGHUP>.
 
-It's very likely that only I<root> can name daemon's clients since the pid
-file is created in a directory that is usually writable only by I<root>. If
-this is a problem, override the C<PID_DIR> macro to specify a directory that
-is writable by everyone and then recompile I<libslack> and relink I<daemon>.
-Do not make I<daemon> setuid I<root> or setgid I<root>. It is unnecessary.
-To limit the danger (in case you do), one of the first things that I<daemon>
-does is revert to the user's real uid and real gid (before the C<--name> or
-C<--user> options are handled and before the client process is started).
+=head1 MAILING LISTS
+
+The following mailing lists exist for daemon related discussion:
+
+=over 4
+
+ daemon-announce@libslack.org - Announcements
+ daemon-users@libslack.org    - User forum
+ daemon-dev@libslack.org      - Development forum
+
+=back
+
+To subscribe to any of these mailing lists, send a mail message to
+I<listname>C<-request@libslack.org> with C<subscribe> as the message body.
+e.g.
+
+ $ echo subscribe | mail daemon-announce-request@libslack.org
+ $ echo subscribe | mail daemon-users-request@libslack.org
+ $ echo subscribe | mail daemon-dev-request@libslack.org
+
+Or you can send a mail message to C<majordomo@libslack.org> with
+C<subscribe> I<listname> in the message body. This way, you can
+subscribe to multiple lists at the same time.
+e.g.
+
+ $ mail majordomo@libslack.org
+ subscribe daemon-announce
+ subscribe daemon-users
+ subscribe daemon-dev
+ .
+
+A digest version of each mailing list is also available. Subscribe to
+digests as above but append C<-digest> to the listname.
 
 =head1 SEE ALSO
 
+L<libslack(3)|libslack(3)>,
 L<daemon(3)|daemon(3)>,
 L<init(8)|init(8)>,
 L<inetd(8)|inetd(8)>
 
 =head1 AUTHOR
 
-20000902 raf <raf@raf.org>
+20010215 raf <raf@raf.org>
 
 =cut
 
 */
 
-#include "libslack/std.h"
+#ifndef _BSD_SOURCE
+#define _BSD_SOURCE /* For setgroups(2) on Linux */
+#endif
 
+#include <slack/std.h>
+
+#include <string.h>
 #include <signal.h>
 #include <time.h>
+
 #include <pwd.h>
 #include <grp.h>
 #include <syslog.h>
@@ -274,14 +310,11 @@ L<inetd(8)|inetd(8)>
 #include <slack/sig.h>
 #include <slack/err.h>
 #include <slack/mem.h>
-#include <slack/opt.h>
-#include <slack/log.h>
+#include <slack/msg.h>
 #include <slack/list.h>
-#include <slack/conf.h>
+#include <slack/str.h>
 
-/*
-** Configuration file entries.
-*/
+/* Configuration file entries */
 
 typedef struct Config Config;
 struct Config
@@ -298,9 +331,7 @@ struct Config
 #define CONFIG_PATH "/etc/daemon.conf"
 #endif
 
-/*
-** Global variables.
-*/
+/* Global variables */
 
 static struct
 {
@@ -323,9 +354,9 @@ static struct
 g =
 {
 	0,                      /* ac */
-	NULL,                   /* av */
-	NULL,                   /* cmd */
-	NULL,                   /* name */
+	null,                   /* av */
+	null,                   /* cmd */
+	null,                   /* name */
 	0,                      /* uid */
 	0,                      /* gid */
 	0,                      /* respawn */
@@ -351,17 +382,16 @@ client process. Calls I<daemon_close()> to unlink the locked pid file
 
 static void term(int signo)
 {
-	debug((8, "term(signo = %d)", signo));
+	debug((1, "term(signo = %d)", signo))
 
-	if (g.pid != 0 && g.pid != -1)
+	if (g.pid != 0 && g.pid != -1 && g.pid != getpid())
 	{
-		debug((9, "kill(term) process %d", g.pid));
+		debug((2, "kill(term) process %d", g.pid))
 
 		if (kill(g.pid, SIGTERM) == -1)
 			errorsys("failed to kill the client process (%d)", g.pid);
 	}
 
-	daemon_close();
 	exit(0);
 }
 
@@ -385,8 +415,8 @@ static int examine_child(pid_t pid)
 	int status;
 	pid_t wpid;
 
-	debug((8, "examine_child(pid = %d)", pid));
-	debug((9, "waitpid(pid = %d)", g.pid));
+	debug((1, "examine_child(pid = %d)", pid))
+	debug((2, "waitpid(pid = %d)", g.pid))
 
 	if ((wpid = waitpid(g.pid, &status, 0)) == -1 && errno != EINTR)
 	{
@@ -396,34 +426,32 @@ static int examine_child(pid_t pid)
 
 	if (wpid == -1 && errno == EINTR)
 	{
-		debug((9, "waitpid(%d) interrupted by a signal. raise chld and handle signals again", g.pid));
+		debug((2, "waitpid(%d) interrupted by a signal. raise chld and handle signals again", g.pid))
 		signal_raise(SIGCHLD);
 		return ACTION_SIGNALS;
 	}
 
-	debug((9, "pid %d received sigchld for pid %d", getpid(), wpid));
+	debug((2, "pid %d received sigchld for pid %d", getpid(), wpid))
 
 	if (WIFSIGNALED(status))
 	{
-		debug((9, "child killed by signal %d, exiting", WTERMSIG(status)));
-		daemon_close();
+		debug((2, "child killed by signal %d, exiting", WTERMSIG(status)))
 		exit(0);
 	}
 	else if (WIFEXITED(status)) /* must be */
-		debug((9, "child exited with status %d", WEXITSTATUS(status)));
+		debug((2, "child exited with status %d", WEXITSTATUS(status)))
 	else if (WIFSTOPPED(status)) /* can't be */
-		debug((9, "child stopped with signal %d", WSTOPSIG(status)));
+		debug((2, "child stopped with signal %d", WSTOPSIG(status)))
 	else /* can't be */
-		debug((9, "child died under myterious circumstances"));
+		debug((2, "child died under myterious circumstances"))
 
 	if (g.respawn)
 	{
-		debug((9, "about to respawn"));
+		debug((2, "about to respawn"))
 		return ACTION_RESPAWN;
 	}
 
-	debug((9, "child terminated, exiting"));
-	daemon_close();
+	debug((2, "child terminated, exiting"))
 	exit(0);
 }
 
@@ -441,7 +469,7 @@ If C<ACTION_RESPAWN> is returned, spawn the client again.
 
 static void chld(int signo)
 {
-	debug((8, "chld(signo = %d)", signo));
+	debug((1, "chld(signo = %d)", signo))
 
 	switch (examine_child(g.pid))
 	{
@@ -462,31 +490,17 @@ the desired uid and gid from the --user option if required.
 
 static void prepare_parent(void)
 {
-	debug((8, "prepare_parent()"));
+	debug((1, "prepare_parent()"))
 
-	debug((9, "setting sigterm action"));
+	debug((2, "setting sigterm action"))
 
 	if (signal_set_handler(SIGTERM, 0, term) == -1)
 		fatalsys("failed to set sigterm action");
 
-	debug((9, "setting sigchld action"));
+	debug((2, "setting sigchld action"))
 
 	if (signal_set_handler(SIGCHLD, 0, chld) == -1)
 		fatalsys("failed to set sigchld action");
-
-	debug((9, "setting user/group (if necessary)"));
-
-	if (g.gid && setgid(g.gid) == -1)
-	{
-		struct group *grp = getgrgid(g.gid);
-		fatalsys("failed to run the client as group %s(%d)", (grp) ? grp->gr_name : "", g.gid);
-	}
-
-	if (g.uid && setuid(g.uid) == -1)
-	{
-		struct passwd *pwd = getpwuid(g.uid);
-		fatalsys("failed to run the client as user %s(%d)", (pwd) ? pwd->pw_name : "", g.uid);
-	}
 }
 
 /*
@@ -504,24 +518,27 @@ static void spawn_child(void)
 {
 	time_t spawn_time;
 
-	debug((8, "spawn_child()"));
+	debug((1, "spawn_child()"))
 
 	if ((spawn_time = time(0)) == -1)
 		fatalsys("failed to get the time");
 
 	if (g.spawn_time)
 	{
-		debug((9, "checking if enough time has passed to allow respawning"));
+		debug((2, "checking if enough time has passed to allow respawning"))
+
+		if (spawn_time < g.spawn_time)
+			fatal("refusing to respawn: the clock's gone backwards");
 
 		if (spawn_time - g.spawn_time <= RESPAWN_THRESHOLD)
-			fatal("refusing to respawn too quickly, exiting");
+			fatal("refusing to respawn too quickly");
 	}
 
 	g.spawn_time = spawn_time;
 
 	if (g.client_syslog)
 	{
-		debug((9, "creating pipe"));
+		debug((2, "creating pipe"))
 
 		if (g.pipe[0] != -1)
 			close(g.pipe[0]), g.pipe[0] = -1;
@@ -533,7 +550,7 @@ static void spawn_child(void)
 			errorsys("failed to create pipe for --syslog");
 	}
 
-	debug((9, "forking"));
+	debug((2, "forking"))
 
 	switch (g.pid = fork())
 	{
@@ -542,21 +559,19 @@ static void spawn_child(void)
 
 		case 0:
 		{
-			debug((9, "child pid = %d", getpid()));
+			debug((2, "child pid = %d", getpid()))
 
-			debug((9, "child restoring sigterm action"));
+			debug((2, "child restoring sigterm/sigchld actions"))
 
 			if (signal_set_handler(SIGTERM, 0, SIG_DFL) == -1)
 				fatalsys("child failed to restore sigterm action, exiting");
-
-			debug((9, "child restoring sigchld action"));
 
 			if (signal_set_handler(SIGCHLD, 0, SIG_DFL) == -1)
 				fatalsys("child failed to restore sigchld action, exiting");
 
 			if (g.client_syslog && g.pipe[1] != -1)
 			{
-				debug((9, "child close(pipe[read]) and dup2(pipe[write] to stdout and stderr)"));
+				debug((2, "child close(pipe[read]) and dup2(pipe[write] to stdout and stderr)"))
 
 				if (close(g.pipe[0]) == -1)
 					errorsys("child failed to close pipe[read]");
@@ -574,23 +589,51 @@ static void spawn_child(void)
 						errorsys("child failed to close(pipe[write]) after dup2()");
 			}
 
-			debug((8, "child execing %s", *g.cmd));
+			debug((1, "child execing %s", *g.cmd))
 			execvp(*g.cmd, g.cmd);
-			fatalsys("child failed to exec %s, exiting", *g.cmd);
+			fatalsys("child failed to exec %s", *g.cmd);
 		}
 	}
 
-	debug((9, "parent pid = %d\n", getpid()));
+	debug((2, "parent pid = %d\n", getpid()))
 
 	if (g.client_syslog && g.pipe[1] != -1)
 	{
-		debug((9, "parent close(pipe[write])"));
+		debug((2, "parent close(pipe[write])"))
 
 		if (close(g.pipe[1]) == -1)
 			errorsys("parent failed to close(pipe[write])");
 
 		g.pipe[1] = -1;
 	}
+}
+
+/*
+
+C<void set_user()>
+
+Clears supplementary groups and sets the process user and group to that
+specified in the command line options. On success, returns 0. On error,
+returns -1.
+
+*/
+
+static int set_user()
+{
+	debug((1, "set_user()"))
+
+	debug((2, "setting user/group (if necessary)"))
+
+	if (g.gid && (setgroups(0, null) == -1 || getgroups(0, null) != 0))
+		return -1;
+
+	if (g.gid && (setgid(g.gid) == -1 || getgid() != g.gid || getegid() != g.gid))
+		return -1;
+
+	if (g.uid && (setuid(g.uid) == -1 || getuid() != g.uid || geteuid() != g.uid))
+		return -1;
+
+	return 0;
 }
 
 /*
@@ -609,8 +652,8 @@ just <waitpid(2)> for the client to terminate.
 
 static void run(void)
 {
-	debug((8, "run()"));
-	debug((9, "globals: name %s, uid %d, gid %d, respawn %s, client syslog %s%s%s, daemon syslog %s%s%s, daemon debug %s%s%s, core %s, config %s, verbose %d, debug %d",
+	debug((1, "run()"))
+	debug((2, "config: name %s, uid %d, gid %d, respawn %s, client syslog %s%s%s, daemon syslog %s%s%s, daemon debug %s%s%s, core %s, config %s, verbose %d, debug %d",
 		g.name ? g.name : "<unnamed>",
 		g.uid, g.gid,
 		g.respawn ? "yes" : "no",
@@ -627,7 +670,7 @@ static void run(void)
 		g.config,
 		prog_verbosity_level(),
 		prog_debug_level()
-	));
+	))
 
 	g.pipe[0] = g.pipe[1] = -1;
 	prepare_parent();
@@ -635,71 +678,41 @@ static void run(void)
 
 	for (;;)
 	{
-		debug((9, "run loop - handle any signals"));
+		debug((2, "run loop - handle any signals"))
 		signal_handle_all();
 
-		/*
-		** Signals arriving here are lost
-		*/
+		/* Signals arriving here are lost */
 
 		if (g.client_syslog && g.pipe[0] != -1)
 		{
 			char buf[BUFSIZ + 1];
-#if 0
-			fd_set readfds[1];
-#endif
 			int n;
 
-			debug((9, "syslogging, read pipe and wait for child"));
-
-#if 0
-			FD_ZERO(readfds);
-			FD_SET(g.pipe[0], readfds);
-
-			if ((n = select(g.pipe[0] + 1, readfds, NULL, NULL, NULL) == -1) && errno != EINTR)
-			{
-				errorsys("select(pipe[read]) failed");
-				g.client_syslog = 0;
-				continue;
-			}
-
-			if (n == -1 && errno == EINTR)
-			{
-				debug((9, "select(pipe[read]) was interrupted by a signal"));
-				continue;
-			}
-
-			debug((9, "select(pipe[read]) returned %d", n));
-#endif
+			debug((2, "syslogging, read pipe and wait for child"))
 
 			while ((n = read(g.pipe[0], buf, BUFSIZ)) != -1 && n != 0)
 			{
 				char *p, *q;
 
-				debug((9, "read(pipe[read]) returned %d", n));
-				buf[n] = '\0';
+				debug((2, "read(pipe[read]) returned %d", n))
+				buf[n] = nul;
 
 				for (p = buf; (q = strchr(p, '\n')); p = q + 1)
 				{
-					if (!q)
-					{
-						if (*p)
-						{
-							debug((9, "syslog(%s)", p));
-							syslog(g.client_syslog, "%s", p);
-						}
-
-						break;
-					}
-
-					debug((9, "syslog(%*.*s)", q - p, q - p, p));
+					debug((2, "syslog(%*.*s)", q - p, q - p, p))
 					syslog(g.client_syslog, "%*.*s", q - p, q - p, p);
+				}
+
+				if (*p && (*p != '\n' || p[1] != nul))
+				{
+					debug((2, "syslog(%s)", p))
+					syslog(g.client_syslog, "%s", p);
 				}
 			}
 
 			if (n == -1 && errno == EINTR)
 			{
-				debug((9, "read(pipe[read]) was interrupted by a signal\n"));
+				debug((2, "read(pipe[read]) was interrupted by a signal\n"))
 				continue;
 			}
 
@@ -709,7 +722,7 @@ static void run(void)
 				g.client_syslog = 0;
 			}
 
-			debug((9, "read() returned %d (zero), closing pipe[read]", n));
+			debug((2, "read() returned %d, closing pipe[read]", n))
 
 			if (close(g.pipe[0]) == -1)
 				errorsys("failed to close(pipe[read])");
@@ -730,19 +743,17 @@ static void run(void)
 			if (!signal_received(SIGCHLD))
 			{
 				signal_raise(SIGCHLD);
-				debug((9, "simulating chld signal (chld cnt = %d)", signal_received(SIGCHLD)));
+				debug((2, "simulating chld signal (chld cnt = %d)", signal_received(SIGCHLD)))
 			}
 		}
 		else
 		{
-			debug((9, "not syslogging, just wait for child"));
+			debug((2, "not syslogging, just wait for child"))
 
-			/*
-			** Assume SIGCHLD will arrive and wait for it.
-			*/
+			/* Assume SIGCHLD will arrive and wait for it */
 
 			signal_raise(SIGCHLD);
-			debug((9, "simulating chld signal (chld cnt = %d)\n", signal_received(SIGCHLD)));
+			debug((2, "simulating chld signal (chld cnt = %d)\n", signal_received(SIGCHLD)))
 		}
 	}
 }
@@ -760,7 +771,7 @@ static void store_syslog(const char *spec, int *var)
 	int facility;
 	int priority;
 
-	debug((8, "store_syslog(spec = %s)", spec));
+	debug((1, "store_syslog(spec = %s)", spec))
 
 	if (syslog_parse(spec, &facility, &priority) == -1)
 		prog_usage_msg("Invalid syslog argument: failed to parse '%s'", spec);
@@ -778,7 +789,7 @@ Parse and store the client syslog option argument, C<spec>.
 
 static void client_syslog(const char *spec)
 {
-	debug((8, "client_syslog(spec = %s)", spec));
+	debug((1, "client_syslog(spec = %s)", spec))
 
 	store_syslog(spec, &g.client_syslog);
 }
@@ -793,7 +804,7 @@ Parse and store the daemon syslog option argument, C<spec>.
 
 static void daemon_syslog(const char *spec)
 {
-	debug((8, "daemon_syslog(spec = %s)", spec));
+	debug((1, "daemon_syslog(spec = %s)", spec))
 
 	store_syslog(spec, &g.daemon_syslog);
 }
@@ -813,7 +824,7 @@ static void client_user(char *spec)
 	struct group *grp;
 	char **member;
 
-	debug((8, "client_user(spec = %s)", spec));
+	debug((1, "client_user(spec = %s)", spec))
 
 	if (getuid() || geteuid())
 		prog_usage_msg("The --user option only works for root");
@@ -821,11 +832,11 @@ static void client_user(char *spec)
 	user = spec;
 	group = strchr(spec, '.');
 	if (group)
-		*group++ = '\0';
+		*group++ = nul;
 
 	pwd = getpwnam(user);
 	if (!pwd)
-		prog_usage_msg("Invalid user: '%s'", user);
+		prog_usage_msg("Unknown user: '%s'", user);
 
 	g.uid = pwd->pw_uid;
 	g.gid = pwd->pw_gid;
@@ -834,7 +845,7 @@ static void client_user(char *spec)
 	{
 		grp = getgrnam(group);
 		if (!grp)
-			prog_usage_msg("Invalid group: '%s'", group);
+			prog_usage_msg("Unknown group: '%s'", group);
 
 		if (grp->gr_gid != pwd->pw_gid)
 		{
@@ -843,7 +854,7 @@ static void client_user(char *spec)
 					break;
 
 			if (!*member)
-				prog_usage_msg("%s is not in group %s", user, group);
+				prog_usage_msg("User %s is not in group %s", user, group);
 		}
 
 		g.gid = grp->gr_gid;
@@ -863,44 +874,47 @@ static Config *config_create(char *name, char *options)
 	Config *config;
 	char *tok;
 
-	debug((8, "config_create(name = \"%s\", options = \"%s\")", name, options));
+	debug((1, "config_create(name = \"%s\", options = \"%s\")", name, options))
 
 	if (!(config = mem_new(Config)))
-		return NULL;
+		return null;
 
 	if (!(config->name = mem_strdup(name)))
 	{
 		mem_release(config);
-		return NULL;
+		return null;
 	}
 
 	if (!(config->options = list_create(free)))
 	{
 		mem_release(config->name);
 		mem_release(config);
-		return NULL;
+		return null;
 	}
 
 	for (tok = strtok(options, ","); tok; tok = strtok(tok + strlen(tok) + 1, ","))
 	{
+		size_t size = strlen(tok) + 3;
 		char *option;
 
-		if (!(option = mem_create(strlen(tok) + 2, char)))
+		if (!(option = mem_create(size, char)))
 		{
 			list_release(config->options);
 			mem_release(config->name);
 			mem_release(config);
-			return NULL;
+			return null;
 		}
 
-		option = strcat(strcpy(option, "--"), tok);
+		strlcpy(option, "--", size);
+		strlcat(option, tok, size);
 
 		if (!list_append(config->options, option))
 		{
+			mem_release(option);
 			list_release(config->options);
 			mem_release(config->name);
 			mem_release(config);
-			return NULL;
+			return null;
 		}
 	}
 
@@ -936,26 +950,16 @@ static void config_parse(void *obj, const char *path, char *line, size_t lineno)
 {
 	List *list = (List *)obj;
 	Config *config;
-	char name[BUFSIZ] = "";
-	char options[BUFSIZ] = "";
-	char unexpected[BUFSIZ] = "";
+	char name[128] = "";
+	char options[1024] = "";
 
-	debug((8, "config_parse(obj = %p, path = %s, line = \"%s\", lineno = %d)", obj, path, line, lineno));
+	debug((1, "config_parse(obj = %p, path = %s, line = \"%s\", lineno = %d)", obj, path, line, lineno))
 
-	if (conf_get_word(&line, name, BUFSIZ) == -1)
-		prog_usage_msg("config: %s line %d: expected a name or \"*\"", path, lineno);
+	if (sscanf(line, "%127s %1023s", name, options) != 2)
+		prog_usage_msg("config: syntax error in %s, line %d\n", path, lineno);
 
-	if (conf_get_word(&line, options, BUFSIZ) == -1)
-		prog_usage_msg("config: %s line %d: expected options", path, lineno);
-
-	if (conf_get_word(&line, unexpected, BUFSIZ) != -1)
-		prog_usage_msg("config: %s line %d: unexpected: \"%s\"", path, lineno, unexpected);
-
-	if (!(config = config_create(name, options)))
-		prog_usage_msg("config: Out of memory");
-
-	if (!list_append(list, config))
-		prog_usage_msg("config: Out of memory");
+	if (!(config = config_create(name, options)) || !list_append(list, config))
+		prog_usage_msg("config: out of memory");
 }
 
 /*
@@ -981,15 +985,15 @@ static void config_process(List *conf, char *target)
 		if (!strcmp(config->name, target))
 		{
 			if (!(av = mem_create(list_length(config->options) + 2, char *)))
-				prog_usage_msg("config: Out of memory");
+				prog_usage_msg("config: out of memory");
 
 			av[0] = (char *)prog_name();
 
 			for (j = 1; list_has_next(config->options); ++j)
 				if (!(av[j] = mem_strdup(list_next(config->options))))
-					prog_usage_msg("config: Out of memory");
+					prog_usage_msg("config: out of memory");
 
-			av[ac = j] = NULL;
+			av[ac = j] = null;
 			optind = 0;
 			prog_opt_process(ac, av);
 			mem_release(av); /* Leak av elements since g might refer to them now */
@@ -1012,11 +1016,11 @@ static void config(void)
 {
 	List *conf;
 
-	debug((8, "config()"));
+	debug((1, "config()"))
 
 	/* Check the the config file is safe */
 
-	switch (daemon_file_is_safe(g.config))
+	switch (daemon_path_is_safe(g.config))
 	{
 		case  0: error("Ignoring unsafe %s", g.config);
 		case -1: return;
@@ -1024,14 +1028,14 @@ static void config(void)
 
 	/* Parse the config file */
 
-	if (!(conf = list_create((list_destroy_t *)config_release)))
+	if (!(conf = list_create((list_release_t *)config_release)))
 		return;
 
-	if (!conf_parse(g.config, conf, config_parse))
+	if (!daemon_parse_config(g.config, conf, config_parse))
+	{
+		list_release(conf);
 		return;
-
-	if (list_length(conf) == 0)
-		return;
+	}
 
 	/* Apply generic options */
 
@@ -1065,15 +1069,15 @@ static Option daemon_optab[] =
 		required_argument, OPT_STRING, OPT_VARIABLE, &g.name
 	},
 	{
-		"user", 'u', "user.[group]", "Run the client as user[.group]",
+		"user", 'u', "user[.group]", "Run the client as user[.group]",
 		required_argument, OPT_STRING, OPT_FUNCTION, (void *)client_user
 	},
 	{
-		"respawn", 'r', NULL, "Respawn the client",
+		"respawn", 'r', null, "Respawn the client",
 		no_argument, OPT_NONE, OPT_VARIABLE, &g.respawn
 	},
 	{
-		"core", 'c', NULL, "Allow core file generation",
+		"core", 'c', null, "Allow core file generation",
 		no_argument, OPT_NONE, OPT_VARIABLE, &g.core
 	},
 	{
@@ -1089,7 +1093,7 @@ static Option daemon_optab[] =
 		required_argument, OPT_STRING, OPT_VARIABLE, &g.config
 	},
 	{
-		NULL, '\0', NULL, NULL, 0, 0, 0, NULL
+		null, nul, null, null, 0, 0, 0, null
 	}
 };
 
@@ -1105,17 +1109,17 @@ Supplies program identification for use in help, version and error messages.
 
 static void id(void)
 {
-	prog_set_name("daemon");
+	prog_set_name(DAEMON_NAME);
+	prog_set_version(DAEMON_VERSION);
+	prog_set_date(DAEMON_DATE);
 	prog_set_syntax("[options] cmd arg...");
 	prog_set_options(options);
-	prog_set_version("0.3");
-	prog_set_date("20000902");
 	prog_set_author("raf <raf@raf.org>");
 	prog_set_contact(prog_author());
-	prog_set_url("http://libslack.org/daemon/");
+	prog_set_url(DAEMON_URL);
 	prog_set_legal
 	(
-		"Copyright (C) 1999, 2000 raf <raf@raf.org>\n"
+		"Copyright (C) 1999-2001 raf <raf@raf.org>\n"
 		"\n"
 		"This is free software released under the terms of the GPL:\n"
 		"\n"
@@ -1127,11 +1131,6 @@ static void id(void)
 		"\n"
 		"Includes the GNU getopt functions:\n"
 		"    Copyright (C) 1997, 1998 Free Software Foundation, Inc.\n"
-#endif
-#ifdef NEEDS_SNPRINTF
-		"\n"
-		"Includes snprintf:\n"
-		"    Copyright (C) 1997 Theo de Raadt\n"
 #endif
 	);
 
@@ -1163,30 +1162,40 @@ static void init(int ac, char **av)
 	id();
 
 	if (daemon_revoke_privileges() == -1)
-		fatalsys("failed to revoke set uid/gid privileges: uid %d euid %d gid %d egid %d", getuid(), geteuid(), getgid(), getegid());
+		fatalsys("failed to revoke uid/gid privileges: uid/gid = %d/%d euid/egid = %d/%d", getuid(), getgid(), geteuid(), getegid());
 
 	if ((a = prog_opt_process(g.ac = ac, g.av = av)) == ac)
 		prog_usage_msg("Invalid arguments: no command supplied");
+
+	if (set_user() == -1)
+	{
+		struct group *grp = getgrgid(g.gid);
+		struct passwd *pwd = getpwuid(g.uid);
+		fatalsys("failed to set user/group exclusively to %s/%s (%d/%d): uid/gid = %d/%d euid/egid = %d/%d #groups = %d", (pwd) ? pwd->pw_name : "<noname>", (grp) ? grp->gr_name : "<noname>", g.uid, g.pid, getuid(), getgid(), geteuid(), getegid(), getgroups(0, null));
+	}
 
 	config();
 
 	if (!g.core && daemon_prevent_core() == -1)
 		fatalsys("failed to prevent core file generation");
 
-	if (prog_dbg_syslog(NULL, 0, g.daemon_debug) == -1)
+	if (prog_dbg_syslog(null, 0, g.daemon_debug) == -1)
 		fatalsys("failed to start debug delivery to %s.%s", syslog_facility_str(g.daemon_debug), syslog_priority_str(g.daemon_debug));
 
-	if (prog_err_syslog(NULL, 0, g.daemon_syslog) == -1)
+	if (prog_err_syslog(null, 0, g.daemon_syslog) == -1)
 		fatalsys("failed to start error delivery to %s.%s", syslog_facility_str(g.daemon_syslog), syslog_priority_str(g.daemon_syslog));
 
 	if (!(g.cmd = mem_create(ac - a + 1, char *)))
-		prog_usage_msg("Out of memory");
+		prog_usage_msg("out of memory");
 
 	memmove(g.cmd, av + a, (ac - a) * sizeof(char *));
-	g.cmd[ac - a] = NULL;
+	g.cmd[ac - a] = null;
 
 	if (daemon_init(g.name) == -1)
 		fatalsys("failed to start daemon");
+
+	if (g.name && atexit((void (*)(void))daemon_close) == -1)
+		fatalsys("failed to atexit(daemon_close)");
 }
 
 /*

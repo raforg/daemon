@@ -323,7 +323,7 @@ fied.
 
 POSIX.2, provided the environment variable POSIXLY_CORRECT is set.
 Otherwise, the elements of C<argv> aren't really const, because we
-permute them. We pretend they`re const in the prototype to be
+permute them. We pretend they're const in the prototype to be
 compatible with other systems.
 
 =back
@@ -334,12 +334,13 @@ compatible with other systems.
 
 #include "getopt.h"
 #include <string.h>
-#include <unistd.h>
 #include <sys/types.h>
 
 #if 0
 #include <stdio-common/_itoa.h>
 #endif
+
+pid_t getpid();
 
 /* Variable to synchronize work.  */
 char *__getopt_nonoption_flags;
@@ -562,7 +563,7 @@ int __getopt_initialized;
    in which the last option character we returned was found.
    This allows us to pick up the scan where we left off.
 
-   If this is zero, or a null string, it means resume the scan
+   If this is zero, or a NULL string, it means resume the scan
    by advancing to the next ARGV-element.  */
 
 static char *nextchar;
@@ -995,7 +996,7 @@ _getopt_internal (argc, argv, optstring, longopts, longind, long_only)
 	}
 
       /* The special ARGV-element `--' means premature end of options.
-	 Skip it like a null option,
+	 Skip it like a NULL option,
 	 then exchange with previous non-options as if it were an option,
 	 then skip everything else like a non-option.  */
 

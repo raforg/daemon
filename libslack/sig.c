@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999, 2000 raf <raf@raf.org>
+* Copyright (C) 1999-2001 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20000902 raf <raf@raf.org>
+* 20010215 raf <raf@raf.org>
 */
 
 /*
@@ -292,6 +292,10 @@ void signal_handle_all(void)
 
 =back
 
+=head1 MT-Level
+
+Unsafe
+
 =head1 EXAMPLE
 
     #include <unistd.h>
@@ -332,26 +336,12 @@ void signal_handle_all(void)
 
 =head1 SEE ALSO
 
-L<conf(3)|conf(3)>,
-L<daemon(3)|daemon(3)>,
-L<err(3)|err(3)>,
-L<fifo(3)|fifo(3)>,
-L<hsort(3)|hsort(3)>,
-L<lim(3)|lim(3)>,
-L<list(3)|list(3)>,
-L<log(3)|log(3)>,
-L<map(3)|map(3)>,
-L<mem(3)|mem(3)>,
-L<msg(3)|msg(3)>,
-L<net(3)|net(3)>,
-L<opt(3)|opt(3)>,
-L<prog(3)|prog(3)>,
-L<prop(3)|prop(3)>,
-L<str(3)|str(3)>
+L<libslack(3)|libslack(3)>,
+L<prog(3)|prog(3)>
 
 =head1 AUTHOR
 
-20000902 raf <raf@raf.org>
+20010215 raf <raf@raf.org>
 
 =cut
 
@@ -533,7 +523,7 @@ int main(int ac, char **av)
 
 			default:
 			{
-				int status[1];
+				int status;
 				char ack;
 
 				/* Wait until the child is ready to receive signals */
@@ -558,17 +548,17 @@ int main(int ac, char **av)
 
 				/* Wait for the child to terminate */
 
-				if (waitpid(pid, status, 0) == -1)
+				if (waitpid(pid, &status, 0) == -1)
 				{
 					fprintf(stderr, "Failed to evaluate test - waitpid(%d) failed (%s)\n", (int)pid, strerror(errno));
 					break;
 				}
 
-				if (WIFSIGNALED(*status) && WTERMSIG(*status) != SIGABRT)
-					fprintf(stderr, "Failed to evaluate test - child received signal %d\n", WTERMSIG(*status));
+				if (WIFSIGNALED(status) && WTERMSIG(status) != SIGABRT)
+					fprintf(stderr, "Failed to evaluate test - child received signal %d\n", WTERMSIG(status));
 
-				if (WIFEXITED(*status) && WEXITSTATUS(*status) != 0)
-					fprintf(stderr, "Failed to evaluate test - child exit status %d\n", WEXITSTATUS(*status));
+				if (WIFEXITED(status) && WEXITSTATUS(status) != 0)
+					fprintf(stderr, "Failed to evaluate test - child exit status %d\n", WEXITSTATUS(status));
 
 				/* Verify the output */
 
@@ -579,7 +569,7 @@ int main(int ac, char **av)
 	}
 
 	if (errors)
-		printf("%d/5 test failed\n", errors);
+		printf("%d/5 tests failed\n", errors);
 	else
 		printf("All tests passed\n");
 

@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999, 2000 raf <raf@raf.org>
+* Copyright (C) 1999-2001 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20000902 raf <raf@raf.org>
+* 20010215 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_STD_H
@@ -41,7 +41,7 @@
 #endif
 
 #ifndef _XOPEN_SOURCE
-#define _XOPEN_SOURCE
+#define _XOPEN_SOURCE 600
 #endif
 
 #ifndef _ISOC9X_SOURCE
@@ -60,16 +60,24 @@
 #define _THREAD_SAFE
 #endif
 
-#include <stdlib.h>
+#include <assert.h>
+#include <ctype.h>
+#include <errno.h>
+#include <float.h>
+#include <limits.h>
+#include <locale.h>
+#include <math.h>
+#include <setjmp.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
-#include <limits.h>
+#include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
+#include <time.h>
 
 #include <unistd.h>
-#include <errno.h>
+#include <pthread.h>
 
 #endif
 

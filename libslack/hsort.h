@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999, 2000 raf <raf@raf.org>
+* Copyright (C) 1999-2001 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20000902 raf <raf@raf.org>
+* 20010215 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_HSORT_H
@@ -30,9 +30,9 @@
 
 typedef int hsort_cmp_t(const void *, const void *);
 
-__START_DECLS
-void hsort __PROTO ((void *base, size_t n, size_t size, hsort_cmp_t *cmp));
-__STOP_DECLS
+_start_decls
+void hsort _args ((void *base, size_t n, size_t size, hsort_cmp_t *cmp));
+_end_decls
 
 #endif
 

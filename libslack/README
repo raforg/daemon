@@ -1,6 +1,6 @@
 README
 ~~~~~~
-libslack - a UNIX/C library of general utilities for programmers with slack
+libslack - A UNIX/C library of general utilities for programmers with slack
 
 DESCRIPTION
 ~~~~~~~~~~~
@@ -15,38 +15,37 @@ should always be easy to read.
 
 Libslack contains the following modules:
 
-    conf     - simple configuration file parsing
     daemon   - becoming a daemon
     err      - message/error/debug/verbosity messaging
-    fifo     - fifo and file control
+    fio      - fifo and file control and some I/O
     getopt   - GNU getopt_long() for systems that don't have it
     hsort    - heap sort (by Stephen Russell)
     lim      - POSIX.1 limits convenience functions
     list     - list data type
-    log      - syslog helper functions
     map      - map (hash table) data type
     mem      - memory helper functions
-    msg      - message handling
+    msg      - message handling and syslog helper functions
     net      - network functions (clients/servers, expect/send, pack/unpack, mail)
-    opt      - command line option handling
-    prog     - program framework
+    prog     - program framework and flexible command line option handling
     prop     - program properties files
     sig      - ANSI C compliant signal handling
-    snprintf - safe sprintf() for systems that don't have it (by Theo de Raadt)
     str      - string data type (tr, regex, regsub, fmt, trim, lc, uc, ...)
+    thread   - abstract locking, pthread shortcuts, rwlocks, barriers
     vsscanf  - sscanf() with va_list argument for systems that don't have it
 
 INSTALL
 ~~~~~~~
-Currently this is only known to work on Linux Redhat 6.0 and Solaris 2.6.
-Compiling on Solaris 2.6 requires running conf/solaris in the source
+Currently this is only known to work on Linux Redhat 6.x/7.x and Solaris 2.6.
+Compiling on Solaris 2.6 requires running conf/solaris-cc (If you have the
+Sun WorkShop C compiler) or conf/solaris-gcc (If you have gcc) in the source
 directory. It is ready to compile on Linux as distributed so it is not
-necessary to run conf/linux. There isn't a real configure script so you will
-no doubt encounter problems on other systems. An ANSI C and POSIX
+necessary to run conf/linux. There isn't a real configure script yet so you
+will no doubt encounter problems on other systems. An ANSI C and POSIX
 environment will help greatly.
 
-If your system doesn't have snprintf(3), GNU getopt_long(3) or vsscanf(3),
-uncomment the relevant lines in the macros.mk file to include them in libslack.
+If your system doesn't have snprintf(3), GNU getopt_long(3), vsscanf(3),
+strcasecmp(3), strncasecmp(3), strlcpy(3) or strlcat(3), uncomment the
+relevant lines in the macros.mk file to include them in libslack.
 
 If your system doesn't have POSIX 1003.2 compliant regex functions, either:
 install the GNU implementation, ftp://ftp.gnu.org/gnu/regex/regex-0.12.tar.gz
@@ -54,45 +53,85 @@ install the GNU implementation, ftp://ftp.gnu.org/gnu/regex/regex-0.12.tar.gz
 implementation, ftp://ftp.zoo.toronto.edu/pub/regex.shar [157K].
 
 If you really, really, really don't want the regular expression functions,
-uncomment REGEX_MISSING in macros.mk to enable the rest of the library to
-be compiled.
+uncomment REGEX_MISSING in macros.mk to enable the rest of the str module to be
+compiled.
+
+If you have a linux-2.2.x system, you must have LinuxThreads-0.8 or
+LinuxThreads-0.9 and the latest corresponding version of glibc.
+If you have a linux-2.4.x system, you must have at least glibc-2.2.1
+and glibc-linuxthreads-2.2.1. They are available from
+http://ftp.gnu.org/pub/gnu/glibc/. Older versions can be used but
+they are buggy and I don't want to hear about it.
+
+First, uninstall any previous version:
+
+        cd libslack-0.3
+		make uninstall
 
 To build and test:
 
-        tar xzf libslack-0.3.tar.gz
-        cd libslack-0.3
-        conf/<your-system>         # if applicable (i.e. solaris)
-        make depend
+        tar xzf libslack-0.4.tar.gz
+        cd libslack-0.4
+        conf/<your-system>   # if applicable (i.e. solaris-gcc, solaris-cc)
         make
-        make test                  # note: compiling the tests can take ages
+        make test            # note: compiling the tests can take ages
 
-To install the slack library and its manpages:
+To install libslack and its manpages (into /usr/local by default):
 
         make install
+
+To install into somewhere other than /usr/local:
+
+        make PREFIX=/opt/libslack install
+
+To uninstall:
+
+        make uninstall
 
 For more details:
 
         make help
 
-There is one manpage for each module in libslack (rather than one for each
-function). They are conf(3), daemon(3), err(3), fifo(3), hsort(3), lim(3),
-list(3), log(3), map(3), mem(3), msg(3), net(3), opt(3), prog(3), prop(3),
-sig(3) and str(3). If necessary, the manpages getopt(3), snprintf(3) and
+There is one manpage for each module in libslack (as well as one for each
+function). The module manpages are daemon(3), err(3), fio(3), hsort(3),
+lim(3), list(3), map(3), mem(3), msg(3), net(3), prog(3), prop(3), sig(3),
+str(3) and thread(3). If necessary, the manpages getopt(3), snprintf(3) and
 vsscanf(3) are created as well.
+
+BINARY PACKAGES
+~~~~~~~~~~~~~~~
+To install from the RPM binary package (into /usr by default):
+
+        rpm -i libslack-0.4-1.i386.rpm
+
+To install from the RPM binary package into somewhere other than /usr:
+
+        rpm --prefix=/usr/local -i libslack-0.4-1.i386.rpm
+
+To install from the (relocatable) Debian binary package (into /usr):
+
+        dpkg -i daemon_0.4_i386.deb
+
+To install from the (relocatable) Solaris binary package (into /opt/libslack):
+
+        gunzip libslack-0.4.sun4u.pkg.gz
+        pkgadd -d libslack-0.4.sun4u.pkg
+
 
 REQUIREMENTS
 ~~~~~~~~~~~~
 Requires perl to run the scripts in the conf directory.
-Requires gcc to compile the source.
+Repuires perl to install per-function manpage links.
+Requires an ANSI C compiler like gcc to compile the source.
 Requires pod2man (comes with perl) to make the manpages.
 Requires pod2html (comes with perl) to make the html manpages.
-Requires perl and GNU tar to make the distribution.
 Requires POSIX 1003.2 compliant regex functions. See INSTALL.
+Requires libpthread. See INSTALL.
 
 COPYING
 ~~~~~~~
-libslack - general utilities including the ability to become a daemon
-Copyright (C) 1999, 2000 raf <raf@raf.org>
+libslack - A UNIX/C library of general utilities for programmers with slack
+Copyright (C) 1999-2001 raf <raf@raf.org>
 
     This library is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -108,6 +147,33 @@ Copyright (C) 1999, 2000 raf <raf@raf.org>
     along with this library; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
     or visit http://www.gnu.org/copyleft/gpl.html
+
+$OpenBSD: strlcpy.c,v 1.4 1999/05/01 18:56:41 millert Exp $
+$OpenBSD: strlcat.c,v 1.5 2001/01/13 16:17:24 millert Exp $
+Copyright (c) 1998 Todd C. Miller <Todd.Miller@courtesan.com>
+All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in the
+       documentation and/or other materials provided with the distribution.
+    3. The name of the author may not be used to endorse or promote products
+       derived from this software without specific prior written permission.
+    
+    THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES,
+    INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
+    AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL
+    THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+    EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+    OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+    WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+    OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+    ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 HISTORY
 ~~~~~~~
@@ -151,14 +217,132 @@ HISTORY
     - Added socks.h
     - Added daemon_revoke_privileges(), daemon_file_is_safe() to daemon module
 
+0.4
+    - Fixed memory usage bugs
+    - Changed net server/client functions to use service name else port number
+    - Fixed security bug: daemon_file_is_safe() wasn't following symlinks (doh!)
+    - Renamed daemon_file_is_safe() to daemon_path_is_safe()
+    - Added daemon_absolute_path() to daemon module
+    - Added memory pool functions to mem module
+    - Fixed bug: optional option arguments were handled in dodgy C
+    - Made supplied snprintf() POSIX compliant (was using getpagesize())
+    - Removed conf module (Added daemon_parse_config() to daemon module)
+    - Removed net_chat(), rfc822_localtime(), rfc822_gmtime() (not useful enough)
+    - Added secure memory/pool functions to mem module
+    - Fixed Makefile bug: $(CCFLAGS) for daemon and libslack weren't separate
+    - Added fgetline() to fifo module (reads a line with any line ending)
+    - Added str_fgetline() to str module (like fgetline but handles any length)
+    - Renamed fifo module to fio
+    - Fixed Makefile bug: wasn't uninstalling everything properly
+    - Changed net_send() to take a timeout argument like next_expect() does
+    - Added strlcpy(), strlcat(), strcasecmp() and strncasecmp() to str module
+    - Renamed conf/solaris to solaris-gcc and added solaris-cc for sun workshop
+    - Added support for root and user pidfiles in separate directories
+    - Added make rpm rpm-daemon rpm-slack (with Edward Avis epa98@doc.ic.ac.uk)
+    - Added installation of manpages for each function (link to module manpage)
+    - Added libslack(3) overview manpage
+    - Added list_break(), map_break()
+    - Renamed assert() to check() for obvious reasons
+    - Renamed re funcs in str module: s/regex/regexpr/g
+    - Added thread module and made everything MT-Safe or MT-Disciplined
+    - Added relative index/range semantics to string functions
+    - Added make deb deb-daemon deb-slack (debian binary packages)
+    - Added make pkg pkg-daemon pkg-slack (solaris binary packages)
+    - Added setsockopt(SO_REUSEADDR) for net servers
+    - Changed net server/client API to allow optional setsockopt(RCVBUF/SNDBUF)
+    - Added REFERENCES section to README file
+    - Stopped net_expect/net_send from interfering with SIGALRM/alarm/setitimer
+    - Added read_timeout(), write_timeout() and rw_timeout() to fio module
+    - Changed net_read() and net_write() to take a timeout argument
+    - Added '?' field size specifier to unpack() (for packet length fields)
+    - Added libslack-config administration utility
+    - Renamed sockaddr typedef to sockaddr_t
+    - Changed net_client to take a timeout parameter
+    - Fixed fd leak in error handling code in net server/client functions
+    - Fixed bug: str_regsub() didn't handle empty string matches at all
+    - Changed str_regexpr_split() to take cflags and eflags arguments
+    - Changed all *_destroy macros to functions that take address of pointer
+    - Changed mem_resize macro so client must explicitly provide address of mem
+    - Changed all *_destroy_t typedefs to *_release_t
+    - Added make [un]install-{daemon|slack}-html (not part of make [un]install)
+    - Temporarily removed snprintf module (not MT-Safe, not essential)
+    - Merged lognames module into msg module
+    - Merged opt module into prog module
+    - Renamed _* functions in err module to *f (not ANSI compliant)
+    - Removed MANIFEST
+
 TODO
 ~~~~
-    - Add modules: tty/pty, timo, thr
-    - Add pool, gc(?) to mem module
-    - Use autoconf
-    - Use libtool
+    - MT signal handling
+    - Decouple memory type and strategy from List/Map/String code into mem
+    - Add pty/coproc to fio module
+    - Add agent module (select/poll + hashed/hierarchical timing wheels)
+    - Add debian source package creation
+    - Use autoconf and libtool (when API is stable, then add *-devel packages)
+    - Generate sub library packages (at least: daemon, str, net, agent)
+
+REFERENCES
+~~~~~~~~~~
+Advanced Programming in the UNIX Environment
+W. Richard Stevens
+Addison-Wesley Professional Computing Series, 1992
+
+UNIX Network Programming
+W. Richard Stevens
+Prentice Hall Software Series, 1990
+
+UNIX System V Network Programming
+Stephen A. Rago
+Addison-Wesley Professional Computing Series, 1993
+
+The Practice of Programming
+Brian W. Kernighan and Rob Pike,
+Addison-Wesley Professional Computing Series, 1999
+
+Multithreaded Programming with Pthreads
+Bil Lewis and Daniel J. Berg
+Sun Microsystem Press/Prentice Hall, 1998
+
+Effective TCP/IP Programming
+Jon C. Snader
+Addison-Wesley, 2000
+
+Design Patterns - Elements of Reusable Object-Oriented Software
+Erich Gamma, Richard Helm, Ralph Johnson and John Vlissides
+Addison-Wesley Professional Computing Series, 1995
+
+The Standard C Library
+P. J. Plauger
+Prentice Hall, 1992
+
+The Discipline and Method Architecture for Reusable Libraries
+Kiem-Phong Vo
+Software - Practice & Experience, v.30, pp.107-128, 2000
+http://www.research.att.com/sw/tools/sfio/dm-spe.ps
+
+strlcpy and strlcat--Consistent, Safe, String Copy and Concatenation
+Todd C. Miller and Theo De Raadt
+Proceedings of the FREENIX Track: 1999 USENIX Annual Technical Conference
+http://www.usenix.org/events/usenix99/millert.html
+
+The Perl manpages
+Larry Wall
+
+Practical UNIX and Internet Security
+Simson Garfinkel and Gene Spafford
+O'Reilly, 1996
+
+Interconnections - Bridges, Routers, Switches and Internetworking Protocols
+Radia Perlman
+Addison-Wesley Professional Computing Series, 2000
+
+MT-Disciplined
+raf, http://raf.org/papers/mtdisc.html
+
+Scalable Makefiles
+raf, http://raf.org/papers/scalable-makefiles.html
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 URL: http://libslack.org/
-Date: 20000902
+Date: 20010215
 Author: raf <raf@raf.org>

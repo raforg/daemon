@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999, 2000 raf <raf@raf.org>
+* Copyright (C) 1999-2001 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20000902 raf <raf@raf.org>
+* 20010215 raf <raf@raf.org>
 */
 
 /*
@@ -87,12 +87,12 @@ C<``\''>. The properties files may also contain blank lines and comments
 #include "prog.h"
 #include "daemon.h"
 #include "map.h"
-#include "conf.h"
 #include "err.h"
 #include "lim.h"
 #include "mem.h"
 #include "prop.h"
 #include "str.h"
+#include "thread.h"
 
 #ifdef NEEDS_SNPRINTF
 #include "snprintf.h"
@@ -116,8 +116,9 @@ static struct
 	Prop *prop;
 	char *home;
 	int dirty;
+	Locker *locker;
 }
-g = { 0, NULL, NULL, 0 };
+g = { 0, NULL, NULL, 0, NULL };
 
 /*
 
@@ -302,8 +303,9 @@ static void prop_parse(Map *map, const char *path, char *line, size_t lineno)
 	/* Identify and separate the name and value */
 
 	value = eq + 1;
-	conf_skip_spaces_backwards(&eq, p);
-	*eq = '\0';
+	while (eq > p && isspace((int)(unsigned char)eq[-1]))
+		--eq;
+	*eq = nul;
 
 	/* Unquote any quoted '=' in the name */
 
@@ -324,20 +326,13 @@ static void prop_parse(Map *map, const char *path, char *line, size_t lineno)
 		return;
 	}
 
-	if (!(key = mem_strdup(cstr(name))))
-	{
-		error("prop: Out of memory");
-		str_release(prop);
-		str_release(name);
-		return;
-	}
+	key = cstr(name);
 
 	if (!(val = mem_strdup(value)))
 	{
 		error("prop: Out of memory");
 		str_release(prop);
 		str_release(name);
-		mem_release(key);
 		return;
 	}
 
@@ -362,10 +357,10 @@ static Prop *prop_load(const char *path, Prop *defaults)
 	Prop *prop;
 	Map *map;
 
-	if (!(map = map_create((map_destroy_t *)free)))
+	if (!(map = map_create((map_release_t *)free)))
 		return NULL;
 
-	if (!conf_parse(path, map, (conf_parse_t *)prop_parse))
+	if (!daemon_parse_config(path, map, (daemon_config_parser_t *)prop_parse))
 	{
 		map_release(map);
 		return NULL;
@@ -474,7 +469,7 @@ static int prop_init(void)
 	{
 		Map *map;
 
-		if (!(map = map_create((map_destroy_t *)free)))
+		if (!(map = map_create((map_release_t *)free)))
 		{
 			mem_release(path);
 			prop_release(prop);
@@ -513,16 +508,25 @@ no such property.
 const char *prop_get(const char *name)
 {
 	Prop *p;
-	const char *value;
+	const char *value = NULL;
+
+	if (locker_wrlock(g.locker) == -1)
+		return NULL;
 
 	if (!g.init && prop_init() == -1)
+	{
+		locker_unlock(g.locker);
 		return NULL;
+	}
 
 	for (p = g.prop; p; p = p->defaults)
 		if ((value = map_get(p->map, name)))
-			return value;
+			break;
 
-	return NULL;
+	if (locker_unlock(g.locker) == -1)
+		return NULL;
+
+	return value;
 }
 
 /*
@@ -560,19 +564,33 @@ const char *prop_set(const char *name, const char *value)
 {
 	char *val;
 
-	if (!g.init && prop_init() == -1)
+	if (locker_wrlock(g.locker) == -1)
 		return NULL;
 
-	if (!(val = mem_strdup(value)))
+	if (!g.init && prop_init() == -1)
+	{
+		locker_unlock(g.locker);
 		return NULL;
+	}
+
+	if (!(val = mem_strdup(value)))
+	{
+		locker_unlock(g.locker);
+		return NULL;
+	}
 
 	if (map_put(g.prop->map, name, val) == -1)
 	{
 		mem_release(val);
+		locker_unlock(g.locker);
 		return NULL;
 	}
 
 	g.dirty = 1;
+
+	if (locker_unlock(g.locker) == -1)
+		return NULL;
+
 	return val;
 }
 
@@ -741,7 +759,7 @@ int prop_get_bool_or(const char *name, int default_value)
 			(buf[1] == 'r' || buf[1] == 'R') &&
 			(buf[2] == 'u' || buf[2] == 'U') &&
 			(buf[3] == 'e' || buf[3] == 'E') &&
-			(buf[4] == '\0'))
+			(buf[4] == nul))
 			return 1;
 
 		if ((buf[0] == 'f' || buf[0] == 'F') &&
@@ -749,29 +767,29 @@ int prop_get_bool_or(const char *name, int default_value)
 			(buf[2] == 'l' || buf[2] == 'L') &&
 			(buf[3] == 's' || buf[3] == 'S') &&
 			(buf[4] == 'e' || buf[4] == 'E') &&
-			(buf[5] == '\0'))
+			(buf[5] == nul))
 			return 0;
 
 		if ((buf[0] == 'y' || buf[0] == 'Y') &&
 			(buf[1] == 'e' || buf[1] == 'E') &&
 			(buf[2] == 's' || buf[2] == 'S') &&
-			(buf[3] == '\0'))
+			(buf[3] == nul))
 			return 1;
 
 		if ((buf[0] == 'n' || buf[0] == 'N') &&
 			(buf[1] == 'o' || buf[1] == 'O') &&
-			(buf[2] == '\0'))
+			(buf[2] == nul))
 			return 0;
 
 		if ((buf[0] == 'o' || buf[0] == 'O') &&
 			(buf[1] == 'n' || buf[1] == 'N') &&
-			(buf[2] == '\0'))
+			(buf[2] == nul))
 			return 1;
 
 		if ((buf[0] == 'o' || buf[0] == 'O') &&
 			(buf[1] == 'f' || buf[1] == 'F') &&
 			(buf[2] == 'f' || buf[2] == 'F') &&
-			(buf[3] == '\0'))
+			(buf[3] == nul))
 			return 0;
 	}
 
@@ -813,13 +831,22 @@ int prop_unset(const char *name)
 {
 	Prop *p;
 
-	if (!g.init && prop_init() == -1)
+	if (locker_wrlock(g.locker) == -1)
 		return -1;
+
+	if (!g.init && prop_init() == -1)
+	{
+		locker_unlock(g.locker);
+		return -1;
+	}
 
 	for (p = g.prop; p; p = p->defaults)
 		map_remove(p->map, name);
 
 	g.dirty = 1;
+
+	if (locker_unlock(g.locker) == -1)
+		return -1;
 
 	return 0;
 }
@@ -856,41 +883,60 @@ int prop_save(void)
 	Lister *k;
 	FILE *file;
 
-	if (!g.dirty)
-		return 0;
-
 	if (!prop_get_bool_or("save", 1))
 		return 0;
 
-	if (!prog_name())
+	if (locker_wrlock(g.locker) == -1)
 		return -1;
 
-	home = user_home();
-	if (!home)
+	if (!g.dirty)
+	{
+		if (locker_unlock(g.locker) == -1)
+			return -1;
+
+		return 0;
+	}
+
+	if (!prog_name())
+	{
+		locker_unlock(g.locker);
 		return -1;
+	}
+
+	if (!(home = user_home()))
+	{
+		locker_unlock(g.locker);
+		return -1;
+	}
 
 	path_len = limit_path();
 
 	if (!(path = mem_create(path_len, char)))
+	{
+		locker_unlock(g.locker);
 		return -1;
+	}
 
 	snprintf(path, path_len, "%s%c.properties", home, PATH_SEP);
 
 	if (stat(path, status) == -1 && mkdir(path, S_IRWXU) == -1)
 	{
 		mem_release(path);
+		locker_unlock(g.locker);
 		return -1;
 	}
 
 	if (stat(path, status) == -1 || S_ISDIR(status->st_mode) == 0)
 	{
 		mem_release(path);
+		locker_unlock(g.locker);
 		return -1;
 	}
 
 	if (!(progname = mem_strdup(prog_name())))
 	{
 		mem_release(path);
+		locker_unlock(g.locker);
 		return -1;
 	}
 
@@ -905,20 +951,28 @@ int prop_save(void)
 	mem_release(path);
 
 	if (!file)
+	{
+		locker_unlock(g.locker);
 		return -1;
+	}
 
 	if (!(keys = map_keys(g.prop->map)))
+	{
+		locker_unlock(g.locker);
 		return -1;
+	}
 
 	if (!list_sort(keys, (list_cmp_t *)key_cmp))
 	{
 		list_release(keys);
+		locker_unlock(g.locker);
 		return -1;
 	}
 
 	if (!(k = lister_create(keys)))
 	{
 		list_release(keys);
+		locker_unlock(g.locker);
 		return -1;
 	}
 
@@ -935,6 +989,7 @@ int prop_save(void)
 			fclose(file);
 			lister_release(k);
 			list_release(keys);
+			locker_unlock(g.locker);
 			return -1;
 		}
 
@@ -946,6 +1001,7 @@ int prop_save(void)
 			lister_release(k);
 			list_release(keys);
 			str_release(lhs);
+			locker_unlock(g.locker);
 			return -1;
 		}
 
@@ -960,6 +1016,7 @@ int prop_save(void)
 			lister_release(k);
 			list_release(keys);
 			str_release(lhs);
+			locker_unlock(g.locker);
 			return -1;
 		}
 
@@ -973,12 +1030,41 @@ int prop_save(void)
 	list_release(keys);
 	g.dirty = 0;
 
+	if (locker_unlock(g.locker) == -1)
+		return -1;
+
+	return 0;
+}
+
+/*
+
+=item C<int prop_locker(Locker *locker)>
+
+Sets the locking strategy for the prop module to C<locker>. This is only
+needed in multi threaded programs. It must only be called once, from the
+main thread. On success, returns C<0>. On error, returns C<-1>.
+
+=cut
+
+*/
+
+int prop_locker(Locker *locker)
+{
+	if (g.locker)
+		return set_errno(EINVAL);
+
+	g.locker = locker;
+
 	return 0;
 }
 
 /*
 
 =back
+
+=head1 MT-Level
+
+MT-Disciplined
 
 =head1 FILES
 
@@ -1022,26 +1108,12 @@ of the same program are setting properties, the last to exit wins.
 
 =head1 SEE ALSO
 
-L<conf(3)|conf(3)>,
-L<daemon(3)|daemon(3)>,
-L<err(3)|err(3)>,
-L<fifo(3)|fifo(3)>,
-L<hsort(3)|hsort(3)>,
-L<lim(3)|lim(3)>,
-L<list(3)|list(3)>,
-L<log(3)|log(3)>,
-L<map(3)|map(3)>,
-L<mem(3)|mem(3)>,
-L<msg(3)|msg(3)>,
-L<net(3)|net(3)>,
-L<opt(3)|opt(3)>,
-L<prog(3)|prog(3)>,
-L<sig(3)|sig(3)>,
-L<str(3)|str(3)>
+L<libslack(3)|libslack(3)>,
+L<prog(3)|prog(3)>
 
 =head1 AUTHOR
 
-20000902 raf <raf@raf.org>
+20010215 raf <raf@raf.org>
 
 =cut
 
@@ -1108,7 +1180,7 @@ static void clean(int has_props)
 	len = strlen(path);
 	snprintf(path + len, path_len - len, "%capp.%s", PATH_SEP, progname);
 	unlink(path);
-	path[len] = '\0';
+	path[len] = nul;
 
 	if (!has_props)
 		rmdir(path);
@@ -1156,7 +1228,7 @@ int main(int ac, char **av)
 		++errors, printf("Test2: prop_get(key) failed (%s not %s)\n", val, value);
 	val = prop_get_or(key, NULL);
 	if (strcmp(val, value))
-		++errors, printf("Test3: prop_get_or(key, null) failed (%s not %s)\n", val, value);
+		++errors, printf("Test3: prop_get_or(key, NULL) failed (%s not %s)\n", val, value);
 	val = prop_get_or(not_key, value);
 	if (strcmp(val, value))
 		++errors, printf("Test4: prop_get_or(not_key, value) failed (%s not %s)\n", val, value);
@@ -1165,7 +1237,7 @@ int main(int ac, char **av)
 		++errors, printf("Test5: prop_unset() failed (%d not %d)\n", ival, 0);
 	val = prop_get(key);
 	if (val != NULL)
-		++errors, printf("Test6: prop_get(key) (after unset) failed (%s not null)\n", val);
+		++errors, printf("Test6: prop_get(key) (after unset) failed (%s not NULL)\n", val);
 	val = prop_get_or(key, value);
 	if (strcmp(val, value))
 		++errors, printf("Test7: prop_get_or(key, value) (after unset) failed (%s not %s)\n", val, value);
@@ -1181,7 +1253,7 @@ int main(int ac, char **av)
 
 	val = prop_get(not_key);
 	if (val != NULL)
-		++errors, printf("Test9: prop_get(not_key) failed (%s not null)\n", val);
+		++errors, printf("Test9: prop_get(not_key) failed (%s not NULL)\n", val);
 	val = prop_get_or(not_key, value);
 	if (val != value)
 		++errors, printf("Test10: prop_get_or(not_key, value) failed (%s not %s)\n", val, value);

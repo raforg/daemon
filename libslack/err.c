@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999, 2000 raf <raf@raf.org>
+* Copyright (C) 1999-2001 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20000902 raf <raf@raf.org>
+* 20010215 raf <raf@raf.org>
 */
 
 /*
@@ -35,16 +35,16 @@ I<libslack(err)> - message/error/debug/verbosity messaging module
     void vmsg(const char *fmt, va_list args);
     void verbose(size_t level, const char *fmt, ...);
     void vverbose(size_t level, const char *fmt, va_list args);
-    void _debug(size_t level, const char *fmt, ...);
-    void _vdebug(size_t level, const char *fmt, va_list args);
+    void debugf(size_t level, const char *fmt, ...);
+    void vdebugf(size_t level, const char *fmt, va_list args);
     int error(const char *fmt, ...);
     int verror(const char *fmt, va_list args);
     void fatal(const char *fmt, ...);
     void vfatal(const char *fmt, va_list args);
     void dump(const char *fmt, ...);
     void vdump(const char *fmt, va_list args);
-    void _debugsys(size_t level, const char *fmt, ...);
-    void _vdebugsys(size_t level, const char *fmt, va_list args);
+    void debugsysf(size_t level, const char *fmt, ...);
+    void vdebugsysf(size_t level, const char *fmt, va_list args);
     int errorsys(const char *fmt, ...);
     int verrorsys(const char *fmt, va_list args);
     void fatalsys(const char *fmt, ...);
@@ -57,7 +57,7 @@ I<libslack(err)> - message/error/debug/verbosity messaging module
     #define vdebug(args)
     #define debugsys(args)
     #define vdebugsys(args)
-    #define assert(test, msg)
+    #define check(test, msg)
 
 =head1 DESCRIPTION
 
@@ -107,6 +107,15 @@ details.
 Outputs a message to the program's normal message destination. C<fmt> is a
 I<printf>-like format string and processes any remaining arguments in the
 same way as I<printf(3)>.
+
+B<Warning: Do not under any circumstances ever pass a non-literal string as
+the fmt argument unless you know exactly how many conversions will take
+place. Being careless with this is a very good way to build potential
+security holes into your programs. The same is true for all functions that
+take a printf()-like format string as an argument.>
+
+    msg(buf);       // EVIL
+    msg("%s", buf); // GOOD
 
 =cut
 
@@ -191,7 +200,7 @@ void vverbose(size_t level, const char *fmt, va_list args)
 
 /*
 
-=item C<void _debug(size_t level, const char *fmt, ...)>
+=item C<void debugf(size_t level, const char *fmt, ...)>
 
 Outputs a debug message to the program's debug message destination if
 C<level> is less than or equal to the current program debug level. If the
@@ -206,29 +215,29 @@ message is followed by a newline.
 
 */
 
-void _debug(size_t level, const char *fmt, ...)
+void debugf(size_t level, const char *fmt, ...)
 {
 	if (prog_debug_level() >= level)
 	{
 		va_list args;
 		va_start(args, fmt);
-		_vdebug(level, fmt, args);
+		vdebugf(level, fmt, args);
 		va_end(args);
 	}
 }
 
 /*
 
-=item C<void _vdebug(size_t level, const char *fmt, va_list args)>
+=item C<void vdebugf(size_t level, const char *fmt, va_list args)>
 
-Equivalent to I<_debug()> with the variable argument list specified
+Equivalent to I<debugf()> with the variable argument list specified
 directly as for I<vprintf(3)>.
 
 =cut
 
 */
 
-void _vdebug(size_t level, const char *fmt, va_list args)
+void vdebugf(size_t level, const char *fmt, va_list args)
 {
 	if (prog_debug_level() >= level)
 	{
@@ -376,7 +385,7 @@ void vdump(const char *fmt, va_list args)
 
 /*
 
-=item C<void _debugsys(size_t level, const char *fmt, ...)>
+=item C<void debugsysf(size_t level, const char *fmt, ...)>
 
 Outputs a debug message to the program's debug message destination if
 C<level> is less than or equal to the current program debug level. If the
@@ -392,36 +401,36 @@ C<errno> and a newline.
 
 */
 
-void _debugsys(size_t level, const char *fmt, ...)
+void debugsysf(size_t level, const char *fmt, ...)
 {
 	if (prog_debug_level() >= level)
 	{
 		va_list args;
 		va_start(args, fmt);
-		_vdebugsys(level, fmt, args);
+		vdebugsysf(level, fmt, args);
 		va_end(args);
 	}
 }
 
 /*
 
-=item C<void _vdebugsys(size_t level, const char *fmt, value args)>
+=item C<void vdebugsysf(size_t level, const char *fmt, value args)>
 
-Equivalent to I<_debugsys()> with the variable argument list specified
+Equivalent to I<debugsysf()> with the variable argument list specified
 directly as for I<vprintf(3)>.
 
 =cut
 
 */
 
-void _vdebugsys(size_t level, const char *fmt, va_list args)
+void vdebugsysf(size_t level, const char *fmt, va_list args)
 {
 	if (prog_debug_level() >= level)
 	{
 		char msg[MSG_SIZE];
 		int errno_saved = errno;
 		vsnprintf(msg, MSG_SIZE, fmt, args);
-		_debug(level, "%s: %s", msg, strerror(errno_saved));
+		debugf(level, "%s: %s", msg, strerror(errno_saved));
 	}
 }
 
@@ -572,56 +581,46 @@ int set_errno(int errnum)
 
 =item C< #define debug(args)>
 
-Calls I<_debug()> unless C<NDEBUG> is defined. C<args> must be supplied with
+Calls I<debugf()> unless C<NDEBUG> is defined. C<args> must be supplied with
 extra parentheses. (e.g. C<debug((1, "rc=%d", rc))>).
 
 =item C< #define vdebug(args)>
 
-Calls I<_vdebug()> unless C<NDEBUG> is defined. C<args> must be supplied
+Calls I<vdebugf()> unless C<NDEBUG> is defined. C<args> must be supplied
 with extra parentheses. (e.g. C<vdebug((1, fmt, args))>).
 
 =item C< #define debugsys(args)>
 
-Calls I<_debugsys()> unless C<NDEBUG> is defined. C<args> must be supplied
+Calls I<debugsysf()> unless C<NDEBUG> is defined. C<args> must be supplied
 with extra parentheses. (e.g. C<debugsys((1, "fd=%d", fd))>).
 
 =item C< #define vdebugsys(args)>
 
-Calls I<_vdebugsys()> unless C<NDEBUG> is defined. C<args> must be supplied
+Calls I<vdebugsysf()> unless C<NDEBUG> is defined. C<args> must be supplied
 with extra parentheses. (e.g. C<vdebugsys((1, fmt, args))>).
 
-=item C< #define assert(test, msg)>
+=item C< #define check(test, msg)>
 
-Like the standard I<assert> but includes a C<msg> argument for including an
-explanation of the test and it calls C<dump()> to terminate the program so
-that the output of the assertion failure message will be sent to the right
-place.
+Like I<assert()> but includes a C<msg> argument for including an explanation
+of the test and it calls C<dump()> to terminate the program so that the
+output of the assertion failure message will be sent to the right place.
 
 =back
 
+=head1 MT-Level
+
+MT-Safe
+
 =head1 SEE ALSO
 
-L<printf(3)|printf(3)>,
-L<conf(3)|conf(3)>,
-L<daemon(3)|daemon(3)>,
-L<fifo(3)|fifo(3)>,
-L<hsort(3)|hsort(3)>,
-L<lim(3)|lim(3)>,
-L<list(3)|list(3)>,
-L<log(3)|log(3)>,
-L<map(3)|map(3)>,
-L<mem(3)|mem(3)>,
+L<libslack(3)|libslack(3)>,
 L<msg(3)|msg(3)>,
-L<net(3)|net(3)>,
-L<opt(3)|opt(3)>,
 L<prog(3)|prog(3)>,
-L<prop(3)|prop(3)>,
-L<sig(3)|sig(3)>,
-L<str(3)|str(3)>
+L<printf(3)|printf(3)>
 
 =head1 AUTHOR
 
-20000902 raf <raf@raf.org>
+20010215 raf <raf@raf.org>
 
 =cut
 
@@ -636,7 +635,7 @@ L<str(3)|str(3)>
 #include <sys/types.h>
 #include <sys/stat.h>
 
-static int verify(int test, const char *name, const char *result)
+int verify(int test, const char *name, const char *result)
 {
 	char buf[BUFSIZ];
 	int fd;
@@ -668,7 +667,7 @@ static int verify(int test, const char *name, const char *result)
 	return 0;
 }
 
-static int verifysys(int test, const char *name, const char *result, int err)
+int verifysys(int test, const char *name, const char *result, int err)
 {
 	char buf[BUFSIZ];
 
@@ -715,7 +714,7 @@ int main(int ac, char **av)
 	errors += verify(2, out, results[1]);
 
 	prog_dbg_file(dbg);
-	_debug(0, "debug");
+	debugf(0, "debug");
 	errors += verify(3, dbg, results[2]);
 
 	prog_err_file(err);
@@ -739,19 +738,19 @@ int main(int ac, char **av)
 
 		default:
 		{
-			int status[1];
+			int status;
 
-			if (waitpid(pid, status, 0) == -1)
+			if (waitpid(pid, &status, 0) == -1)
 			{
 				++errors, printf("Test5: failed to wait for test - waitpid(%d) failed (%s)\n", (int)pid, strerror(errno));
 				break;
 			}
 
-			if (WIFSIGNALED(*status) && WTERMSIG(*status) != SIGABRT)
-				++errors, printf("Test5: failed: received signal %d\n", WTERMSIG(*status));
+			if (WIFSIGNALED(status) && WTERMSIG(status) != SIGABRT)
+				++errors, printf("Test5: failed: received signal %d\n", WTERMSIG(status));
 
-			if (WIFEXITED(*status) && WEXITSTATUS(*status) != 1)
-				++errors, printf("Test5: failed: exit status %d\n", WEXITSTATUS(*status));
+			if (WIFEXITED(status) && WEXITSTATUS(status) != 1)
+				++errors, printf("Test5: failed: exit status %d\n", WEXITSTATUS(status));
 		}
 	}
 
@@ -776,19 +775,19 @@ int main(int ac, char **av)
 		default:
 		{
 			struct stat statbuf[1];
-			int status[1];
+			int status;
 
-			if (waitpid(pid, status, 0) == -1)
+			if (waitpid(pid, &status, 0) == -1)
 			{
 				++errors, printf("Test6: failed to wait for test - waitpid(%d) failed (%s)\n", (int)pid, strerror(errno));
 				break;
 			}
 
-			if (WIFSIGNALED(*status) && WTERMSIG(*status) != SIGABRT)
-				++errors, printf("Test6: failed: received signal %d\n", WTERMSIG(*status));
+			if (WIFSIGNALED(status) && WTERMSIG(status) != SIGABRT)
+				++errors, printf("Test6: failed: received signal %d\n", WTERMSIG(status));
 
-			if (WIFEXITED(*status) && WEXITSTATUS(*status) != 1)
-				++errors, printf("Test6: failed: exit status %d\n", WEXITSTATUS(*status));
+			if (WIFEXITED(status) && WEXITSTATUS(status) != 1)
+				++errors, printf("Test6: failed: exit status %d\n", WEXITSTATUS(status));
 
 			if (stat(core, statbuf) == -1 && errno == ENOENT)
 				++errors, printf("Test6: failed: no core file produced\n");
@@ -801,7 +800,7 @@ int main(int ac, char **av)
 
 	prog_dbg_file(dbg);
 	set_errno(EPERM);
-	_debugsys(0, "debugsys");
+	debugsysf(0, "debugsys");
 	errors += verifysys(7, dbg, results[6], EPERM);
 
 	prog_err_file(err);
@@ -827,20 +826,20 @@ int main(int ac, char **av)
 
 		default:
 		{
-			int status[1];
+			int status;
 
-			if (waitpid(pid, status, 0) == -1)
+			if (waitpid(pid, &status, 0) == -1)
 			{
 				++errors;
 				printf("Test9: failed to wait for test - waitpid(%d) failed (%s)\n", (int)pid, strerror(errno));
 				break;
 			}
 
-			if (WIFSIGNALED(*status) && WTERMSIG(*status) != SIGABRT)
-				++errors, printf("Test9: failed: received signal %d\n", WTERMSIG(*status));
+			if (WIFSIGNALED(status) && WTERMSIG(status) != SIGABRT)
+				++errors, printf("Test9: failed: received signal %d\n", WTERMSIG(status));
 
-			if (WIFEXITED(*status) && WEXITSTATUS(*status) != 1)
-				++errors, printf("Test9: failed: exit status %d\n", WEXITSTATUS(*status));
+			if (WIFEXITED(status) && WEXITSTATUS(status) != 1)
+				++errors, printf("Test9: failed: exit status %d\n", WEXITSTATUS(status));
 		}
 	}
 
@@ -866,20 +865,20 @@ int main(int ac, char **av)
 		default:
 		{
 			struct stat statbuf[1];
-			int status[1];
+			int status;
 
-			if (waitpid(pid, status, 0) == -1)
+			if (waitpid(pid, &status, 0) == -1)
 			{
 				++errors;
 				printf("Test10: failed to wait for test - waitpid(%d) failed (%s)\n", (int)pid, strerror(errno));
 				break;
 			}
 
-			if (WIFSIGNALED(*status) && WTERMSIG(*status) != SIGABRT)
-				++errors, printf("Test10: failed: received signal %d\n", WTERMSIG(*status));
+			if (WIFSIGNALED(status) && WTERMSIG(status) != SIGABRT)
+				++errors, printf("Test10: failed: received signal %d\n", WTERMSIG(status));
 
-			if (WIFEXITED(*status) && WEXITSTATUS(*status) != 1)
-				++errors, printf("Test10: failed: exit status %d\n", WEXITSTATUS(*status));
+			if (WIFEXITED(status) && WEXITSTATUS(status) != 1)
+				++errors, printf("Test10: failed: exit status %d\n", WEXITSTATUS(status));
 
 			if (stat(core, statbuf) == -1 && errno == ENOENT)
 				++errors, printf("Test10: failed: no core file produced\n");
@@ -889,6 +888,10 @@ int main(int ac, char **av)
 	}
 
 	errors += verifysys(10, err, results[9], ENOENT);
+
+	prog_out_none();
+	prog_err_none();
+	prog_dbg_none();
 
 	if (errors)
 		printf("%d/10 tests failed\n", errors);

@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999, 2000 raf <raf@raf.org>
+* Copyright (C) 1999-2001 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20000902 raf <raf@raf.org>
+* 20010215 raf <raf@raf.org>
 */
 
 /*
@@ -42,34 +42,31 @@ Note that this may not be identical in behaviour to the I<sscanf(3)> on your
 system because this was implemented from scratch for systems that lack
 I<vsscanf()>. So your I<sscanf(3)> and this I<vsscanf()> share no common
 code. Your I<sscanf(3)> may support extensions that I<vsscanf()> does not
-support. I<vsscanf()> complies with most of the ANSI C requirements for
-I<sscanf()> except:
+support. I<vsscanf()> complies with all of the relevant ANSI C requirements
+for I<sscanf()> except:
 
 =over 4
 
 =item *
 
-C<fmt> may not be a multibyte character string;
-
-=item *
-
-The current locale is ignored; and
+C<fmt> may not be a multibyte character string; and
 
 =item *
 
 Scanning a pointer (C<"%p">) may not exactly match the format that your
-I<printf(3)> uses to print pointers on your system.
+I<printf(3)> uses to print pointers on your system. This version accepts
+pointers as a hexadecimal number with or without a preceeded C<0x>.
 
 =back
 
-=head1 BUGS
+=head1 MT-Level
 
-Does not support multibyte C<fmt> string.
-
-The current locale is ignored.
-
-Scanning C<"%p"> might not exactly match the format used by I<printf(3)> on
-your system.
+MT-Safe if and only if no thread calls I<setlocale(3)>. Since locales are
+inherently non-threadsafe as they are currently defined, this shouldn't be a
+problem. Just call C<setlocale(LC_ALL, "")> once after program initialisation
+and never again (at least not after creating any threads). If it is a problem,
+just change C<localeconv()->decimal_point[0]> in the source to C<'.'> and it
+will be MT-Safe at the expense of losing locale support.
 
 =head1 NOTE
 
@@ -90,11 +87,12 @@ I<vsscanf()>, just ignore them.
 
 =head1 SEE ALSO
 
+L<libslack(3)|libslack(3)>,
 L<sscanf(3)|sscanf(3)>
 
 =head1 AUTHOR
 
-20000902 raf <raf@raf.org>
+20010215 raf <raf@raf.org>
 
 =cut
 
@@ -102,9 +100,12 @@ L<sscanf(3)|sscanf(3)>
 
 #include "std.h"
 
+#include <locale.h>
+
 int vsscanf(const char *str, const char *fmt, va_list args)
 {
 	const char *f, *s;
+	const char point = localeconv()->decimal_point[0];
 	int cnv = 0;
 
 	for (s = str, f = fmt; *f; ++f)
@@ -118,14 +119,14 @@ int vsscanf(const char *str, const char *fmt, va_list args)
 			if (*++f == '*')
 				++f, do_cnv = 0;
 
-			for (; isdigit((int)*f); ++f)
+			for (; isdigit((int)(unsigned int)*f); ++f)
 				width *= 10, width += *f - '0';
 
 			if (*f == 'h' || *f == 'l' || *f == 'L')
 				size = *f++;
 
 			if (*f != '[' && *f != 'c' && *f != 'n')
-				while (isspace((int)*s))
+				while (isspace((int)(unsigned int)*s))
 					++s;
 
 #define COPY                         *b++ = *s++, --width
@@ -138,10 +139,10 @@ int vsscanf(const char *str, const char *fmt, va_list args)
 				case 'd': case 'i': case 'o': case 'u': case 'x': case 'X':
 				case 'p':
 				{
-					static char types[] = "diouxXp";
-					static int bases[] = { 10, 0, 8, 10, 16, 16, 16 };
-					static char digitset[] = "0123456789abcdefABCDEF";
-					static int setsizes[] = { 10, 0, 0, 0, 0, 0, 0, 0, 8, 0, 10, 0, 0, 0, 0, 0, 22 };
+					static const char types[] = "diouxXp";
+					static const int bases[] = { 10, 0, 8, 10, 16, 16, 16 };
+					static const char digitset[] = "0123456789abcdefABCDEF";
+					static const int setsizes[] = { 10, 0, 0, 0, 0, 0, 0, 0, 8, 0, 10, 0, 0, 0, 0, 0, 22 };
 					int base = bases[strchr(types, *f) - types];
 					int setsize;
 					char buf[513];
@@ -193,13 +194,13 @@ int vsscanf(const char *str, const char *fmt, va_list args)
 					int digit = 0;
 					if (width <= 0 || width > 512) width = 512;
 					MATCH(*s == '+' || *s == '-')
-					MATCHES_ACTION(isdigit((int)*s), digit = 1)
-					MATCH(*s == '.')
-					MATCHES_ACTION(isdigit((int)*s), digit = 1)
+					MATCHES_ACTION(isdigit((int)(unsigned int)*s), digit = 1)
+					MATCH(*s == point)
+					MATCHES_ACTION(isdigit((int)(unsigned int)*s), digit = 1)
 					MATCHES_ACTION(digit && (*s == 'e' || *s == 'E'),
 						MATCH(*s == '+' || *s == '-')
 						digit = 0;
-						MATCHES_ACTION(isdigit((int)*s), digit = 1)
+						MATCHES_ACTION(isdigit((int)(unsigned int)*s), digit = 1)
 					)
 					if (!digit) return FAIL;
 					*b = '\0';
@@ -221,7 +222,7 @@ int vsscanf(const char *str, const char *fmt, va_list args)
 				{
 					char *arg = va_arg(args, char *);
 					if (width <= 0) width = INT_MAX;
-					while (width-- && *s && !isspace((int)*s))
+					while (width-- && *s && !isspace((int)(unsigned int)*s))
 						if (do_cnv) *arg++ = *s++;
 					if (do_cnv) *arg = '\0', ++cnv;
 					break;
@@ -236,7 +237,7 @@ int vsscanf(const char *str, const char *fmt, va_list args)
 					if (width <= 0) width = INT_MAX;
 					if (*++f == '^') setcomp = 1, ++f;
 					end = strchr((*f == ']') ? f + 1 : f, ']');
-					if (!end) return FAIL;
+					if (!end) return FAIL; /* Should be cnv to match glibc-2.2 */
 					setsize = end - f;
 					while (width-- && *s)
 					{
@@ -283,11 +284,11 @@ int vsscanf(const char *str, const char *fmt, va_list args)
 					return FAIL;
 			}
 		}
-		else if (isspace((int)*f))
+		else if (isspace((int)(unsigned int)*f))
 		{
-			while (isspace((int)f[1]))
+			while (isspace((int)(unsigned int)f[1]))
 				++f;
-			while (isspace((int)*s))
+			while (isspace((int)(unsigned int)*s))
 				++s;
 		}
 		else
@@ -340,6 +341,8 @@ int main(int ac, char **av)
 	int rc1, rc2;
 
 	printf("Testing: vsscanf\n");
+
+	/* Test one of everything */
 
 	sprintf(str, " abc -12 37 101 3.4e-1 12.34 102.23 xyz %p def ghi jkl %% ",
 		p1 = (void *)0xdeadbeef
@@ -430,6 +433,11 @@ int main(int ac, char **av)
 	TEST_NUM(29, u, 'X', "123456789", "%3hx %2X %4lX");
 	TEST_STR(30, 1, "abcd", "%1[a]%c%1s");
 
+	TEST_STR(31, 5, "abc\001d e f g h i", "%5[][abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789`~!@#$%^&*()_=+\\|{};':\",./<>? 	-]%5c%5s");
+	TEST_STR(32, 3, "abc\001d e f g h i", "%3[][abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789`~!@#$%^&*()_=+\\|{};':\",./<>? 	-]%3c%3s");
+	TEST_STR(33, 7, "abc\001d e f g h i", "%7[][abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789`~!@#$%^&*()_=+\\|{};':\",./<>? 	-]%7c%7s");
+	TEST_STR(34, 2, "abc\001d e f g h i", "%2[][abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789`~!@#$%^&*()_=+\\|{};':\",./<>? 	-]%2c%2s");
+
 	/* Test error reporting */
 
 #define TEST_ERR(i, str, fmt) \
@@ -444,25 +452,25 @@ int main(int ac, char **av)
 	if (rc1 != rc2) \
 		++errors, printf("Test%d: failed (returned %d, not %d)\n", (i), rc2, rc1)
 
-	TEST_ERR_ARG(31, "", "%d", i);
-	TEST_ERR_ARG(32, "", "%i", i);
-	TEST_ERR_ARG(33, "", "%o", u);
-	TEST_ERR_ARG(34, "", "%u", u);
-	TEST_ERR_ARG(35, "", "%x", u);
-	TEST_ERR_ARG(36, "", "%X", u);
-	TEST_ERR_ARG(37, "", "%p", p);
-	TEST_ERR_ARG(38, "", "%e", f);
-	TEST_ERR_ARG(39, "", "%E", f);
-	TEST_ERR_ARG(40, "", "%f", f);
-	TEST_ERR_ARG(41, "", "%g", f);
-	TEST_ERR_ARG(42, "", "%G", f);
-	TEST_ERR_ARG(43, "", "%[^]", *b);
-	TEST_ERR_ARG(44, "", "%c", *c);
-	TEST_ERR(45, "a", "%%");
-	TEST_ERR(46, "a", "b");
+	TEST_ERR_ARG(35, "", "%d", i);
+	TEST_ERR_ARG(36, "", "%i", i);
+	TEST_ERR_ARG(37, "", "%o", u);
+	TEST_ERR_ARG(38, "", "%u", u);
+	TEST_ERR_ARG(39, "", "%x", u);
+	TEST_ERR_ARG(40, "", "%X", u);
+	TEST_ERR_ARG(41, "", "%p", p);
+	TEST_ERR_ARG(42, "", "%e", f);
+	TEST_ERR_ARG(43, "", "%E", f);
+	TEST_ERR_ARG(44, "", "%f", f);
+	TEST_ERR_ARG(45, "", "%g", f);
+	TEST_ERR_ARG(46, "", "%G", f);
+	TEST_ERR_ARG(47, "", "%[^]", *b);
+	TEST_ERR_ARG(48, "", "%c", *c);
+	TEST_ERR(49, "a", "%%");
+	TEST_ERR(50, "a", "b");
 
 	if (errors)
-		printf("%d/46 tests failed\n", errors);
+		printf("%d/50 tests failed\n", errors);
 	else
 		printf("All tests passed\n");
 

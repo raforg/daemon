@@ -1,0 +1,6 @@
+This directory contains some trivial demonstrations of daemon(1):
+
+    demo1
+    demo2
+
+See client1 and client2 for details.

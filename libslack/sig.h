@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999, 2000 raf <raf@raf.org>
+* Copyright (C) 1999-2001 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,24 +18,26 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20000902 raf <raf@raf.org>
+* 20010215 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_SIG_H
 #define LIBSLACK_SIG_H
 
+#include <signal.h>
+
 #include <slack/hdr.h>
 
 typedef void sighandler_t(int signo);
 
-__START_DECLS
-int signal_set_handler __PROTO ((int signo, int flags, sighandler_t *handler));
-int signal_addset __PROTO ((int signo_handled, int signo_masked));
-int signal_received __PROTO ((int signo));
-int signal_raise __PROTO ((int signo));
-int signal_handle __PROTO ((int signo));
-void signal_handle_all __PROTO ((void));
-__STOP_DECLS
+_start_decls
+int signal_set_handler _args ((int signo, int flags, sighandler_t *handler));
+int signal_addset _args ((int signo_handled, int signo_masked));
+int signal_received _args ((int signo));
+int signal_raise _args ((int signo));
+int signal_handle _args ((int signo));
+void signal_handle_all _args ((void));
+_end_decls
 
 #endif
 

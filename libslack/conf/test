@@ -2,7 +2,7 @@
 #
 # libslack - http://libslack.org/
 #
-# Copyright (C) 1999, 2000 raf <raf@raf.org>
+# Copyright (C) 1999-2001 raf <raf@raf.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,13 +22,18 @@
 
 # Modify the macros.mk make include files to compile on solaris
 #
-# 20000902 raf <raf@raf.org>
+# 20010215 raf <raf@raf.org>
 
-exec perl -pi \
+perl -pi \
 	-e 's/^# (GETOPT := getopt)$/$1/;' \
 	-e 's/^# (\S+ \+= -DNEEDS_GETOPT=1)$/$1/;' \
-	-e 's/^# (SNPRINTF := snprintf)$/$1/;' \
-	-e 's/^# (\S+ \+= -DNEEDS_SNPRINTF=1)$/$1/;' \
 	-e 's/^# (VSSCANF := vsscanf)$/$1/;' \
 	-e 's/^# (\S+ \+= -DNEEDS_VSSCANF=1)$/$1/;' \
+	-e 's/^# (\S+ \+= -DNEEDS_STRCASECMP=1)$/$1/;' \
+	-e 's/^# (\S+ \+= -DNEEDS_STRNCASECMP=1)$/$1/;' \
+	-e 's/^# (\S+ \+= -DNEEDS_STRLCPY=1)$/$1/;' \
+	-e 's/^# (\S+ \+= -DNEEDS_STRLCAT=1)$/$1/;' \
 	`find . -name macros.mk`
+
+#	-e 's/^# (SNPRINTF := snprintf)$/$1/;' \
+#	-e 's/^# (\S+ \+= -DNEEDS_SNPRINTF=1)$/$1/;' \

@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999, 2000 raf <raf@raf.org>
+* Copyright (C) 1999-2001 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20000902 raf <raf@raf.org>
+* 20010215 raf <raf@raf.org>
 */
 
 /*
@@ -34,23 +34,28 @@ I<libslack(map)> - map module
     typedef struct Map Map;
     typedef struct Mapper Mapper;
     typedef struct Mapping Mapping;
-    typedef list_destroy_t map_destroy_t;
+    typedef list_release_t map_release_t;
     typedef list_copy_t map_copy_t;
     typedef list_cmp_t map_cmp_t;
     typedef size_t map_hash_t(size_t table_size, const void *key);
     typedef void map_action_t(void *key, void *item, void *data);
 
-    Map *map_create(map_destroy_t *destroy);
-    Map *map_create_sized(size_t size, map_destroy_t *destroy);
-    Map *map_create_with_hash(map_hash_t *hash, map_destroy_t *destroy);
-    Map *map_create_with_hash_sized(size_t size, map_hash_t *hash, map_destroy_t *destroy);
-    Map *map_create_generic(map_copy_t *copy, map_cmp_t *cmp, map_hash_t *hash, map_destroy_t *key_destroy, map_destroy_t *value_destroy);
-    Map *map_create_generic_sized(size_t size, map_copy *copy, map_cmp_t *cmp, map_hash_t *hash, map_destroy_t *key_destroy, map_destroy_t *value_destroy);
+    Map *map_create(map_release_t *destroy);
+    Map *map_create_sized(size_t size, map_release_t *destroy);
+    Map *map_create_with_hash(map_hash_t *hash, map_release_t *destroy);
+    Map *map_create_sized_with_hash(size_t size, map_hash_t *hash, map_release_t *destroy);
+    Map *map_create_locked(Locker *locker, map_release_t *destroy);
+    Map *map_create_locked_sized(size_t size, Locker *locker, map_release_t *destroy);
+    Map *map_create_locked_with_hash(Locker *locker, map_hash_t *hash, map_release_t *destroy);
+    Map *map_create_locked_sized_with_hash(size_t size, Locker *locker, map_hash_t *hash, map_release_t *destroy);
+    Map *map_create_generic(map_copy_t *copy, map_cmp_t *cmp, map_hash_t *hash, map_release_t *key_destroy, map_release_t *value_destroy);
+    Map *map_create_generic_sized(size_t size, map_copy *copy, map_cmp_t *cmp, map_hash_t *hash, map_release_t *key_destroy, map_release_t *value_destroy);
+    Map *map_create_generic_locked(Locker *locker, map_copy_t *copy, map_cmp_t *cmp, map_hash_t *hash, map_release_t *key_destroy, map_release_t *value_destroy);
+    Map *map_create_generic_locked_sized(Locker *locker, size_t size, map_copy *copy, map_cmp_t *cmp, map_hash_t *hash, map_release_t *key_destroy, map_release_t *value_destroy);
     void map_release(Map *map);
-    #define map_destroy(map)
-    void *map_destroy_func(Map **map);
-    int map_own(Map *map, map_destroy_t *destroy);
-    map_destroy_t *map_disown(Map *map);
+    void *map_destroy(Map **map);
+    int map_own(Map *map, map_release_t *destroy);
+    map_release_t *map_disown(Map *map);
     int map_add(Map *map, const void *key, void *value);
     int map_put(Map *map, const void *key, void *value);
     int map_insert(Map *map, const void *key, void *value, int replace);
@@ -58,13 +63,13 @@ I<libslack(map)> - map module
     void *map_get(const Map *map, const void *key);
     Mapper *mapper_create(Map *map);
     void mapper_release(Mapper *mapper);
-    #define mapper_destroy(mapper)
-    void *mapper_destroy_func(Mapper **mapper);
+    void *mapper_destroy(Mapper **mapper);
     int mapper_has_next(Mapper *mapper);
     void *mapper_next(Mapper *mapper);
     const Mapping *mapper_next_mapping(Mapper *mapper);
     void mapper_remove(Mapper *mapper);
     int map_has_next(Map *map);
+    void map_break(Map *map);
     void *map_next(Map *map);
     const Mapping *map_next_mapping(Map *map);
     void map_remove_current(Map *map);
@@ -73,18 +78,18 @@ I<libslack(map)> - map module
     List *map_keys(Map *map);
     List *map_values(Map *map);
     void map_apply(Map *, map_action_t *action, void *data);
-    ssize_t map_size(const Map *map);
+    size_t map_size(const Map *map);
 
 =head1 DESCRIPTION
 
 This module provides functions for manipulating and iterating over a set of
 mappings from strings to homogeneous data (or heterogeneous data if it's
-polymorphic), also known as associative arrays. I<Maps> may own their items.
-I<Maps> created with a non-C<NULL> destroy function use that function to
-destroy an item when it is removed from the map and to destroy each item
-when the map itself it destroyed. I<Maps> are hash tables with 11 buckets
-by default. They grow when necessary, approximately doubling in size each
-time up to a maximum size of 26,214,401 buckets.
+polymorphic), also known as hashes or associative arrays. I<Maps> may own
+their items. I<Maps> created with a non-C<NULL> destroy function use that
+function to destroy an item when it is removed from the map and to destroy
+each item when the map itself it destroyed. I<Maps> are hash tables with 11
+buckets by default. They grow when necessary, approximately doubling in size
+each time up to a maximum size of 26,214,401 buckets.
 
 =over 4
 
@@ -97,6 +102,7 @@ time up to a maximum size of 26,214,401 buckets.
 #include "map.h"
 #include "mem.h"
 #include "err.h"
+#include "thread.h"
 
 struct Map
 {
@@ -106,21 +112,25 @@ struct Map
 	map_hash_t *hash;             /* hash function */
 	map_copy_t *copy;             /* key copy function */
 	map_cmp_t *cmp;               /* key comparison function */
-	map_destroy_t *key_destroy;   /* destructor function for keys */
-	map_destroy_t *value_destroy; /* destructor function for items */
+	map_release_t *key_destroy;   /* destructor function for keys */
+	map_release_t *value_destroy; /* destructor function for items */
 	Mapper *mapper;               /* built-in iterator */
+	Locker *locker;               /* locking strategy for this object */
 };
 
 struct Mapping
 {
 	void *key;                    /* a map key */
 	void *value;                  /* a map value */
-	map_destroy_t *key_destroy;   /* destructor function for key */
-	map_destroy_t *value_destroy; /* destructor function for value */
+	map_release_t *key_destroy;   /* destructor function for key */
+	map_release_t *value_destroy; /* destructor function for value */
 };
 
 struct Mapper
 {
+	pthread_mutex_t lock;     /* lock for this object */
+	pthread_t owner;          /* the thread that owns the lock */
+	int owned;                /* have we locked map? */
 	Map *map;                 /* the map being iterated over */
 	ssize_t chain_index;      /* the index of the chain of the current item */
 	ssize_t item_index;       /* the index of the current item */
@@ -178,18 +188,16 @@ static size_t hash(size_t size, const void *key)
 {
 	const unsigned char *k = key;
 	size_t h = 0;
-	const int multiplier = 31;
-	/* const int multiplier = 37; */
 
 	while (*k)
-		h *= multiplier, h += *k++;
+		h *= 31, h += *k++;
 
 	return h % size;
 }
 
 /*
 
-C<Mapping *mapping_create(const void *key, void *value, map_destroy_t *destroy)>
+C<Mapping *mapping_create(const void *key, void *value, map_release_t *destroy)>
 
 Creates a new mapping from C<key> to C<value>. C<destroy> is the destructor
 function for C<value>. On success, returns the new mapping. On error, returns
@@ -197,7 +205,7 @@ C<NULL>.
 
 */
 
-static Mapping *mapping_create(void *key, void *value, map_destroy_t *key_destroy, map_destroy_t *value_destroy)
+static Mapping *mapping_create(void *key, void *value, map_release_t *key_destroy, map_release_t *value_destroy)
 {
 	Mapping *mapping;
 
@@ -236,23 +244,23 @@ static void mapping_release(Mapping *mapping)
 
 /*
 
-=item C<Map *map_create(map_destroy_t *destroy)>
+=item C<Map *map_create(map_release_t *destroy)>
 
-Creates a I<Map> with strings keys, 11 buckets and C<destroy> as its item
+Creates a I<Map> with string keys, 11 buckets and C<destroy> as its item
 destructor. On success, returns the new map. On error, returns C<NULL>.
 
 =cut
 
 */
 
-Map *map_create(map_destroy_t *destroy)
+Map *map_create(map_release_t *destroy)
 {
-	return map_create_with_hash_sized(table_sizes[0], (map_hash_t *)hash, destroy);
+	return map_create_sized_with_hash(table_sizes[0], (map_hash_t *)hash, destroy);
 }
 
 /*
 
-=item C<Map *map_create_sized(size_t size, map_destroy_t *destroy)>
+=item C<Map *map_create_sized(size_t size, map_release_t *destroy)>
 
 Creates a I<Map> with string keys, approximately C<size> buckets and
 C<destroy> as its item destructor. The actual size will be the first prime
@@ -264,14 +272,14 @@ error, returns C<NULL>.
 
 */
 
-Map *map_create_sized(size_t size, map_destroy_t *destroy)
+Map *map_create_sized(size_t size, map_release_t *destroy)
 {
-	return map_create_with_hash_sized(size, (map_hash_t *)hash, destroy);
+	return map_create_sized_with_hash(size, (map_hash_t *)hash, destroy);
 }
 
 /*
 
-=item C<Map *map_create_with_hash(map_hash_t *hash, map_destroy_t *destroy)>
+=item C<Map *map_create_with_hash(map_hash_t *hash, map_release_t *destroy)>
 
 Creates a I<Map> with strings keys, 11 buckets, C<hash> as the hash function
 and C<destroy> as its item destructor. On success, returns the new map. On
@@ -283,14 +291,14 @@ returns a C<size_t> between zero and the table size - 1.
 
 */
 
-Map *map_create_with_hash(map_hash_t *hash, map_destroy_t *destroy)
+Map *map_create_with_hash(map_hash_t *hash, map_release_t *destroy)
 {
-	return map_create_with_hash_sized(table_sizes[0], hash, destroy);
+	return map_create_sized_with_hash(table_sizes[0], hash, destroy);
 }
 
 /*
 
-=item C<Map *map_create_with_hash_sized(size_t size, map_hash_t *hash, map_destroy_t *destroy)>
+=item C<Map *map_create_sized_with_hash(size_t size, map_hash_t *hash, map_release_t *destroy)>
 
 Creates a I<Map> with string keys, approximately C<size> buckets, C<hash> as
 its hash function and C<destroy> as its item destructor. The actual size
@@ -305,14 +313,94 @@ the table size - 1.
 
 */
 
-Map *map_create_with_hash_sized(size_t size, map_hash_t *hash, map_destroy_t *destroy)
+Map *map_create_sized_with_hash(size_t size, map_hash_t *hash, map_release_t *destroy)
 {
-	return map_create_generic_sized(size, (map_copy_t *)mem_strdup, (map_cmp_t *)strcmp, hash, (map_destroy_t *)free, destroy);
+	return map_create_generic_sized(size, (map_copy_t *)mem_strdup, (map_cmp_t *)strcmp, hash, (map_release_t *)free, destroy);
 }
 
 /*
 
-=item C<Map *map_create_generic(map_copy_t *copy, map_cmp_t *cmp, map_hash_t *hash, map_destroy_t *key_destroy, map_destroy_t *value_destroy;)>
+=item C<Map *map_create_locked(Locker *locker, map_release_t *destroy)>
+
+Creates a I<Map> with string keys, 11 buckets and C<destroy> as its item
+destructor. Multiple threads accessing this map will be synchronised by
+C<locker>. On success, returns the new map. On error, returns C<NULL>.
+
+=cut
+
+*/
+
+Map *map_create_locked(Locker *locker, map_release_t *destroy)
+{
+	return map_create_locked_sized_with_hash(locker, table_sizes[0], (map_hash_t *)hash, destroy);
+}
+
+/*
+
+=item C<Map *map_create_locked_sized(Locker *locker, size_t size, map_release_t *destroy)>
+
+Creates a I<Map> with string keys, approximately C<size> buckets and
+C<destroy> as its item destructor. Multiple threads accessing this map will
+be synchronised by C<locker>. The actual size will be the first prime
+greater than or equal to C<size> in a prebuilt sequence of primes between 11
+and 26,214,401 that double at each step. On success, returns the new map. On
+error, returns C<NULL>.
+
+=cut
+
+*/
+
+Map *map_create_locked_sized(Locker *locker, size_t size, map_release_t *destroy)
+{
+	return map_create_locked_sized_with_hash(locker, size, (map_hash_t *)hash, destroy);
+}
+
+/*
+
+=item C<Map *map_create_locked_with_hash(Locker *locker, map_hash_t *hash, map_release_t *destroy)>
+
+Creates a I<Map> with strings keys, 11 buckets, C<hash> as the hash function
+and C<destroy> as its item destructor. Multiple threads accessing this map
+will be synchronised by C<locker>. On success, returns the new map. On
+error, returns C<NULL>. The arguments to C<hash> are a C<size_t> specifying
+the number of buckets and a C<const void *> specifying the key to hash. It
+returns a C<size_t> between zero and the table size - 1.
+
+=cut
+
+*/
+
+Map *map_create_locked_with_hash(Locker *locker, map_hash_t *hash, map_release_t *destroy)
+{
+	return map_create_locked_sized_with_hash(locker, table_sizes[0], hash, destroy);
+}
+
+/*
+
+=item C<Map *map_create_locked_sized_with_hash(Locker *locker, size_t size, map_hash_t *hash, map_release_t *destroy)>
+
+Creates a I<Map> with string keys, approximately C<size> buckets, C<hash> as
+its hash function and C<destroy> as its item destructor. The actual size
+will be the first prime greater than or equal to C<size> in a built in
+sequence of primes between 11 and 26,214,401 that double at each step.
+Multiple threads accessing this map will be synchronised by C<locker>. On
+success, returns the new map. On error, returns C<NULL>. The arguments to
+C<hash> are a C<size_t> specifying the number of buckets and a C<const void
+*> specifying the key to hash. It must return a C<size_t> between zero and
+the table size - 1.
+
+=cut
+
+*/
+
+Map *map_create_locked_sized_with_hash(Locker *locker, size_t size, map_hash_t *hash, map_release_t *destroy)
+{
+	return map_create_generic_locked_sized(locker, size, (map_copy_t *)mem_strdup, (map_cmp_t *)strcmp, hash, (map_release_t *)free, destroy);
+}
+
+/*
+
+=item C<Map *map_create_generic(map_copy_t *copy, map_cmp_t *cmp, map_hash_t *hash, map_release_t *key_destroy, map_release_t *value_destroy)>
 
 Creates a I<Map> with arbitrary keys, 11 buckets, C<copy> as its key copy
 function, C<cmp> as its key comparison function, C<hash> as its hash
@@ -329,18 +417,18 @@ hash. It must return a C<size_t> between zero and the table size - 1.
 
 */
 
-Map *map_create_generic(map_copy_t *copy, map_cmp_t *cmp, map_hash_t *hash, map_destroy_t *key_destroy, map_destroy_t *value_destroy)
+Map *map_create_generic(map_copy_t *copy, map_cmp_t *cmp, map_hash_t *hash, map_release_t *key_destroy, map_release_t *value_destroy)
 {
-	return map_create_generic_sized(table_sizes[0], copy, cmp, hash, key_destroy, value_destroy);
+	return map_create_generic_locked_sized(NULL, table_sizes[0], copy, cmp, hash, key_destroy, value_destroy);
 }
 
 /*
 
-=item C<Map *map_create_generic(map_copy_t *copy, map_cmp_t *cmp, map_hash_t *hash, map_destroy_t *key_destroy, map_destroy_t *value_destroy)>
+=item C<Map *map_create_generic_sized(size_t size, map_copy_t *copy, map_cmp_t *cmp, map_hash_t *hash, map_release_t *key_destroy, map_release_t *value_destroy)>
 
 Creates a I<Map> with arbitrary keys, approximately C<size> buckets, C<copy>
 as its key copy function, C<cmp> as its key comparison function, C<hash> as
-its hash function, C<key_destroy> as its key destrouctor and
+its hash function, C<key_destroy> as its key destructor and
 C<value_destroy> as its item destructor. The actual size will be the first
 prime greater than or equal to C<size> in a built in sequence of primes
 between 11 and 26,214,401 that double at each step. On success, returns the
@@ -356,7 +444,60 @@ between zero and the table size - 1.
 
 */
 
-Map *map_create_generic_sized(size_t size, map_copy_t *copy, map_cmp_t *cmp, map_hash_t *hash, map_destroy_t *key_destroy, map_destroy_t *value_destroy)
+Map *map_create_generic_sized(size_t size, map_copy_t *copy, map_cmp_t *cmp, map_hash_t *hash, map_release_t *key_destroy, map_release_t *value_destroy)
+{
+	return map_create_generic_locked_sized(NULL, size, copy, cmp, hash, key_destroy, value_destroy);
+}
+
+/*
+
+=item C<Map *map_create_generic_locked(Locker *locker, map_copy_t *copy, map_cmp_t *cmp, map_hash_t *hash, map_release_t *key_destroy, map_release_t *value_destroy)>
+
+Creates a I<Map> with arbitrary keys, 11 buckets, C<copy> as its key copy
+function, C<cmp> as its key comparison function, C<hash> as its hash
+function, C<key_destroy> as its key destructor and C<value_destroy> as its
+item destructor. Multiple threads accessing this map will be synchronised by
+C<locker>. On success, returns the new map. On error, returns C<NULL>. The
+argument to C<copy> is the key to be copied. It returns the copy. The
+arguments to C<cmp> are two keys to be compared. It returns < 0 if the first
+compares less than the second, 0 if they compare equal and > 0 if the first
+compares greater than the second. The arguments to C<hash> are a C<size_t>
+specifying the number of buckets and a C<const void *> specifying the key to
+hash. It must return a C<size_t> between zero and the table size - 1.
+
+=cut
+
+*/
+
+Map *map_create_generic_locked(Locker *locker, map_copy_t *copy, map_cmp_t *cmp, map_hash_t *hash, map_release_t *key_destroy, map_release_t *value_destroy)
+{
+	return map_create_generic_locked_sized(locker, table_sizes[0], copy, cmp, hash, key_destroy, value_destroy);
+}
+
+/*
+
+=item C<Map *map_create_generic_locked_sized(Locker *locker, size_t size, map_copy_t *copy, map_cmp_t *cmp, map_hash_t *hash, map_release_t *key_destroy, map_release_t *value_destroy)>
+
+Creates a I<Map> with arbitrary keys, approximately C<size> buckets, C<copy>
+as its key copy function, C<cmp> as its key comparison function, C<hash> as
+its hash function, C<key_destroy> as its key destructor and C<value_destroy>
+as its item destructor. The actual size will be the first prime greater than
+or equal to C<size> in a built in sequence of primes between 11 and
+26,214,401 that double at each step. Multiple threads accessing this map
+will be synchronised by C<locker>. On success, returns the new map. On
+error, returns C<NULL>. The argument to C<copy> is the key to be copied. It
+returns the copy. The arguments to C<cmp> are two keys to be compared. It
+returns < 0 if the first compares less than the second, 0 if they compare
+equal and > 0 if the first compares greater than the second. The arguments
+to C<hash> are a C<size_t> specifying the number of buckets and a C<const
+void *> specifying the key to hash. It must return a C<size_t> between zero
+and the table size - 1.
+
+=cut
+
+*/
+
+Map *map_create_generic_locked_sized(Locker *locker, size_t size, map_copy_t *copy, map_cmp_t *cmp, map_hash_t *hash, map_release_t *key_destroy, map_release_t *value_destroy)
 {
 	Map *map;
 	size_t i;
@@ -384,15 +525,68 @@ Map *map_create_generic_sized(size_t size, map_copy_t *copy, map_cmp_t *cmp, map
 
 	map->size = size;
 	map->items = 0;
-	memset(map->chain, '\0', map->size * sizeof(List *));
+	memset(map->chain, nul, map->size * sizeof(List *));
 	map->hash = hash;
 	map->copy = copy;
 	map->cmp = cmp;
 	map->key_destroy = key_destroy;
 	map->value_destroy = value_destroy;
 	map->mapper = NULL;
+	map->locker = locker;
 
 	return map;
+}
+
+/*
+
+C<int map_rdlock(Map *map)>
+
+Read locks C<map>. On success, returns 0. On error, return -1 with C<errno>
+set appropriately.
+
+*/
+
+static int map_rdlock(Map *map)
+{
+	if (!map || !map->locker)
+		return 0;
+
+	return locker_rdlock(map->locker);
+}
+
+/*
+
+C<int map_wrlock(Map *map)>
+
+Write locks C<map>. On success, returns 0. On error, return -1 with
+C<errno> set appropriately.
+
+*/
+
+static int map_wrlock(Map *map)
+{
+	if (!map || !map->locker)
+		return 0;
+
+	return locker_wrlock(map->locker);
+}
+
+/*
+
+C<int map_unlock(Map *map)>
+
+Unlocks a read or write lock obtained with I<map_rdlock()> or
+I<map_wrlock()>. On success, returns 0. On error, returns -1 with C<errno>
+set appropriately.
+
+*/
+
+static int map_unlock(Map *map)
+{
+	if (!map || !map->locker)
+		return 0;
+
+	return locker_unlock(map->locker);
 }
 
 /*
@@ -412,31 +606,31 @@ void map_release(Map *map)
 	if (!map)
 		return;
 
+	if (map_wrlock(map) == -1)
+		return;
+
 	for (i = 0; i < map->size; ++i)
 		list_release(map->chain[i]);
-
 	mem_release(map->chain);
+
 	mapper_release(map->mapper);
+	map_unlock(map);
 	mem_release(map);
 }
 
 /*
 
-=item C< #define map_destroy(map)>
+=item C<void *map_destroy(Map **map)>
 
-Destroys (deallocates and sets to C<NULL>) C<map>. Returns C<NULL>.
-
-=item C<void *map_destroy_func(Map **map)>
-
-Destroys (deallocates and sets to C<NULL>) C<map>. Returns C<NULL>. This
-function is exposed as an implementation side effect. Don't call it
-directly. Call I<map_destroy()> instead.
+Destroys (deallocates and sets to C<NULL>) C<*map>. Returns C<NULL>.
+B<Note:> maps shared by multiple threads must not be destroyed until after
+the threads have finished with it.
 
 =cut
 
 */
 
-void *map_destroy_func(Map **map)
+void *map_destroy(Map **map)
 {
 	if (map && *map)
 	{
@@ -449,7 +643,7 @@ void *map_destroy_func(Map **map)
 
 /*
 
-=item C<int map_own(Map *map, map_destroy_t *key_destroy, map_destroy_t *value_destroy)>
+=item C<int map_own(Map *map, map_release_t *key_destroy, map_release_t *value_destroy)>
 
 Causes C<map> to take ownership of its items. The keys will be destroyed
 using C<key_destroy>. The items will be destroyed using C<value_destroy>
@@ -460,15 +654,18 @@ success, returns 0. On error, returns -1.
 
 */
 
-int map_own(Map *map, map_destroy_t *destroy)
+int map_own(Map *map, map_release_t *destroy)
 {
 	size_t c, i, length;
 
 	if (!map || !destroy)
 		return -1;
 
+	if (map_wrlock(map) == -1)
+		return -1;
+
 	if (destroy == map->value_destroy)
-		return 0;
+		return map_unlock(map);
 
 	map->value_destroy = destroy;
 
@@ -488,29 +685,40 @@ int map_own(Map *map, map_destroy_t *destroy)
 		}
 	}
 
+	if (map_unlock(map) == -1)
+		return -1;
+
 	return 0;
 }
 
 /*
 
-=item C<map_destroy_t *map_disown(Map *map)>
+C<map_release_t *map_disown_locked(Map *map, int lock_map)>
 
 Causes C<map> to relinquish ownership of its items. The items will not be
 destroyed when their mappings are removed from C<map> or when C<map> is
-destroyed. On success, returns the previous destroy function, if any.
-On error, returns C<NULL>.
-
-=cut
+destroyed. If C<lock_map> is non-zero, C<map> is write locked. On success,
+returns the previous destroy function, if any. On error, returns C<NULL>.
 
 */
 
-map_destroy_t *map_disown(Map *map)
+static map_release_t *map_disown_locked(Map *map, int lock_map)
 {
 	size_t c, i, length;
-	map_destroy_t *destroy;
+	map_release_t *destroy;
 
-	if (!map || !map->value_destroy)
+	if (!map)
 		return NULL;
+
+	if (lock_map && map_wrlock(map) == -1)
+		return NULL;
+
+	if (!map->value_destroy)
+	{
+		if (lock_map)
+			map_unlock(map);
+		return NULL;
+	}
 
 	destroy = map->value_destroy;
 	map->value_destroy = NULL;
@@ -531,7 +739,44 @@ map_destroy_t *map_disown(Map *map)
 		}
 	}
 
+	if (lock_map && map_unlock(map) == -1)
+		return NULL;
+
 	return destroy;
+}
+
+/*
+
+=item C<map_release_t *map_disown(Map *map)>
+
+Causes C<map> to relinquish ownership of its items. The items will not be
+destroyed when their mappings are removed from C<map> or when C<map> is
+destroyed. On success, returns the previous destroy function, if any.
+On error, returns C<NULL>.
+
+=cut
+
+*/
+
+map_release_t *map_disown(Map *map)
+{
+	return map_disown_locked(map, 1);
+}
+
+/*
+
+C<map_release_t *map_disown_unlocked(Map *map)>
+
+Causes C<map> to relinquish ownership of its items. The items will not be
+destroyed when their mappings are removed from C<map> or when C<map> is
+destroyed. C<map> is not write locked. On success, returns the previous destroy
+function, if any. On error, returns C<NULL>.
+
+*/
+
+static map_release_t *map_disown_unlocked(Map *map)
+{
+	return map_disown_locked(map, 0);
 }
 
 /*
@@ -539,9 +784,12 @@ map_destroy_t *map_disown(Map *map)
 C<static int map_resize(Map *map)>
 
 Resizes C<map> to use the next prime in a built in sequence of primes between
-11 and 26,214,401 that is greater than the current size.
+11 and 26,214,401 that is greater than the current size. On success, returns
+0. On error, returns -1.
 
 */
+
+static Mapper *mapper_create_unlocked(Map *map);
 
 static int map_resize(Map *map)
 {
@@ -554,21 +802,23 @@ static int map_resize(Map *map)
 		return -1;
 
 	for (i = 1; i < num_table_sizes; ++i)
+	{
 		if (table_sizes[i] > map->size)
 		{
 			size = table_sizes[i];
 			break;
 		}
+	}
 
 	if (i == num_table_sizes || size == 0)
 		return -1;
 
-	if (!(mapper = mapper_create(map)))
+	if (!(new_map = map_create_generic_sized(size, map->copy, map->cmp, map->hash, map->key_destroy, map->value_destroy)))
 		return -1;
 
-	if (!(new_map = map_create_generic_sized(size, map->copy, map->cmp, map->hash, map->key_destroy, NULL)))
+	if (!(mapper = mapper_create_unlocked(map)))
 	{
-		mapper_release(mapper);
+		map_release(new_map);
 		return -1;
 	}
 
@@ -578,21 +828,22 @@ static int map_resize(Map *map)
 
 		if (map_add(new_map, mapping->key, mapping->value) == -1)
 		{
-			mapper_destroy(mapper);
-			map_destroy(new_map);
+			mapper_release(mapper);
+			map_release(new_map);
 			return -1;
 		}
 	}
 
-	mapper_destroy(mapper);
-	if (map->value_destroy)
-		map_own(new_map, map_disown(map));
+	mapper_release(mapper);
 
+	map_disown_unlocked(map);
 	for (i = 0; i < map->size; ++i)
 		list_release(map->chain[i]);
 	mem_release(map->chain);
 
-	*map = *new_map;
+	map->size = new_map->size;
+	map->items = new_map->items;
+	map->chain = new_map->chain;
 	mem_release(new_map);
 
 	return 0;
@@ -603,7 +854,8 @@ static int map_resize(Map *map)
 =item C<item map_add(Map *map, const void *key, void *value)>
 
 Adds the C<(key, value)> mapping to C<map> if C<key> is not already present.
-On success, returns 0. On error, returns -1.
+Note that C<key> is copied but C<value> is not. On success, returns 0. On
+error, returns -1.
 
 =cut
 
@@ -618,8 +870,9 @@ int map_add(Map *map, const void *key, void *value)
 
 =item C<item map_put(Map *map, const void *key, void *value)>
 
-Adds the C<(key, value)> mapping to C<map>, replacing any existing
-C<(key, value)> mapping. On success, returns 0. On error, returns -1.
+Adds the C<(key, value)> mapping to C<map>, replacing any existing C<(key,
+value)> mapping. Note that C<key> is copied but C<value> is not. On success,
+returns 0. On error, returns -1.
 
 =cut
 
@@ -635,8 +888,9 @@ int map_put(Map *map, const void *key, void *value)
 =item C<int map_insert(Map *map, const void *key, void *value, int replace)>
 
 Adds the C<(key, value)> mapping to C<map>, replacing any existing C<(key,
-value)> mapping if C<replace> is non-zero. On success, returns 0. on error,
-or if C<key> is already present and C<replace> is zero, returns -1.
+value)> mapping if C<replace> is non-zero. Note that C<key> is copied but
+C<value> is not. On success, returns 0. on error, or if C<key> is already
+present and C<replace> is zero, returns -1.
 
 =cut
 
@@ -651,16 +905,22 @@ int map_insert(Map *map, const void *key, void *value, int replace)
 	if (!map || !key)
 		return -1;
 
+	if (map_wrlock(map) == -1)
+		return -1;
+
 	if ((double)map->items / (double)map->size >= table_resize_factor)
 		map_resize(map);
 
 	h = map->hash(map->size, key);
 
 	if (!map->chain[h])
-		map->chain[h] = list_create((map_destroy_t *)mapping_release);
+		map->chain[h] = list_create((map_release_t *)mapping_release);
 
 	if (!map->chain[h])
+	{
+		map_unlock(map);
 		return -1;
+	}
 
 	chain = map->chain[h];
 	length = list_length(chain);
@@ -672,7 +932,10 @@ int map_insert(Map *map, const void *key, void *value, int replace)
 		if (!map->cmp(mapping->key, key))
 		{
 			if (!replace)
+			{
+				map_unlock(map);
 				return -1;
+			}
 
 			list_remove(chain, c);
 			break;
@@ -680,15 +943,23 @@ int map_insert(Map *map, const void *key, void *value, int replace)
 	}
 
 	if (!(mapping = mapping_create(map->copy(key), value, map->key_destroy, map->value_destroy)))
+	{
+		map_unlock(map);
 		return -1;
+	}
 
 	if (!list_append(chain, mapping))
 	{
 		mapping_release(mapping);
+		map_unlock(map);
 		return -1;
 	}
 
 	++map->items;
+
+	if (map_unlock(map) == -1)
+		return -1;
+
 	return 0;
 }
 
@@ -712,11 +983,17 @@ int map_remove(Map *map, const void *key)
 	if (!map || !key)
 		return -1;
 
+	if (map_wrlock(map) == -1)
+		return -1;
+
 	h = map->hash(map->size, key);
 	chain = map->chain[h];
 
 	if (!chain)
+	{
+		map_unlock(map);
 		return -1;
+	}
 
 	length = list_length(chain);
 
@@ -727,12 +1004,21 @@ int map_remove(Map *map, const void *key)
 		if (!map->cmp(mapping->key, key))
 		{
 			if (!list_remove(chain, c))
+			{
+				map_unlock(map);
 				return -1;
+			}
 
 			--map->items;
+
+			if (map_unlock(map) == -1)
+				return -1;
+
 			return 0;
 		}
 	}
+
+	map_unlock(map);
 
 	return -1;
 }
@@ -756,11 +1042,17 @@ void *map_get(const Map *map, const void *key)
 	if (!map || !key)
 		return NULL;
 
+	if (map_rdlock((Map *)map) == -1)
+		return NULL;
+
 	h = map->hash(map->size, key);
 	chain = map->chain[h];
 
 	if (!chain)
+	{
+		map_unlock((Map *)map);
 		return NULL;
+	}
 
 	length = list_length(chain);
 
@@ -769,10 +1061,70 @@ void *map_get(const Map *map, const void *key)
 		Mapping *mapping = (Mapping *)list_item(chain, c);
 
 		if (!map->cmp(mapping->key, key))
-			return mapping->value;
+		{
+			void *value = mapping->value;
+
+			if (map_unlock((Map *)map) == -1)
+				return NULL;
+
+			return value;
+		}
 	}
 
+	map_unlock((Map *)map);
+
 	return NULL;
+}
+
+/*
+
+C<Mapper *mapper_create_locked(Map *map, int lock_map)>
+
+Creates an iterator for C<map>. If C<lock_map> is non-zero, C<map> is write
+locked. On success, returns the iterator. On error, returns C<NULL>.
+
+*/
+
+static Mapper *mapper_create_locked(Map *map, int lock_map)
+{
+	Mapper *mapper;
+
+	if (!map)
+		return NULL;
+
+	if (!(mapper = mem_new(Mapper)))
+		return NULL;
+
+	if (pthread_mutex_init(&mapper->lock, NULL) != 0)
+	{
+		mem_release(mapper);
+		return NULL;
+	}
+
+	if (pthread_mutex_lock(&mapper->lock) != 0)
+	{
+		pthread_mutex_destroy(&mapper->lock);
+		mem_release(mapper);
+		return NULL;
+	}
+
+	if (lock_map && map_wrlock(map) == -1)
+	{
+		pthread_mutex_unlock(&mapper->lock);
+		pthread_mutex_destroy(&mapper->lock);
+		mem_release(mapper);
+		return NULL;
+	}
+
+	mapper->owner = pthread_self();
+	mapper->owned = lock_map;
+	mapper->map = map;
+	mapper->chain_index = -1;
+	mapper->item_index = -1;
+	mapper->next_chain_index = -1;
+	mapper->next_item_index = -1;
+
+	return mapper;
 }
 
 /*
@@ -788,21 +1140,21 @@ returns C<NULL>.
 
 Mapper *mapper_create(Map *map)
 {
-	Mapper *mapper;
+	return mapper_create_locked(map, 1);
+}
 
-	if (!map)
-		return NULL;
+/*
 
-	if (!(mapper = mem_new(Mapper)))
-		return NULL;
+C<Mapper *mapper_create_unlocked(Map *map)>
 
-	mapper->map = map;
-	mapper->chain_index = -1;
-	mapper->item_index = -1;
-	mapper->next_chain_index = -1;
-	mapper->next_item_index = -1;
+Creates an iterator for C<map> without locking C<map>. On success, returns
+the iterator. On error, returns C<NULL>.
 
-	return mapper;
+*/
+
+Mapper *mapper_create_unlocked(Map *map)
+{
+	return mapper_create_locked(map, 0);
 }
 
 /*
@@ -817,26 +1169,30 @@ Releases (deallocates) C<mapper>.
 
 void mapper_release(Mapper *mapper)
 {
+	if (!mapper)
+		return;
+
+	if (mapper->owned)
+		map_unlock(mapper->map);
+
+	pthread_mutex_unlock(&mapper->lock);
+	pthread_mutex_destroy(&mapper->lock);
 	mem_release(mapper);
 }
 
 /*
 
-=item C< #define mapper_destroy(mapper)>
+=item C<void *mapper_destroy(Mapper **mapper)>
 
-Destroys (deallocates and sets to C<NULL>) C<mapper>.
-
-=item C<void *mapper_destroy_func(Mapper **mapper)>
-
-Destroys (deallocates and sets to C<NULL>) C<mapper>. Returns C<NULL>. This
-function is exposed as an implementation side effect. Don't call it
-directly. Call I<mapper_destroy()> instead.
+Destroys (deallocates and sets to C<NULL>) C<*mapper>. Returns C<NULL>.
+B<Note:> lists shared by multiple threads must not be destroyed until after
+the threads have finished with it.
 
 =cut
 
 */
 
-void *mapper_destroy_func(Mapper **mapper)
+void *mapper_destroy(Mapper **mapper)
 {
 	if (mapper && *mapper)
 	{
@@ -920,6 +1276,12 @@ void *mapper_next(Mapper *mapper)
 	if (!mapper)
 		return NULL;
 
+	if (!pthread_equal(mapper->owner, pthread_self()))
+printf("[%lu] mapper_next(): not owner (%lu)\n", (unsigned long)pthread_self(), (unsigned long)mapper->owner);
+	/*
+		return NULL;
+	*/
+
 	return mapper_next_mapping(mapper)->value;
 }
 
@@ -936,6 +1298,15 @@ is iterating.
 
 const Mapping *mapper_next_mapping(Mapper *mapper)
 {
+	if (!mapper)
+		return NULL;
+
+	if (!pthread_equal(mapper->owner, pthread_self()))
+printf("[%lu] mapper_next_mapping: not owner (%lu)\n", (unsigned long)pthread_self(), (unsigned long)mapper->owner);
+	/*
+		return NULL;
+	*/
+
 	mapper->chain_index = mapper->next_chain_index;
 	mapper->item_index = mapper->next_item_index;
 
@@ -959,6 +1330,12 @@ void mapper_remove(Mapper *mapper)
 	if (!mapper)
 		return;
 
+	if (!pthread_equal(mapper->owner, pthread_self()))
+printf("[%lu] mapper_remove(): not owner (%lu)\n", (unsigned long)pthread_self(), (unsigned long)mapper->owner);
+	/*
+		return;
+	*/
+
 	list_remove(mapper->map->chain[mapper->chain_index], (size_t)mapper->item_index--);
 	--mapper->map->items;
 }
@@ -973,32 +1350,68 @@ only one). When there are no more items, returns zero and destroys the
 internal iterator. When it returns a non-zero value, use I<map_next()> to
 retrieve the next item.
 
+Note: If an iteration using an internal iterator terminates before the end
+of the map, it is the caller's responsibility to call I<map_break()>.
+Failure to do so will cause the internal iterator to leak which will leave
+the map write locked. The next use of I<map_has_next()> for the same map
+will not do what you expect. In fact, the next attempt to use the map would
+deadlock the prgoram.
+
 =cut
 
 */
 
 int map_has_next(Map *map)
 {
-	int ret;
+	int has;
 
 	if (!map)
 		return 0;
 
-	if (!map->mapper)
+	/* I find the following line of code a bit scary */
+
+	if (!map->mapper || !pthread_equal(pthread_self(), map->mapper->owner))
 		map->mapper = mapper_create(map);
 
-	ret = mapper_has_next(map->mapper);
-	if (!ret)
-		mapper_destroy(map->mapper);
+	has = mapper_has_next(map->mapper);
+	if (!has)
+	{
+		Mapper *mapper = map->mapper;
+		map->mapper = NULL;
+		mapper_release(mapper);
+	}
 
-	return ret;
+	return has;
+}
+
+/*
+
+=item C<void map_break(Map *map)>
+
+Unlocks C<map> and destroys its internal iterator. Must be used only when
+an iteration using an internal iterator has terminated before reaching the
+end of C<map>.
+
+=cut
+
+*/
+
+void map_break(Map *map)
+{
+	if (map)
+	{
+		Mapper *mapper = map->mapper;
+		map->mapper = NULL;
+		mapper_release(mapper);
+	}
 }
 
 /*
 
 =item C<void *map_next(Map *map)>
 
-Returns the next item in C<map> using it's internal iterator.
+Returns the next item in C<map> using it's internal iterator. On error,
+returns C<NULL>.
 
 =cut
 
@@ -1045,6 +1458,9 @@ must be called after I<map_next()>.
 
 void map_remove_current(Map *map)
 {
+	if (!map || !map->mapper)
+		return;
+
 	mapper_remove(map->mapper);
 }
 
@@ -1099,34 +1515,25 @@ C<NULL>.
 
 List *map_keys(Map *map)
 {
-	Mapper *mapper;
 	List *keys;
 
 	if (!map)
 		return NULL;
 
-	if (!(mapper = mapper_create(map)))
-		return NULL;
-
 	if (!(keys = list_create(NULL)))
-	{
-		mapper_destroy(mapper);
 		return NULL;
-	}
 
-	while (mapper_has_next(mapper))
+	while (map_has_next(map))
 	{
-		const Mapping *mapping = mapper_next_mapping(mapper);
+		const Mapping *mapping = map_next_mapping(map);
 
 		if (!list_append(keys, mapping->key))
 		{
-			mapper_destroy(mapper);
-			list_destroy(keys);
+			list_destroy(&keys);
+			map_break(map);
 			return NULL;
 		}
 	}
-
-	mapper_destroy(mapper);
 
 	return keys;
 }
@@ -1146,38 +1553,28 @@ error, returns C<NULL>.
 
 List *map_values(Map *map)
 {
-	Mapper *mapper;
 	List *values;
 
 	if (!map)
 		return NULL;
 
-	if (!(mapper = mapper_create(map)))
-		return NULL;
-
 	if (!(values = list_create(NULL)))
-	{
-		mapper_destroy(mapper);
 		return NULL;
-	}
 
-	while (mapper_has_next(mapper))
+	while (map_has_next(map))
 	{
-		const Mapping *mapping = mapper_next_mapping(mapper);
+		const Mapping *mapping = map_next_mapping(map);
 
 		if (!list_append(values, mapping->value))
 		{
-			mapper_destroy(mapper);
-			list_destroy(values);
+			list_destroy(&values);
+			map_break(map);
 			return NULL;
 		}
 	}
 
-	mapper_destroy(mapper);
-
 	return values;
 }
-
 
 /*
 
@@ -1192,71 +1589,101 @@ C<action> are the key, the item and C<data>.
 
 void map_apply(Map *map, map_action_t *action, void *data)
 {
-	Mapper *mapper;
-
 	if (!map || !action)
 		return;
 
-	if (!(mapper = mapper_create(map)))
-		return;
-
-	while (mapper_has_next(mapper))
+	while (map_has_next(map))
 	{
-		const Mapping *mapping = mapper_next_mapping(mapper);
+		const Mapping *mapping = map_next_mapping(map);
 		action(mapping->key, mapping->value, data);
 	}
-
-	mapper_destroy(mapper);
 }
 
 /*
 
-=item C<ssize_t map_size(const Map *map)>
+=item C<size_t map_size(const Map *map)>
 
-Returns the number of mappings in C<map>. On error, returns -1.
+Returns the number of mappings in C<map>. On error, returns 0.
 
 =cut
 
 */
 
-ssize_t map_size(const Map *map)
+size_t map_size(const Map *map)
 {
-	if (!map)
-		return -1;
+	size_t size;
 
-	return map->items;
+	if (!map)
+		return 0;
+
+	if (map_rdlock((Map *)map) == -1)
+		return 0;
+
+	size = map->items;
+
+	if (map_unlock((Map *)map) == -1)
+		return 0;
+
+	return size;
 }
 
 /*
 
 =back
 
+=head1 MT-Level
+
+MT-Disciplined
+
+By default, I<Map>s are not MT-Safe because most programs are single
+threaded and synchronisation doesn't come for free. Even in multi threaded
+programs, not all I<Map>s are necessarily shared between multiple threads.
+
+When a I<Map> is shared between multiple threads which need to be synchronised,
+the method of synchronisation must be carefully selected by the client code.
+There are tradeoffs between concurrency and overhead. The greater the
+concurrency, the greater the overhead. More locks give greater concurrency but
+have greater overhead. Readers/Writer locks can give greater concurrency than
+Mutex locks but have greater overhead. One lock for each I<Map> may be
+required, or one lock for all (or a set of) I<Map>s may be more appropriate.
+
+Generally, the best synchronisation strategy for a given application can only
+be determined by testing/benchmarking the written application. It is important
+to be able to experiment with the synchronisation strategy at this stage of
+development without pain.
+
+To facilitate this, I<Map>s can be created with I<map_create_locked()> which
+takes a I<Locker> argument. The I<Locker> specifies a lock and a set of
+functions for manipulating the lock. Each I<Map> can have it's own lock by
+creating a separate I<Locker> for each I<Map>. Multiple I<Map>s can share the
+same lock by sharing the same I<Locker>. Only the application developer can
+determine what is appropriate for each application on a case by case basis.
+
+MT-Disciplined means that the application developer has a mechanism for
+specifying the synchronisation requirements to be applied to library code.
+
 =head1 BUGS
 
 C<NULL> can't be a key. Neither can zero when using integers as keys.
 
+If you use an internal iterator in a loop that terminates before the end of the
+map, and fail to call I<map_break()>, the internal iterator will leak and the
+map will remain write locked, deadlocking the program the time you attempt to
+access the map.
+
+Uses I<malloc(3)>. Need to decouple memory type and allocation strategy from
+this code.
+
 =head1 SEE ALSO
 
-L<conf(3)|conf(3)>,
-L<daemon(3)|daemon(3)>,
-L<err(3)|err(3)>,
-L<fifo(3)|fifo(3)>,
-L<hsort(3)|hsort(3)>,
-L<lim(3)|lim(3)>,
+L<libslack(3)|libslack(3)>,
 L<list(3)|list(3)>,
-L<log(3)|log(3)>,
 L<mem(3)|mem(3)>,
-L<msg(3)|msg(3)>,
-L<net(3)|net(3)>,
-L<opt(3)|opt(3)>,
-L<prog(3)|prog(3)>,
-L<prop(3)|prop(3)>,
-L<sig(3)|sig(3)>,
-L<str(3)|str(3)>
+L<thread(3)|thread(3)>
 
 =head1 AUTHOR
 
-20000902 raf <raf@raf.org>
+20010215 raf <raf@raf.org>
 
 =cut
 
@@ -1264,8 +1691,10 @@ L<str(3)|str(3)>
 
 #ifdef TEST
 
+#include <semaphore.h>
+
 #ifdef NEEDS_SNPRINTF
-#include "snprintf.h"
+#include <slack/snprintf.h>
 #endif
 
 #if 0
@@ -1317,7 +1746,7 @@ static void map_histogram(const char *name, Map *map)
 		return;
 	}
 
-	memset(histogram, '\0', map->items * sizeof(int));
+	memset(histogram, nul, map->items * sizeof(int));
 
 	for (i = 0; i < map->size; ++i)
 	{
@@ -1360,7 +1789,7 @@ static void test_hash(void)
 	{
 		char *eow = strchr(word, '\n');
 		if (eow)
-			*eow = '\0';
+			*eow = nul;
 
 		map_add(map, word, mem_strdup(word));
 	}
@@ -1389,7 +1818,7 @@ static void test_hash(void)
 	printf("min = %d\n", min);
 	printf("max = %d\n", max);
 	map_histogram("dict", map);
-	map_destroy(map);
+	map_release(map);
 
 	exit(0);
 }
@@ -1466,16 +1895,198 @@ static size_t direct_hash(size_t size, int key)
 	return key % size;
 }
 
+Map *mtmap = NULL;
+Locker *locker = NULL;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
+sem_t barrier;
+sem_t size;
+const int lim = 1000;
+int debug = 0;
+int errors = 0;
+
+void *produce(void *arg)
+{
+	int i;
+	int test = *(int *)arg;
+
+	for (i = 1; i <= lim; ++i)
+	{
+		if (debug)
+			printf("p: add %d\n", i);
+
+		if (map_add(mtmap, (void *)i, (void *)i) == -1)
+			++errors, printf("Test%d: map_add(mtmap, %d), failed\n", test, i);
+
+		sem_post(&size);
+	}
+
+	sem_post(&barrier);
+	return NULL;
+}
+
+void *consume(void *arg)
+{
+	int i;
+	int test = *(int *)arg;
+
+	for (i = 1; i <= lim; ++i)
+	{
+		if (debug)
+			printf("c: pop\n");
+
+		while (sem_wait(&size) != 0)
+		{}
+
+		if (map_remove(mtmap, (void *)i) == -1)
+		{
+			++errors, printf("Test%d: map_remove(mtmap, %d), failed\n", test, i);
+			break;
+		}
+
+		if (debug)
+			printf("c: remove %d\n", i);
+	}
+
+	if (i != lim + 1)
+		++errors, printf("Test%d: consumer read %d items, not %d\n", test, i - 1, lim);
+
+	sem_post(&barrier);
+	return NULL;
+}
+
+void *iterate(void *arg)
+{
+	int i;
+	int t = *(int *)arg;
+	int broken = 0;
+
+	if (debug)
+		printf("i%d: loop\n", t);
+
+	for (i = 0; i < lim / 10; ++i)
+	{
+		while (map_has_next(mtmap))
+		{
+			int val = (int)map_next(mtmap);
+
+			if (debug)
+				printf("i%d: loop %d/%d val %d\n", t, i, lim / 10, val);
+
+			if (!broken)
+			{
+				map_break(mtmap);
+				broken = 1;
+				break;
+			}
+		}
+	}
+
+	sem_post(&barrier);
+	return NULL;
+}
+
+void *iterate2(void *arg)
+{
+	int i;
+	int t = *(int *)arg;
+
+	if (debug)
+		printf("j%d: loop\n", t);
+
+	for (i = 0; i < lim / 10; ++i)
+	{
+		Mapper *mapper = mapper_create(mtmap);
+
+		while (mapper_has_next(mapper))
+		{
+			int val = (int)mapper_next(mapper);
+
+			if (debug)
+				printf("j%d: loop %d/%d val %d\n", t, i, lim / 10, val);
+		}
+
+		mapper_release(mapper);
+	}
+
+	sem_post(&barrier);
+	return NULL;
+}
+
+void *reader(void *arg)
+{
+	int i;
+	int t = *(int *)arg;
+	unsigned int seed = getpid() ^ time(NULL);
+
+	if (debug)
+		printf("r%d: loop\n", t);
+
+	for (i = 0; i < lim / 10; ++i)
+	{
+		int key = 1 + (int)((double)(map_size(mtmap) - 1) * rand_r(&seed) / (RAND_MAX + 1.0));
+		int value = (int)map_get(mtmap, (void *)key);
+		List *keys = map_keys(mtmap);
+		List *values = map_values(mtmap);
+
+		if (debug)
+			printf("r%d: loop %d/%d key/val %d/%d, #keys %d, #values %d\n", t, i, lim / 10, key, value, list_length(keys), list_length(values));
+
+		list_destroy(&keys);
+		list_destroy(&values);
+	}
+
+	sem_post(&barrier);
+	return NULL;
+}
+
+void mt_test(int test, Locker *locker)
+{
+	mtmap = map_create_generic_locked(locker, (map_copy_t *)direct_copy, (map_cmp_t *)direct_cmp, (map_hash_t *)direct_hash, NULL, NULL);
+	if (!mtmap)
+		++errors, printf("Test%d: map_create_generic_locked(NULL) failed\n", test);
+	else
+	{
+		static int iid[10] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+		pthread_attr_t attr;
+		pthread_t id;
+		int i;
+
+		sem_init(&barrier, 0, 0);
+		sem_init(&size, 0, 0);
+		thread_attr_init(&attr);
+		pthread_create(&id, &attr, produce, &test);
+		pthread_create(&id, &attr, consume, &test);
+		pthread_create(&id, &attr, iterate, iid + 0);
+		pthread_create(&id, &attr, iterate, iid + 1);
+		pthread_create(&id, &attr, iterate, iid + 2);
+		pthread_create(&id, &attr, iterate, iid + 3);
+		pthread_create(&id, &attr, iterate2, iid + 4);
+		pthread_create(&id, &attr, iterate2, iid + 5);
+		pthread_create(&id, &attr, iterate2, iid + 6);
+		pthread_create(&id, &attr, reader, iid + 7);
+		pthread_create(&id, &attr, reader, iid + 8);
+		pthread_create(&id, &attr, reader, iid + 9);
+		pthread_attr_destroy(&attr);
+
+		for (i = 0; i < 12; ++i)
+			while (sem_wait(&barrier) != 0)
+			{}
+
+		map_destroy(&mtmap);
+		if (mtmap)
+			++errors, printf("Test%d: map_destroy(&mtmap) failed\n", test);
+	}
+}
+
 int main(int ac, char **av)
 {
-	int errors = 0;
 	Map *map;
 	Mapper *mapper;
 	List *keys, *values;
 	const void *ckey;
 	const char *cvalue;
 	char *value;
-
 	char cat[BUFSIZ];
 
 	if (ac == 2 && !strcmp(av[1], "hash"))
@@ -1533,9 +2144,9 @@ int main(int ac, char **av)
 					list_append(keys, item);
 			}
 
-			mapper_destroy(mapper);
+			mapper_destroy(&mapper);
 			if (mapper)
-				++errors, printf("Test14: mapper_destroy() failed (%p, not null)", mapper);
+				++errors, printf("Test14: mapper_destroy(&mapper) failed (%p, not NULL)", (void *)mapper);
 
 			if (list_length(keys) != 4)
 				++errors, printf("Test15: mapper failed (%d iterations not 4)\n", list_length(keys));
@@ -1553,9 +2164,9 @@ int main(int ac, char **av)
 					++errors, printf("Test19: mapper failed (\"%s\", not \"jkl\")\n", (char *)list_item(keys, 3));
 			}
 
-			list_destroy(keys);
+			list_destroy(&keys);
 			if (keys)
-				++errors, printf("Test20: list_destroy() failed (%p, not null)\n", keys);
+				++errors, printf("Test20: list_destroy(&keys) failed (%p, not NULL)\n", (void *)keys);
 		}
 
 		/* Test mapper_next_mapping, mapping_key, mapping_value */
@@ -1592,9 +2203,9 @@ int main(int ac, char **av)
 				}
 			}
 
-			mapper_destroy(mapper);
+			mapper_destroy(&mapper);
 			if (mapper)
-				++errors, printf("Test27: mapper_destroy() failed (%p, not null)", mapper);
+				++errors, printf("Test27: mapper_destroy(&mapper) failed (%p, not NULL)", (void *)mapper);
 
 			if (list_length(keys) != 4)
 				++errors, printf("Test28: mapper failed (%d key iterations not 4)\n", list_length(keys));
@@ -1612,9 +2223,9 @@ int main(int ac, char **av)
 					++errors, printf("Test32: mapper failed (\"%s\", not \"jkl\")\n", (char *)list_item(keys, 3));
 			}
 
-			list_destroy(keys);
+			list_destroy(&keys);
 			if (keys)
-				++errors, printf("Test33: list_destroy() failed (%p, not null)\n", keys);
+				++errors, printf("Test33: list_destroy(&keys) failed (%p, not NULL)\n", (void *)keys);
 
 			if (list_length(values) != 4)
 				++errors, printf("Test34: mapper failed (%d value iterations not 4)\n", list_length(values));
@@ -1632,9 +2243,9 @@ int main(int ac, char **av)
 					++errors, printf("Test38: mapper failed (\"%s\", not \"jkl\")\n", (char *)list_item(values, 3));
 			}
 
-			list_destroy(values);
+			list_destroy(&values);
 			if (values)
-				++errors, printf("Test39: list_destroy() failed (%p, not null)\n", values);
+				++errors, printf("Test39: list_destroy(&values) failed (%p, not NULL)\n", (void *)values);
 		}
 
 		/* Test map_has_next, map_next */
@@ -1668,9 +2279,9 @@ int main(int ac, char **av)
 				++errors, printf("Test46: map_has_next() failed (\"%s\", not \"jkl\")\n", (char *)list_item(keys, 3));
 		}
 
-		list_destroy(keys);
+		list_destroy(&keys);
 		if (keys)
-			++errors, printf("Test47: list_destroy() failed (%p, not null)\n", keys);
+			++errors, printf("Test47: list_destroy(&keys) failed (%p, not NULL)\n", (void *)keys);
 
 		/* Test map_next_mapping */
 
@@ -1718,9 +2329,9 @@ int main(int ac, char **av)
 				++errors, printf("Test57: map_has_next() failed (\"%s\", not \"jkl\")\n", (char *)list_item(keys, 3));
 		}
 
-		list_destroy(keys);
+		list_destroy(&keys);
 		if (keys)
-			++errors, printf("Test58: list_destroy() failed (%p, not null)\n", keys);
+			++errors, printf("Test58: list_destroy(&keys) failed (%p, not NULL)\n", (void *)keys);
 
 		if (list_length(values) != 4)
 			++errors, printf("Test59: map_has_next() failed (%d iterations not 4)\n", list_length(values));
@@ -1738,9 +2349,9 @@ int main(int ac, char **av)
 				++errors, printf("Test63: map_has_next() failed (\"%s\", not \"jkl\")\n", (char *)list_item(values, 3));
 		}
 
-		list_destroy(values);
+		list_destroy(&values);
 		if (values)
-			++errors, printf("Test64: list_destroy() failed (%p, not null)\n", values);
+			++errors, printf("Test64: list_destroy(&values) failed (%p, not NULL)\n", (void *)values);
 
 		/* Test map_keys */
 
@@ -1764,9 +2375,9 @@ int main(int ac, char **av)
 					++errors, printf("Test70: map_keys failed (\"%s\", not \"jkl\")\n", (char *)list_item(keys, 3));
 			}
 
-			list_destroy(keys);
+			list_destroy(&keys);
 			if (keys)
-				++errors, printf("Test71: list_destroy() failed (%p, not null)\n", keys);
+				++errors, printf("Test71: list_destroy(&keys) failed (%p, not NULL)\n", (void *)keys);
 		}
 
 		/* Test map_values */
@@ -1791,9 +2402,9 @@ int main(int ac, char **av)
 					++errors, printf("Test77: map_values failed (\"%s\", not \"jkl\")\n", (char *)list_item(values, 3));
 			}
 
-			list_destroy(values);
+			list_destroy(&values);
 			if (values)
-				++errors, printf("Test78: list_destroy() failed (%p, not null)\n", values);
+				++errors, printf("Test78: list_destroy(&values) failed (%p, not NULL)\n", (void *)values);
 		}
 
 		/* Test map_remove */
@@ -1809,9 +2420,9 @@ int main(int ac, char **av)
 		if (map_remove(map, "jkl") == -1)
 			++errors, printf("Test83: map_remove(\"jkl\") failed\n");
 
-		map_destroy(map);
+		map_destroy(&map);
 		if (map)
-			++errors, printf("Test84: map_destroy() failed (%p, not null)\n", map);
+			++errors, printf("Test84: map_destroy(&map) failed (%p, not NULL)\n", (void *)map);
 	}
 
 	/* Test map_apply */
@@ -1863,14 +2474,14 @@ int main(int ac, char **av)
 		if (strcmp(value, "1"))
 			++errors, printf("Test99: map_get(7) failed (%s, not %s)\n", value, "1");
 
-		cat[0] = '\0';
+		cat[0] = nul;
 		map_apply(map, (map_action_t *)test_action, cat);
 		if (strcmp(cat, "7=1, 1=7, 2=6, 3=5, 4=4, 5=3, 6=2"))
 			++errors, printf("Test100: map_apply(cat) failed (cat = \"%s\", not \"%s\")\n", cat, "7=1, 1=7, 2=6, 3=5, 4=4, 5=3, 6=2");
 
-		map_destroy(map);
+		map_destroy(&map);
 		if (map)
-			++errors, printf("Test101: map_destroy() failed (%p, not null)\n", map);
+			++errors, printf("Test101: map_destroy(&map) failed (%p, not NULL)\n", (void *)map);
 	}
 
 	/* Test mapper_remove, map_size */
@@ -1906,17 +2517,17 @@ int main(int ac, char **av)
 				mapper_remove(mapper);
 			}
 
+			mapper_destroy(&mapper);
+			if (mapper)
+				++errors, printf("Test113: mapper_destroy(&mapper) failed (%p, not NULL)\n", (void *)mapper);
+
 			if (map_size(map))
 				++errors, printf("Test112: mapper_remove() failed (%d item remaining, not 0)\n", map_size(map));
-
-			mapper_destroy(mapper);
-			if (mapper)
-				++errors, printf("Test113: mapper_destroy() failed (%p, not null)\n", mapper);
 		}
 
-		map_destroy(map);
+		map_destroy(&map);
 		if (map)
-			++errors, printf("Test114: map_destroy() failed (%p, not null)\n", map);
+			++errors, printf("Test114: map_destroy(&map) failed (%p, not NULL)\n", (void *)map);
 	}
 
 	/* Test map_remove_current */
@@ -1946,50 +2557,89 @@ int main(int ac, char **av)
 		if (map_size(map))
 			++errors, printf("Test121: map_remove_current() failed (%d item remaining, not 0)\n", map_size(map));
 
-		mapper_destroy(mapper);
+		mapper_destroy(&mapper);
 		if (mapper)
-			++errors, printf("Test122: mapper_destroy() failed (%p, not null)\n", mapper);
+			++errors, printf("Test122: mapper_destroy(&mapper) failed (%p, not NULL)\n", (void *)mapper);
 
-		map_destroy(map);
+		map_destroy(&map);
 		if (map)
-			++errors, printf("Test123: map_destroy() failed (%p, not null)\n", map);
+			++errors, printf("Test123: map_destroy(&map) failed (%p, not NULL)\n", (void *)map);
 	}
 
 	/* Test map_create_generic (Point -> char *) */
 
-	if (!(map = map_create_generic((map_copy_t *)point_copy, (map_cmp_t *)point_cmp, (map_hash_t *)point_hash, (map_destroy_t *)point_release, NULL)))
+	if (!(map = map_create_generic((map_copy_t *)point_copy, (map_cmp_t *)point_cmp, (map_hash_t *)point_hash, (map_release_t *)point_release, NULL)))
 		++errors, printf("Test124: map_create_generic() failed\n");
 	else
 	{
 		Point *point = point_create(0, 0);
 
-		if (map_add(map, point_create(0, 0), "(0, 0)") == -1)
+		if (map_add(map, point, "(0, 0)") == -1)
 			++errors, printf("Test125: map_add(point(0, 0)) failed\n");
-		if (map_add(map, point_create(1, 0), "(1, 0)") == -1)
+
+		point->x = 1;
+		point->y = 0;
+		if (map_add(map, point, "(1, 0)") == -1)
 			++errors, printf("Test126: map_add(point(1, 0)) failed\n");
-		if (map_add(map, point_create(0, 1), "(0, 1)") == -1)
+
+		point->x = 0;
+		point->y = 1;
+		if (map_add(map, point, "(0, 1)") == -1)
 			++errors, printf("Test127: map_add(point(0, 1)) failed\n");
-		if (map_add(map, point_create(1, 1), "(1, 1)") == -1)
+
+		point->x = 1;
+		point->y = 1;
+		if (map_add(map, point, "(1, 1)") == -1)
 			++errors, printf("Test128: map_add(point(1, 1)) failed\n");
-		if (map_add(map, point_create(-1, 0), "(-1, 0)") == -1)
+
+		point->x = -1;
+		point->y = 0;
+		if (map_add(map, point, "(-1, 0)") == -1)
 			++errors, printf("Test129: map_add(point(-1, 0)) failed\n");
-		if (map_add(map, point_create(0, -1), "(0, -1)") == -1)
+
+		point->x = 0;
+		point->y = -1;
+		if (map_add(map, point, "(0, -1)") == -1)
 			++errors, printf("Test130: map_add(point(0, -1)) failed\n");
-		if (map_add(map, point_create(-1, -1), "(-1, -1)") == -1)
+
+		point->x = -1;
+		point->y = -1;
+		if (map_add(map, point, "(-1, -1)") == -1)
 			++errors, printf("Test131: map_add(point(-1, -1)) failed\n");
-		if (map_add(map, point_create(2, 0), "(2, 0)") == -1)
+
+		point->x = 2;
+		point->y = 0;
+		if (map_add(map, point, "(2, 0)") == -1)
 			++errors, printf("Test132: map_add(point(2, 0)) failed\n");
-		if (map_add(map, point_create(0, 2), "(0, 2)") == -1)
+
+		point->x = 0;
+		point->y = 2;
+		if (map_add(map, point, "(0, 2)") == -1)
 			++errors, printf("Test133: map_add(point(0, 2)) failed\n");
-		if (map_add(map, point_create(2, 2), "(2, 2)") == -1)
+
+		point->x = 2;
+		point->y = 2;
+		if (map_add(map, point, "(2, 2)") == -1)
 			++errors, printf("Test134: map_add(point(2, 2)) failed\n");
-		if (map_add(map, point_create(-2, 0), "(-2, 0)") == -1)
+
+		point->x = -2;
+		point->y = 0;
+		if (map_add(map, point, "(-2, 0)") == -1)
 			++errors, printf("Test135: map_add(point(-2, 0)) failed\n");
-		if (map_add(map, point_create(0, -2), "(0, -2)") == -1)
+
+		point->x = 0;
+		point->y = -2;
+		if (map_add(map, point, "(0, -2)") == -1)
 			++errors, printf("Test136: map_add(point(0, -2)) failed\n");
-		if (map_add(map, point_create(-2, -2), "(-2, -2)") == -1)
+
+		point->x = -2;
+		point->y = -2;
+		if (map_add(map, point, "(-2, -2)") == -1)
 			++errors, printf("Test137: map_add(point(-2, -2)) failed\n");
-		if (map_add(map, point_create(0, 0), "(0, 0)") != -1)
+
+		point->x = 0;
+		point->y = 0;
+		if (map_add(map, point, "(0, 0)") != -1)
 			++errors, printf("Test138: map_add(point(0, 0)) failed\n");
 
 		if (map_size(map) != 13)
@@ -2100,9 +2750,9 @@ int main(int ac, char **av)
 			++errors, printf("Test165: map_get(generic) failed (\"%s\", not \"%s\")\n", value, "(-2, -2)");
 
 		point_release(point);
-		map_destroy(map);
+		map_destroy(&map);
 		if (map)
-			++errors, printf("Test166: map_destroy() failed (%p, not null)\n", map);
+			++errors, printf("Test166: map_destroy(&map) failed (%p, not NULL)\n", (void *)map);
 	}
 
 	/* Test map_create_generic (int -> int) and map growth */
@@ -2218,13 +2868,46 @@ int main(int ac, char **av)
 		if ((int)map_get(map, (void *)25) != 25)
 			++errors, printf("Test218: map_get(generic, int) failed (%d, not %d)\n", (int)map_get(map, (void *)25), 25);
 
-		map_destroy(map);
+		map_destroy(&map);
 		if (map)
-			++errors, printf("Test219: map_destroy() failed (%p, not null)\n", map);
+			++errors, printf("Test219: map_destroy(&map) failed (%p, not NULL)\n", (void *)map);
+	}
+
+	/* Test MT Safety */
+
+	debug = (ac != 1);
+
+	if (debug)
+		setbuf(stdout, NULL);
+
+	if (debug)
+		locker = locker_create_debug_rwlock(&rwlock);
+	else
+		locker = locker_create_rwlock(&rwlock);
+
+	if (!locker)
+		++errors, printf("Test220: locker_create_rwlock() failed\n");
+	else
+	{
+		mt_test(220, locker);
+		locker_destroy(&locker);
+	}
+
+	if (debug)
+		locker = locker_create_debug_mutex(&mutex);
+	else
+		locker = locker_create_mutex(&mutex);
+
+	if (!locker)
+		++errors, printf("Test221: locker_create_mutex() failed\n");
+	else
+	{
+		mt_test(221, locker);
+		locker_destroy(&locker);
 	}
 
 	if (errors)
-		printf("%d/219 tests failed\n", errors);
+		printf("%d/221 tests failed\n", errors);
 	else
 		printf("All tests passed\n");
 

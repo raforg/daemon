@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999, 2000 raf <raf@raf.org>
+* Copyright (C) 1999-2001 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,36 +18,32 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20000902 raf <raf@raf.org>
+* 20010215 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_LIB_H
 #define LIBSLACK_LIB_H
 
-#include <slack/conf.h>
 #include <slack/daemon.h>
 #include <slack/err.h>
-#include <slack/fifo.h>
+#include <slack/fio.h>
 #include <slack/hsort.h>
 #include <slack/lim.h>
 #include <slack/list.h>
-#include <slack/log.h>
 #include <slack/map.h>
 #include <slack/mem.h>
 #include <slack/msg.h>
 #include <slack/net.h>
-#include <slack/opt.h>
 #include <slack/prog.h>
 #include <slack/prop.h>
 #include <slack/sig.h>
 #include <slack/str.h>
+#include <slack/thread.h>
 
-#ifdef NEEDS_SPRINTF
-#include <slack/snprintf.h>
-#endif
-
-#ifdef NEEDS_VSSCANF
-#include <slack/vsscanf.h>
+#ifdef NEEDS_GETOPT
+#include <slack/getopt.h>
+#else
+#include <getopt.h>
 #endif
 
 #endif

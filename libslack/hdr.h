@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999, 2000 raf <raf@raf.org>
+* Copyright (C) 1999-2001 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,40 +18,42 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20000902 raf <raf@raf.org>
+* 20010215 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_HDR_H
 #define LIBSLACK_HDR_H
 
-#undef __hdr_start_decls
-#undef __hdr_stop_decls
-
-#ifdef __cplusplus
-#define __hdr_start_decls extern "C" {
-#define __hdr_stop_decls   }
-#else
-#define __hdr_start_decls
-#define __hdr_stop_decls
-#endif
-
-#undef __hdr_proto
+#undef _start_decls
+#undef _end_decls
+#undef _args
+#undef _throw
 #undef const
 
-#if defined __STDC__ || defined __cplusplus
-#define __hdr_proto(args) args
+#ifdef __cplusplus
+#define _start_decls extern "C" {
+#define _end_decls }
 #else
-#define __hdr_proto(args) ()
-#define const
+#define _start_decls
+#define _end_decls
 #endif
 
-#undef __PROTO
-#undef __START_DECLS
-#undef __STOP_DECLS
+#define _throw
+#if 0
+#ifdef __GNUC__
+#if __cplusplus && ((__GNUC__) >= 3 || (__GNUC_MINOR__) >= 8)
+#undef _throw
+#define _throw throw ()
+#endif
+#endif
+#endif
 
-#define __PROTO       __hdr_proto
-#define __START_DECLS __hdr_start_decls
-#define __STOP_DECLS   __hdr_stop_decls
+#if defined __STDC__ || defined __cplusplus
+#define _args(args) args _throw
+#else
+#define _args(args) ()
+#define const
+#endif
 
 #endif
 

@@ -20,31 +20,31 @@
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
 
-# Modify the macros.mk make include files to compile on linux
+# Modify the macros.mk make include files to compile on Solaris with gcc
 #
 # 20010215 raf <raf@raf.org>
 
 perl -pi \
-	-e 's/^(\S+ \+= xnet)$/# $1/;' \
-	-e 's/^(\S+ \+= posix4)$/# $1/;' \
+	-e 's/^# (\S+ \+= xnet)$/$1/;' \
+	-e 's/^# (\S+ \+= posix4)$/$1/;' \
 	-e 's/^(\S+ \+= m)$/# $1/;' \
-	-e 's/^(\S+ \+= -DSVR4)$/# $1/;' \
-	-e 's/^(GETOPT := getopt)$/# $1/;' \
-	-e 's/^(\S+ \+= -DNEEDS_GETOPT=1)$/# $1/;' \
+	-e 's/^# (\S+ \+= -DSVR4)$/$1/;' \
+	-e 's/^# (GETOPT := getopt)$/$1/;' \
+	-e 's/^# (\S+ \+= -DNEEDS_GETOPT=1)$/$1/;' \
 	-e 's/^(SNPRINTF := snprintf)$/# $1/;' \
 	-e 's/^(\S+ \+= -DNEEDS_SNPRINTF=1)$/# $1/;' \
-	-e 's/^(VSSCANF := vsscanf)$/# $1/;' \
-	-e 's/^(\S+ \+= -DNEEDS_VSSCANF=1)$/# $1/;' \
-	-e 's/^(\S+ \+= -DMLOCK_NEEDS_PAGE_BOUNDARY=1)$/# $1/;' \
-	-e 's/^(\S+ \+= -DROOT_PID_DIR)=.*$/# $1=\\"\/var\/run\\"/;' \
+	-e 's/^# (VSSCANF := vsscanf)$/$1/;' \
+	-e 's/^# (\S+ \+= -DNEEDS_VSSCANF=1)$/$1/;' \
+	-e 's/^# (\S+ \+= -DMLOCK_NEEDS_PAGE_BOUNDARY=1)$/$1/;' \
+	-e 's/^# (\S+ \+= -DROOT_PID_DIR)=.*$/$1=\\"\/etc\\"/;' \
 	-e 's/^(\S+ \+= -DNEEDS_STRCASECMP=1)$/# $1/;' \
 	-e 's/^(\S+ \+= -DNEEDS_STRNCASECMP=1)$/# $1/;' \
 	-e 's/^# (\S+ \+= -DNEEDS_STRLCPY=1)$/$1/;' \
 	-e 's/^# (\S+ \+= -DNEEDS_STRLCAT=1)$/$1/;' \
 	-e 's/^# (\S+ \+= -DWANT_LONG_LONG=1)$/$1/;' \
 	-e 's/^# (\S+ \+= -Wno-long-long)$/$1/;' \
-	-e 's/^(\S+ \+= -DNEEDS_PTHREAD_RWLOCK=1)$/# $1/;' \
-	-e 's/^(\S+ \+= -DNEEDS_PTHREAD_BARRIER=1)$/# $1/;' \
+	-e 's/^# (\S+ \+= -DNEEDS_PTHREAD_RWLOCK=1)$/$1/;' \
+	-e 's/^# (\S+ \+= -DNEEDS_PTHREAD_BARRIER=1)$/$1/;' \
 	`find . -name macros.mk`
 
 perl -pi \

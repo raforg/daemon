@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999, 2000 raf <raf@raf.org>
+* Copyright (C) 1999-2001 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20000902 raf <raf@raf.org>
+* 20010215 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_DAEMON_H
@@ -26,8 +26,12 @@
 
 #include <slack/hdr.h>
 
-#ifndef PID_DIR
-#define PID_DIR "/var/run"
+#ifndef ROOT_PID_DIR
+#define ROOT_PID_DIR "/var/run"
+#endif
+
+#ifndef USER_PID_DIR
+#define USER_PID_DIR "/tmp"
 #endif
 
 #ifndef ROOT_DIR
@@ -42,15 +46,19 @@
 #define PATH_SEP '/'
 #endif
 
-__START_DECLS
-int daemon_started_by_init __PROTO ((void));
-int daemon_started_by_inetd __PROTO ((void));
-int daemon_prevent_core __PROTO ((void));
-int daemon_revoke_privileges __PROTO ((void));
-int daemon_file_is_safe __PROTO ((const char *path));
-int daemon_init __PROTO ((const char *name));
-int daemon_close __PROTO ((void));
-__STOP_DECLS
+typedef void daemon_config_parser_t(void *obj, const char *path, char *line, size_t lineno);
+
+_start_decls
+int daemon_started_by_init _args ((void));
+int daemon_started_by_inetd _args ((void));
+int daemon_prevent_core _args ((void));
+int daemon_revoke_privileges _args ((void));
+char *daemon_absolute_path _args ((const char *path));
+int daemon_path_is_safe _args ((const char *path));
+void *daemon_parse_config _args ((const char *path, void *obj, daemon_config_parser_t *parser));
+int daemon_init _args ((const char *name));
+int daemon_close _args ((void));
+_end_decls
 
 #endif
 

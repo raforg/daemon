@@ -1,0 +1,13 @@
+# Revert to system implementation of rwlocks
+
+perl -pi \
+	-e 's/test_pthread_rwlock/pthread_rwlock/g;' \
+	-e 's/\bTEST_PTHREAD_RWLOCK/PTHREAD_RWLOCK/g;' \
+	-e 's/\bTEST_PTHREAD_BARRIER/PTHREAD_BARRIER/g;' \
+	${@:-`find . -name '*.[ch]'`}
+
+perl -pi \
+	-e 's/^(\S+ \+= -DNEEDS_PTHREAD_RWLOCK=1)$/# $1/;' \
+	-e 's/^(\S+ \+= -DNEEDS_PTHREAD_BARRIER=1)$/# $1/;' \
+	`find . -name macros.mk`
+

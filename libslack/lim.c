@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999, 2000 raf <raf@raf.org>
+* Copyright (C) 1999-2001 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20000902 raf <raf@raf.org>
+* 20010215 raf <raf@raf.org>
 */
 
 /*
@@ -72,8 +72,8 @@ I<libslack(lim)> - POSIX.1 limits module
 
 This module provides functions for simply and reliably obtaining a POSIX.1
 limit for the current system or a usable default when a particular facility
-is unlimited on the current system. These functions should always return a
-usable value. If -1 is returned it means that this module is buggy :-)
+is unlimited on the current system. These functions should return a usable
+value.
 
 =over 4
 
@@ -86,6 +86,9 @@ usable value. If -1 is returned it means that this module is buggy :-)
 #include <limits.h>
 
 #include <sys/resource.h>
+
+#include "lim.h"
+#include "err.h"
 
 enum name_t
 {
@@ -111,111 +114,69 @@ enum name_t
 	LIMIT_COUNT
 };
 
-typedef enum name_t name_t;
 typedef struct conf_t conf_t;
 
 struct conf_t
 {
-	int init;      /* has this value been initialised? */
-	int idem;      /* is this function idempotent? */
-	int name;      /* name argument for sysconf, [f]pathconf */
-	long value;    /* limit value */
-	long guess;    /* limit to use when indeterminate */
-	off_t offset;  /* offset to apply to value when not indeterminate */
+	const int name;       /* name argument for sysconf, [f]pathconf */
+	const long guess;     /* limit to use when indeterminate */
+	const off_t offset;   /* offset to apply to value when not indeterminate */
 };
 
-#ifndef STREAM_MAX
-#define STREAM_MAX 0
-#endif
-
-#ifndef TZNAME_MAX
-#define TZNAME_MAX 0
-#endif
-
-#ifndef NAME_MAX
-#define NAME_MAX 0
-#endif
-
-static conf_t g_limit[] =
+static const struct
 {
-	{ 0, 1, _SC_ARG_MAX,          ARG_MAX,    1048576, 0 },
-	{ 0, 1, _SC_CHILD_MAX,        CHILD_MAX,    32768, 0 },
-	{ 0, 1, _SC_CLK_TCK,          0,               -1, 0 },
-	{ 0, 1, _SC_NGROUPS_MAX,      NGROUPS_MAX,   1024, 0 },
-	{ 0, 1, _SC_OPEN_MAX,         OPEN_MAX,      1024, 0 },
-	{ 0, 1, _SC_STREAM_MAX,       STREAM_MAX,    1024, 0 },
-	{ 0, 1, _SC_TZNAME_MAX,       TZNAME_MAX,    1024, 0 },
-	{ 0, 1, _SC_JOB_CONTROL,      0,                0, 0 },
-	{ 0, 1, _SC_SAVED_IDS,        0,                0, 0 },
-	{ 0, 1, _SC_VERSION,          0,                0, 0 },
-	{ 0, 0, _PC_MAX_CANON,        MAX_CANON,     4096, 0 },
-	{ 0, 0, _PC_MAX_INPUT,        MAX_INPUT,     4096, 0 },
-	{ 0, 0, _PC_VDISABLE,         0,                0, 0 },
-	{ 0, 0, _PC_LINK_MAX,         LINK_MAX,      1024, 0 },
-	{ 0, 0, _PC_NAME_MAX,         NAME_MAX,      1024, 0 },
-	{ 0, 0, _PC_PATH_MAX,         PATH_MAX,      4096, 2 },
-	{ 0, 0, _PC_PIPE_BUF,         PIPE_BUF,      4096, 0 },
-	{ 0, 0, _PC_NO_TRUNC,         0,                0, 0 },
-	{ 0, 0, _PC_CHOWN_RESTRICTED, 0,                0, 0 }
-};
-
-/*
-
-C<int limit_needed(int limit)>
-
-Determines whether or not the given limit is known or it needs to be
-obtained. C<limit> is one of C<name_t> and represents the name argument to
-I<sysconf(3)>, I<pathconf(3)> or I<fpathconf(3)>. If the given limit has
-been initialised and is idempotent, returns 1. Otherwise, returns 0. If
-C<LIMIT_USE_DEFINED_VALUES> is defined, then limit values that are defined
-in header files are taken into account. They shouldn't be used, however,
-since the values defined in header files are the absolute minima allowed by
-POSIX.1 which bears little resemblance to any actual system.
-
-*/
-
-static int limit_needed(int limit)
-{
-	return
-#ifdef LIMIT_USE_DEFINED_VALUES
-		!g_limit[limit].value &&
-#endif
-		!g_limit[limit].init || !g_limit[limit].idem;
+	conf_t conf[LIMIT_COUNT];
 }
+g =
+{
+	{
+		{ _SC_ARG_MAX,     131072, 0 },
+		{ _SC_CHILD_MAX,      999, 0 },
+		{ _SC_CLK_TCK,         -1, 0 },
+		{ _SC_NGROUPS_MAX,     32, 0 },
+		{ _SC_OPEN_MAX,      1024, 0 },
+		{ _SC_STREAM_MAX,      16, 0 },
+		{ _SC_TZNAME_MAX,       3, 0 },
+		{ _SC_JOB_CONTROL,      0, 0 },
+		{ _SC_SAVED_IDS,        0, 0 },
+		{ _SC_VERSION,          0, 0 },
+		{ _PC_MAX_CANON,      255, 0 },
+		{ _PC_MAX_INPUT,      255, 0 },
+		{ _PC_VDISABLE,         0, 0 },
+		{ _PC_LINK_MAX,     32000, 0 },
+		{ _PC_NAME_MAX,      1024, 0 },
+		{ _PC_PATH_MAX,      4096, 2 },
+		{ _PC_PIPE_BUF,      4096, 0 },
+		{ _PC_NO_TRUNC,         0, 0 },
+		{ _PC_CHOWN_RESTRICTED, 0, 0 }
+	}
+};
 
 /*
 
 C<long limit_sysconf(int limit)>
 
-Returns system limits using I<sysconf(3)>. If the limit has been obtained in
-the past and is idempotent, a cached value is returned rather than invoking
-I<sysconf(3)> again. If the limit is indeterminate, a predetermined
-default/guess is returned. Whatever happens, a usable value is returned.
+Returns system limits using I<sysconf(3)>. If the limit is indeterminate, a
+predetermined default/guess is returned. Whatever happens, a usable value is
+returned.
 
 */
 
 static long limit_sysconf(int limit)
 {
-	if (limit_needed(limit))
-	{
-		if ((g_limit[limit].value = sysconf(g_limit[limit].name)) == -1)
-			g_limit[limit].value = g_limit[limit].guess;
-		else
-			g_limit[limit].value += g_limit[limit].offset;
+	long value;
 
-		g_limit[limit].init = 1;
-	}
+	if ((value = sysconf(g.conf[limit].name)) == -1)
+		return g.conf[limit].guess;
 
-	return g_limit[limit].value;
+	return value;
 }
 
 /*
 
 C<long limit_pathconf(int limit, const char *path)>
 
-Returns system limits using I<pathconf(3)>. If the limit has been obtained
-in the past and is idempotent, a cached value is returned rather than
-invoking I<pathconf(3)> again. If the limit is indeterminate, a
+Returns system limits using I<pathconf(3)>. If the limit is indeterminate, a
 predetermined default/guess is returned. If the limit is determinate, a
 predetermined amount may be added to its value. This is only needed for
 C<_PC_PATH_MAX> which is the maximum length of a relative path. To be more
@@ -227,27 +188,20 @@ returned.
 
 static long limit_pathconf(int limit, const char *path)
 {
-	if (limit_needed(limit))
-	{
-		if ((g_limit[limit].value = pathconf(path, g_limit[limit].name)) == -1)
-			g_limit[limit].value = g_limit[limit].guess;
-		else
-			g_limit[limit].value += g_limit[limit].offset;
+	long value;
 
-		g_limit[limit].init = 1;
-	}
+	if ((value = pathconf(path, g.conf[limit].name)) == -1)
+		return g.conf[limit].guess;
 
-	return g_limit[limit].value;
+	return value + g.conf[limit].offset;
 }
 
 /*
 
 C<long limit_fpathconf(int limit, int fd)>
 
-Returns system limits using I<fpathconf(3)>. If the limit has been obtained
-in the past and is idempotent, a cached value is returned rather than
-invoking I<fpathconf(3)> again. If the limit is indeterminate, a
-predetermined default/guess is returned. If the limit is determinate, a
+Returns system limits using I<fpathconf(3)>. If the limit is indeterminate,
+a predetermined default/guess is returned. If the limit is determinate, a
 predetermined amount may be added to its value. This is only needed for
 C<_PC_PATH_MAX> which is the maximum length of a relative path. To be more
 useful, 2 is added to this limit to account for the C<`/'> and C<`\0'> that
@@ -258,25 +212,20 @@ returned.
 
 static long limit_fpathconf(int limit, int fd)
 {
-	if (limit_needed(limit))
-	{
-		if ((g_limit[limit].value = fpathconf(fd, g_limit[limit].name)) == -1)
-			g_limit[limit].value = g_limit[limit].guess;
-		else
-			g_limit[limit].value += g_limit[limit].offset;
+	long value;
 
-		g_limit[limit].init = 1;
-	}
+	if ((value = fpathconf(fd, g.conf[limit].name)) == -1)
+		return g.conf[limit].guess;
 
-	return g_limit[limit].value;
+	return value + g.conf[limit].offset;
 }
 
 /*
 
 =item C<long limit_arg(void)>
 
-Returns the (possibly cached) maximum length of arguments to the I<exec(2)>
-family of functions. If indeterminate, a usable guess (1048576) is returned.
+Returns the maximum length of arguments to the I<exec(2)> family of
+functions. If indeterminate, a usable guess (131072) is returned.
 
 =cut
 
@@ -291,8 +240,8 @@ long limit_arg(void)
 
 =item C<long limit_child(void)>
 
-Returns the (possibly cached) maximum number of simultaneous processes per
-user id. If indeterminate, a usable guess (32768) is returned.
+Returns the maximum number of simultaneous processes per user id. If
+indeterminate, a usable guess (999) is returned.
 
 =cut
 
@@ -307,8 +256,8 @@ long limit_child(void)
 
 =item C<long limit_tick(void)>
 
-Returns the (possibly cached) number of clock ticks per second. If
-indeterminate (which makes no sense), -1 is returned.
+Returns the number of clock ticks per second. If indeterminate (which makes
+no sense), -1 is returned.
 
 =cut
 
@@ -323,8 +272,8 @@ long limit_tick(void)
 
 =item C<long limit_group(void)>
 
-Returns the (possibly cached) maximum number of groups that a user may
-belong to. If indeterminate, a usable guess (1024) is returned.
+Returns the maximum number of groups that a user may belong to. If
+indeterminate, a usable guess (32) is returned.
 
 =cut
 
@@ -339,8 +288,8 @@ long limit_group(void)
 
 =item C<long limit_open(void)>
 
-Returns the (possibly cached) maximum number of files that a process can
-have open at any time. If indeterminate, a usable guess (1024) is returned.
+Returns the maximum number of files that a process can have open at any
+time. If indeterminate, a usable guess (1024) is returned.
 
 =cut
 
@@ -355,8 +304,8 @@ long limit_open(void)
 
 =item C<long limit_stream(void)>
 
-Returns the (possibly cached) maximum number of streams that a process can
-have open at any time. If indeterminate, a usable guess (1024) is returned.
+Returns the maximum number of streams that a process can have open at any
+time. If indeterminate, a usable guess (16) is returned.
 
 =cut
 
@@ -371,8 +320,8 @@ long limit_stream(void)
 
 =item C<long limit_tzname(void)>
 
-Returns the (possibly cached) maximum number of bytes in a timezone name. If
-indeterminate, a usable guess (1024) is returned.
+Returns the maximum number of bytes in a timezone name. If indeterminate, a
+usable guess (3) is returned.
 
 =cut
 
@@ -387,7 +336,7 @@ long limit_tzname(void)
 
 =item C<long limit_job(void)>
 
-Returns whether or not (possibly cached) job control is supported.
+Returns whether or not job control is supported.
 
 =cut
 
@@ -402,8 +351,8 @@ long limit_job(void)
 
 =item C<long limit_save_ids(void)>
 
-Returns whether or not (possibly cached) a process has a saved set-user-id
-and a saved set-group-id.
+Returns whether or not a process has a saved set-user-id and a saved
+set-group-id.
 
 =cut
 
@@ -418,8 +367,8 @@ long limit_save_ids(void)
 
 =item C<long limit_version(void)>
 
-Returns the (possibly cached) year and month the POSIX.1 standard was
-approved in the format YYYYMML.
+Returns the year and month the POSIX.1 standard was approved in the format
+YYYYMML.
 
 =cut
 
@@ -435,7 +384,7 @@ long limit_version(void)
 =item C<long limit_pcanon(const char *path)>
 
 Returns the maximum length of a formatted input line for the terminal
-referred to by C<path>. If indeterminate, a usable guess (4096) is returned.
+referred to by C<path>. If indeterminate, a usable guess (255) is returned.
 
 =cut
 
@@ -451,7 +400,7 @@ long limit_pcanon(const char *path)
 =item C<long limit_fcanon(int fd)>
 
 Returns the maximum length of a formatted input line for the terminal
-referred to by C<fd>. If indeterminate, a usable guess (4096) is returned.
+referred to by C<fd>. If indeterminate, a usable guess (255) is returned.
 
 =cut
 
@@ -467,7 +416,7 @@ long limit_fcanon(int fd)
 =item C<long limit_canon(void)>
 
 Returns the maximum length of a formatted input line for the terminal
-referred to by C<"/dev/tty">. If indeterminate, a usable guess (4096) is
+referred to by C<"/dev/tty">. If indeterminate, a usable guess (255) is
 returned.
 
 =cut
@@ -484,7 +433,7 @@ long limit_canon(void)
 =item C<long limit_pinput(const char *path)>
 
 Returns the maximum length of an input line for the terminal referred to by
-C<path>. If indeterminate, a usable guess (4096) is returned.
+C<path>. If indeterminate, a usable guess (255) is returned.
 
 =cut
 
@@ -500,7 +449,7 @@ long limit_pinput(const char *path)
 =item C<long limit_finput(int fd)>
 
 Returns the maximum length of an input line for the terminal referred to by
-C<fd>. If indeterminate, a usable guess (4096) is returned.
+C<fd>. If indeterminate, a usable guess (255) is returned.
 
 =cut
 
@@ -516,7 +465,7 @@ long limit_finput(int fd)
 =item C<long limit_input(void)>
 
 Returns the maximum length of an input line for the terminal referred to by
-C<"/dev/tty">. If indeterminate, a usable guess (4096) is returned.
+C<"/dev/tty">. If indeterminate, a usable guess (255) is returned.
 
 =cut
 
@@ -580,7 +529,7 @@ long limit_vdisable(void)
 =item C<long limit_plink(const char *path)>
 
 Returns the maximum number of links to the file represented by C<path>. If
-indeterminate, a usable guess (1024) is returned.
+indeterminate, a usable guess (32000) is returned.
 
 =cut
 
@@ -596,7 +545,7 @@ long limit_plink(const char *path)
 =item C<long limit_flink(int fd)>
 
 Returns the maximum number of links to the file represented by C<fd>. If
-indeterminate, a usable guess (1024) is returned.
+indeterminate, a usable guess (32000) is returned.
 
 =cut
 
@@ -612,7 +561,7 @@ long limit_flink(int fd)
 =item C<long limit_link(void)>
 
 Returns the maximum number of links to the file represented by C<"/">. If
-indeterminate, a usable guess (1024) is returned.
+indeterminate, a usable guess (32000) is returned.
 
 =cut
 
@@ -697,8 +646,7 @@ long limit_ppath(const char *path)
 
 Returns the maximum length of an absolute pathname (including the C<nul>
 character) when C<fd> is the current directory. If indeterminate, a usable
-guess (4096) is
-returned.
+guess (4096) is returned.
 
 =cut
 
@@ -862,34 +810,23 @@ long limit_chown(void)
 The functions that return a condition return 1 when the condition is true or
 0 when it is false. All of the others either return the system limit
 indicated or a predetermined, usable guess when the indicated limit is
-indeterminate. These functions never return -1 (except possibly
-I<limit_tick()>).
+indeterminate. These functions never return -1.
+
+=head1 MT-Level
+
+MT-Safe
 
 =head1 SEE ALSO
 
+L<libslack(3)|libslack(3)>,
 L<sysconf(2)|sysconf(2)>,
 L<pathconf(2)|pathconf(2)>,
 L<fpathconf(2)|fpathconf(2)>,
-L<conf(3)|conf(3)>,
-L<daemon(3)|daemon(3)>,
-L<err(3)|err(3)>,
-L<fifo(3)|fifo(3)>,
-L<hsort(3)|hsort(3)>,
-L<list(3)|list(3)>,
-L<log(3)|log(3)>,
-L<map(3)|map(3)>,
-L<mem(3)|mem(3)>,
-L<msg(3)|msg(3)>,
-L<net(3)|net(3)>,
-L<opt(3)|opt(3)>,
-L<prog(3)|prog(3)>,
-L<prop(3)|prop(3)>,
-L<sig(3)|sig(3)>,
-L<str(3)|str(3)>
+L<thread(3)|thread(3)>
 
 =head1 AUTHOR
 
-20000902 raf <raf@raf.org>
+20010215 raf <raf@raf.org>
 
 =cut
 
@@ -996,6 +933,9 @@ int main(int ac, char **av)
 			++errors, printf("Test17: limit_fpipe() failed\n");
 		else if (verbose)
 			printf("pipe = %ld\n", limit);
+
+		close(fds[0]);
+		close(fds[1]);
 	}
 
 	if ((limit = limit_notrunc()) == -1)

@@ -29,6 +29,10 @@ be contained in the elements in addition to the values being compared.
 The order in the output of two items which compare as equal is
 unpredictable.
 
+=head1 MT-Level
+
+MT-Safe
+
 =head1 SEE ALSO
 
 L<qsort(3)|qsort(3)>
@@ -228,16 +232,16 @@ void hsort(void *base, size_t n, size_t size, hsort_cmp_t *cmp)
 
 #ifdef TEST
 
-static char *string[4];
+char *string[4];
 
 int cmp(const char **p1, const char **p2)
 {
 	return strcmp(*p1, *p2);
 }
 
-static int errors = 0;
+int errors = 0;
 
-static void verify(int test)
+void verify(int test)
 {
 	if (strcmp(string[0], "abc"))
 		++errors, printf("Test%d: 1st item is '%s' (not 'abc')\n", test, string[0]);
