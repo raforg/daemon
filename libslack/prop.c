@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20010215 raf <raf@raf.org>
+* 20011109 raf <raf@raf.org>
 */
 
 /*
@@ -45,14 +45,15 @@ I<libslack(prop)> - program properties file module
     int prop_set_bool(const char *name, int value);
     int prop_unset(const char *name);
     int prop_save(void);
-
+    int prop_clear(void);
+    int prop_locker(Locker *locker);
 
 =head1 DESCRIPTION
 
 This module provides support for system-wide and user-specific (generic and
 program-specific) properties in "well-known" locations:
 
-    /etc/properties.app             - system-wide, generic properties
+    /etc/properties/app             - system-wide, generic properties
     $HOME/.properties/app           - user-defined, generic properties
     /etc/properties/app.progname    - system-wide, program-specific properties
     $HOME/.properties/app.progname  - user-defined, program-specific properties
@@ -65,13 +66,13 @@ properties. The client can change properties at runtime and save the current
 properties back to disk (to the user-defined, program-specific properties
 file).
 
-Program names (as returned by I<prog_name()> are converted into file name
-suffixes by replacing every occurrance of the file path separator (``/'')
-with a ``-''. Properties files consist of one property per line. Each
-property is specified by its name, followed by C<``=''> followed by its
-value. The name must not have a C<``=''> in it unless it is quoted with a
-C<``\''>. The properties files may also contain blank lines and comments
-(C<``#''> until the end of the line).
+Program names (as returned by I<prog_name()>) are converted into file name
+suffixes by replacing every occurrence of the file path separator (C<'/'>)
+with a C<'-'>. Properties files consist of one property per line. Each
+property is specified by its name, followed by C<'='> followed by its
+value. The name must not have a C<'='> in it unless it is quoted with a
+C<'\'>. The properties files may also contain blank lines and comments
+(C<'#'> until the end of the line).
 
 =over 4
 
@@ -79,6 +80,7 @@ C<``\''>. The properties files may also contain blank lines and comments
 
 */
 
+#include "config.h"
 #include "std.h"
 
 #include <pwd.h>
@@ -92,14 +94,14 @@ C<``\''>. The properties files may also contain blank lines and comments
 #include "mem.h"
 #include "prop.h"
 #include "str.h"
-#include "thread.h"
+#include "locker.h"
 
-#ifdef NEEDS_SNPRINTF
+#ifndef HAVE_SNPRINTF
 #include "snprintf.h"
 #endif
 
 #ifndef isodigit
-#define isodigit(c) (isdigit(c) && (c) < '8')
+#define isodigit(c) (isdigit((int)(unsigned char)c) && (unsigned char)(c) < '8')
 #endif
 
 typedef struct Prop Prop;
@@ -109,6 +111,8 @@ struct Prop
 	Map *map;
 	Prop *defaults;
 };
+
+#ifndef TEST
 
 static struct
 {
@@ -125,8 +129,8 @@ g = { 0, NULL, NULL, 0, NULL };
 C<Prop *prop_create(Map *map, Prop *defaults)>
 
 Creates and returns a I<Prop> containing C<map> and C<defaults>. On error,
-returns C<NULL>. The new I<Prop> will destroy C<map> and C<defaults> when it
-is destroyed.
+returns C<null> with C<errno> set appropriately. The new I<Prop> will
+destroy C<map> and C<defaults> when it is destroyed.
 
 */
 
@@ -182,7 +186,7 @@ static const char *eq = "=";
 
 C<String *quote_special(const char *src)>
 
-Replaces every occurrance in C<src> of special characters (represented in
+Replaces every occurrence in C<src> of special characters (represented in
 I<C> by C<"\a">, C<"\b">, C<"\f">, C<"\n">, C<"\r">, C<"\t">, C<"\v">) with
 their corresponding I<C> representation. Other non-printable characters are
 replaced with their ASCII codes in hexadecimal (i.e. "\xhh"). The caller
@@ -199,7 +203,7 @@ static String *quote_special(const char *src)
 
 C<String *unquote_special(const char *src)>
 
-Replaces every occurrance in C<src> of C<"\a">, C<"\b">, C<"\f">, C<"\n">,
+Replaces every occurrence in C<src> of C<"\a">, C<"\b">, C<"\f">, C<"\n">,
 C<"\r">, C<"\t"> or C<"\v"> with the corresponding special characters (as
 interpreted by I<C>). Ascii codes in octal or hexadecimal (i.e. "\ooo" or
 "\xhh") are replaced with their corresponding ASCII characters. The caller
@@ -216,7 +220,7 @@ static String *unquote_special(const char *src)
 
 C<String *quote_equals(const char *src)>
 
-Replace every occurrance in C<src> of C<"="> with C<"\=">. The caller must
+Replace every occurrence in C<src> of C<"="> with C<"\=">. The caller must
 deallocate the memory returned.
 
 */
@@ -230,7 +234,7 @@ static String *quote_equals(const char *src)
 
 C<String *quote_equals(const char *src)>
 
-Replace every occurrance in C<src> of C<"\="> with C<"=">. The caller must
+Replace every occurrence in C<src> of C<"\="> with C<"=">. The caller must
 deallocate the memory returned.
 
 */
@@ -270,7 +274,9 @@ C<void prop_parse(Map *map, const char *path, char *line, size_t lineno)>
 Parses a line from a properties file. C<path> if the path of the properties
 file. C<line> is the text to parse. C<lineno> is the current line number.
 The property parsed, if any, is added to C<map>. Emits error messages when
-syntax errors occur.
+syntax errors occur. That's probably a mistake. To suppress the error
+messages, call I<prog_err_none()> first and restore error message afterwards
+with something like I<prog_err_stderr()>.
 
 */
 
@@ -297,6 +303,7 @@ static void prop_parse(Map *map, const char *path, char *line, size_t lineno)
 	{
 		error("prop: %s line %d: Expected '='\n%s", path, lineno, line);
 		str_release(prop);
+		set_errno(EINVAL);
 		return;
 	}
 
@@ -318,11 +325,12 @@ static void prop_parse(Map *map, const char *path, char *line, size_t lineno)
 
 	/* Add this property to the map */
 
-	if (str_length(name) == 0)
+	if (str_length(name) <= 0)
 	{
 		error("prop: %s line %d: Empty name\n%s", path, lineno, line);
 		str_release(prop);
 		str_release(name);
+		set_errno(EINVAL);
 		return;
 	}
 
@@ -348,7 +356,8 @@ static void prop_parse(Map *map, const char *path, char *line, size_t lineno)
 C<Prop *prop_load(const char *path, Prop *defaults)>
 
 Creates and returns a new I<Prop> containing C<defaults> and the properties
-obtained from the properties file named C<path>. On error, returns C<NULL>.
+obtained from the properties file named C<path>. On error, returns C<null>
+with C<errno> set appropriately.
 
 */
 
@@ -381,7 +390,7 @@ C<int prop_init(void)>
 
 Initialises the I<prop> module. Loads properties from the following locations:
 
-    /etc/properties.app             - system-wide, generic properties
+    /etc/properties/app             - system-wide, generic properties
     $HOME/.properties/app           - user-defined, generic properties
     /etc/properties/app.progname    - system-wide, program-specific properties
     $HOME/.properties/app.progname  - user-defined, program-specific properties
@@ -411,18 +420,15 @@ static int prop_init(void)
 	/* System wide generic properties: /etc/properties/app */
 
 	snprintf(path, path_len, "%s%cproperties%capp", ETC_DIR, PATH_SEP, PATH_SEP);
-	prop_next = prop_load(path, prop);
-	if (prop_next)
+	if ((prop_next = prop_load(path, prop)))
 		prop = prop_next;
 
 	/* User defined generic properties: $HOME/.properties/app */
 
-	home = user_home();
-	if (home)
+	if ((home = user_home()))
 	{
 		snprintf(path, path_len, "%s%c.properties%capp", home, PATH_SEP, PATH_SEP);
-		prop_next = prop_load(path, prop);
-		if (prop_next)
+		if ((prop_next = prop_load(path, prop)))
 			prop = prop_next;
 	}
 
@@ -443,8 +449,7 @@ static int prop_init(void)
 		/* System wide program specific properties: /etc/properties/app.progname */
 
 		snprintf(path, path_len, "%s%cproperties%capp.%s", ETC_DIR, PATH_SEP, PATH_SEP, progname);
-		prop_next = prop_load(path, prop);
-		if (prop_next)
+		if ((prop_next = prop_load(path, prop)))
 			prop = prop_next;
 
 		/* User defined program specific properties: $HOME/.properties/app.progname */
@@ -452,8 +457,7 @@ static int prop_init(void)
 		if (home)
 		{
 			snprintf(path, path_len, "%s%c.properties%capp.%s", home, PATH_SEP, PATH_SEP, progname);
-			prop_next = prop_load(path, prop);
-			if (prop_next)
+			if ((prop_next = prop_load(path, prop)))
 			{
 				prop = prop_next;
 				writable = 1;
@@ -498,8 +502,8 @@ static int prop_init(void)
 
 =item C<const char *prop_get(const char *name)>
 
-Returns the value of the property named C<name>. Returns C<NULL> if there is
-no such property.
+Returns the value of the property named C<name>. Returns C<null> if there is
+no such property. On error, returns C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -509,9 +513,10 @@ const char *prop_get(const char *name)
 {
 	Prop *p;
 	const char *value = NULL;
+	int err;
 
-	if (locker_wrlock(g.locker) == -1)
-		return NULL;
+	if ((err = locker_wrlock(g.locker)))
+		return set_errnull(err);
 
 	if (!g.init && prop_init() == -1)
 	{
@@ -523,8 +528,8 @@ const char *prop_get(const char *name)
 		if ((value = map_get(p->map, name)))
 			break;
 
-	if (locker_unlock(g.locker) == -1)
-		return NULL;
+	if ((err = locker_unlock(g.locker)))
+		return set_errnull(err);
 
 	return value;
 }
@@ -533,8 +538,8 @@ const char *prop_get(const char *name)
 
 =item C<const char *prop_get_or(const char *name, const char *default_value)>
 
-Returns the value of the property named C<name>. Returns C<default_value> if
-there is no such property.
+Returns the value of the property named C<name>. Returns C<default_value> on
+error or if there is no such property.
 
 =cut
 
@@ -551,10 +556,11 @@ const char *prop_get_or(const char *name, const char *default_value)
 
 =item C<const char *prop_set(const char *name, const char *value)>
 
-Sets the property named C<name> to a copy of C<value>. On success, returns
-the copy of C<value>. On error, returns C<NULL>. If I<prop_save()> is called
-after a call to this function, the new property will be saved to disk and
-will be available the next time this program is executed.
+Sets the property named C<name> to a copy of C<value>. If I<prop_save()> is
+called after a call to this function, the new property will be saved to disk
+and will be available the next time this program is executed. On success,
+returns the copy of C<value>. On error, returns C<null> with C<errno> set
+appropriately.
 
 =cut
 
@@ -563,9 +569,10 @@ will be available the next time this program is executed.
 const char *prop_set(const char *name, const char *value)
 {
 	char *val;
+	int err;
 
-	if (locker_wrlock(g.locker) == -1)
-		return NULL;
+	if ((err = locker_wrlock(g.locker)))
+		return set_errnull(err);
 
 	if (!g.init && prop_init() == -1)
 	{
@@ -588,8 +595,8 @@ const char *prop_set(const char *name, const char *value)
 
 	g.dirty = 1;
 
-	if (locker_unlock(g.locker) == -1)
-		return NULL;
+	if ((err = locker_unlock(g.locker)))
+		return set_errnull(err);
 
 	return val;
 }
@@ -599,8 +606,8 @@ const char *prop_set(const char *name, const char *value)
 =item C<int prop_get_int(const char *name)>
 
 Returns the value of the property named C<name> as an integer. Returns C<0>
-if there is no such property or if it is not interpretable as a decimal
-integer.
+on error or if there is no such property or if it is not interpretable as a
+decimal integer.
 
 =cut
 
@@ -616,8 +623,8 @@ int prop_get_int(const char *name)
 =item C<int prop_get_int_or(const char *name, int default_value)>
 
 Returns the value of the property named C<name> as an integer. Returns
-C<default_value> if there is no such property or of it is not interpretable
-as a decimal integer.
+C<default_value> on error or if there is no such property or if it is not
+interpretable as a decimal integer.
 
 =cut
 
@@ -635,10 +642,10 @@ int prop_get_int_or(const char *name, int default_value)
 
 =item C<int prop_set_int(const char *name, int value)>
 
-Sets the property named C<name> to C<value>. On success, returns C<value>.
-On error, returns 0. If I<prop_save()> is called after a call to this
-function, the new property will be saved to disk and will be available the
-next time this program is executed.
+Sets the property named C<name> to C<value>. If I<prop_save()> is called
+after a call to this function, the new property will be saved to disk and
+will be available the next time this program is executed. On success,
+returns C<value>. On error, returns C<0>.
 
 =cut
 
@@ -655,9 +662,9 @@ int prop_set_int(const char *name, int value)
 
 =item C<double prop_get_double(const char *name)>
 
-Returns the value of the property named C<name> as a double. Returns 0.0
-if there is no such property or if it is not interpretable as a floating
-point number.
+Returns the value of the property named C<name> as a double. Returns C<0.0>
+on error or if there is no such property or if it is not interpretable as a
+floating point number.
 
 =cut
 
@@ -673,8 +680,8 @@ double prop_get_double(const char *name)
 =item C<double prop_get_double_or(const char *name, double default_value)>
 
 Returns the value of the property named C<name> as a double. Returns
-C<default_value> if there is no such property or of it is not interpretable
-as a floating point number.
+C<default_value> on error or if there is no such property or if it is not
+interpretable as a floating point number.
 
 =cut
 
@@ -692,10 +699,10 @@ double prop_get_double_or(const char *name, double default_value)
 
 =item C<double prop_set_double(const char *name, double value)>
 
-Sets the property named C<name> to C<value>. On success, returns C<value>.
-On error, returns 0.0. If I<prop_save()> is called after a call to this
-function, the new property will be saved to disk and will be available the
-next time this program is executed.
+Sets the property named C<name> to C<value>. If I<prop_save()> is called
+after a call to this function, the new property will be saved to disk and
+will be available the next time this program is executed. On success,
+returns C<value>. On error, returns C<0.0>.
 
 =cut
 
@@ -713,9 +720,9 @@ double prop_set_double(const char *name, double value)
 =item C<int prop_get_bool(const char *name)>
 
 Returns the value of the property named C<name> as a boolean value. Returns
-C<0> if there is no such property or if it is not interpretable as a boolean
-value. The values: C<"true">, C<"yes">, C<"on"> and C<"1"> are all
-interpreted as C<true>. All other values are C<false>.
+C<0> on error or if there is no such property. The values: C<"true">,
+C<"yes">, C<"on"> and C<"1"> are all interpreted as C<true>. All other
+values are interpreted as C<false>.
 
 =cut
 
@@ -731,11 +738,11 @@ int prop_get_bool(const char *name)
 =item C<int prop_get_bool_or(const char *name, int default_value)>
 
 Returns the value of the property named C<name> as a boolean value. Returns
-C<default_value> if there is no such property or of it is not interpretable
-as a boolean value. The values: C<"true">, C<"yes">, C<"on"> and C<"1"> are
-all interpreted as C<true>. The values: C<"false">, C<"no">, C<"off"> and
-C<"0"> are all interpreted as C<false>. All other values are disregarded and
-will cause C<default_value> to be returned.
+C<default_value> on error or if there is no such property or if it is not
+interpretable as a boolean value. The values: C<"true">, C<"yes">, C<"on">
+and C<"1"> are all interpreted as C<true>. The values: C<"false">, C<"no">,
+C<"off"> and C<"0"> are all interpreted as C<false>. All other values are
+disregarded and will cause C<default_value> to be returned.
 
 =cut
 
@@ -800,10 +807,10 @@ int prop_get_bool_or(const char *name, int default_value)
 
 =item C<int prop_set_bool(const char *name, int value)>
 
-Sets the property named C<name> to C<value>. On success, returns C<value>.
-On error, returns 0. If I<prop_save()> is called after a call to this
-function, the new property will be saved to disk and will be available the
-next time this program is executed.
+Sets the property named C<name> to C<value>. If I<prop_save()> is called
+after a call to this function, the new property will be saved to disk and
+will be available the next time this program is executed. On success,
+returns C<value>. On error, returns C<0>.
 
 =cut
 
@@ -821,7 +828,8 @@ int prop_set_bool(const char *name, int value)
 Removes the property named C<name>. Property removal is only saved to disk
 when I<prop_save()> is called, if the property existed only in the
 user-defined, program-specific properties file, or was created by the
-program at runtime.
+program at runtime. On success, returns C<0>. On error, returns C<-1>
+with C<errno> set appropriately.
 
 =cut
 
@@ -830,9 +838,10 @@ program at runtime.
 int prop_unset(const char *name)
 {
 	Prop *p;
+	int err;
 
-	if (locker_wrlock(g.locker) == -1)
-		return -1;
+	if ((err = locker_wrlock(g.locker)))
+		return set_errno(err);
 
 	if (!g.init && prop_init() == -1)
 	{
@@ -845,8 +854,8 @@ int prop_unset(const char *name)
 
 	g.dirty = 1;
 
-	if (locker_unlock(g.locker) == -1)
-		return -1;
+	if ((err = locker_unlock(g.locker)))
+		return set_errno(err);
 
 	return 0;
 }
@@ -864,8 +873,11 @@ save its own properties. They are saved in the following file:
 
     $HOME/.properties/app.progname
 
-The F<.properties> directory is created if necessary. On success, returns 0.
-On error, returns -1.
+Where C<progname> is the name of the program after being translated as
+described at the top of the DESCRIPTION section.
+
+The F<.properties> directory is created if necessary. On success, returns
+C<0>. On error, returns C<-1> with C<errno> set appropriately.
 
 =cut
 
@@ -882,17 +894,18 @@ int prop_save(void)
 	List *keys;
 	Lister *k;
 	FILE *file;
+	int err;
 
 	if (!prop_get_bool_or("save", 1))
 		return 0;
 
-	if (locker_wrlock(g.locker) == -1)
-		return -1;
+	if ((err = locker_wrlock(g.locker)))
+		return set_errno(err);
 
 	if (!g.dirty)
 	{
-		if (locker_unlock(g.locker) == -1)
-			return -1;
+		if ((err = locker_unlock(g.locker)))
+			return set_errno(err);
 
 		return 0;
 	}
@@ -900,13 +913,13 @@ int prop_save(void)
 	if (!prog_name())
 	{
 		locker_unlock(g.locker);
-		return -1;
+		return set_errno(EINVAL);
 	}
 
 	if (!(home = user_home()))
 	{
 		locker_unlock(g.locker);
-		return -1;
+		return set_errno(EINVAL);
 	}
 
 	path_len = limit_path();
@@ -930,7 +943,7 @@ int prop_save(void)
 	{
 		mem_release(path);
 		locker_unlock(g.locker);
-		return -1;
+		return set_errno(EINVAL);
 	}
 
 	if (!(progname = mem_strdup(prog_name())))
@@ -976,7 +989,7 @@ int prop_save(void)
 		return -1;
 	}
 
-	while (lister_has_next(k))
+	while (lister_has_next(k) == 1)
 	{
 		const char *key = (const char *)lister_next(k);
 		const char *value = map_get(g.prop->map, key);
@@ -1030,8 +1043,37 @@ int prop_save(void)
 	list_release(keys);
 	g.dirty = 0;
 
-	if (locker_unlock(g.locker) == -1)
-		return -1;
+	if ((err = locker_unlock(g.locker)))
+		return set_errno(err);
+
+	return 0;
+}
+
+/*
+
+=item C<int prop_clear(void)>
+
+Clears the properties as though they were never initialised. On success,
+returns C<0>. On error, returns C<-1> with C<errno> set appropriately.
+
+=cut
+
+*/
+
+int prop_clear(void)
+{
+	int err;
+
+	if ((err = locker_wrlock(g.locker)))
+		return set_errno(err);
+
+	prop_release(g.prop);
+	g.prop = NULL;
+	g.init = 0;
+	g.dirty = 0;
+
+	if ((err = locker_unlock(g.locker)))
+		return set_errno(err);
 
 	return 0;
 }
@@ -1042,7 +1084,8 @@ int prop_save(void)
 
 Sets the locking strategy for the prop module to C<locker>. This is only
 needed in multi threaded programs. It must only be called once, from the
-main thread. On success, returns C<0>. On error, returns C<-1>.
+main thread. On success, returns C<0>. On error, returns C<-1> with C<errno>
+set appropriately.
 
 =cut
 
@@ -1059,6 +1102,21 @@ int prop_locker(Locker *locker)
 }
 
 /*
+
+=back
+
+=head1 ERRORS
+
+On error, C<errno> is set either by an underlying function, or as follows:
+
+=over 4
+
+=item EINVAL
+
+When there is no prog_name or home directory or when there is a parse error
+in a properties file or if the F<~/.properties> exists but is not a
+directory. I<prop_locker()> sets this when an attempt is made to change the
+locker that has already been set.
 
 =back
 
@@ -1098,7 +1156,8 @@ MT-Disciplined
         prop_set_double("double", d *= 1.75);
         prop_set_bool("boolean", !b);
         prop_save();
-        return 0;
+
+        return EXIT_SUCCESS;
     }
 
 =head1 BUGS
@@ -1113,13 +1172,26 @@ L<prog(3)|prog(3)>
 
 =head1 AUTHOR
 
-20010215 raf <raf@raf.org>
+20011109 raf <raf@raf.org>
 
 =cut
 
 */
 
+#endif
+
 #ifdef TEST
+
+static const char *user_home()
+{
+	struct passwd *pwent;
+	char *home = NULL;
+
+	if ((pwent = getpwuid(getuid())))
+		home = pwent->pw_dir;
+
+	return (home && strlen(home)) ? home : NULL;
+}
 
 static int props_exist(void)
 {
@@ -1128,8 +1200,7 @@ static int props_exist(void)
 	char *path;
 	size_t path_len;
 
-	home = user_home();
-	if (!home)
+	if (!(home = user_home()))
 		return 0;
 
 	path_len = limit_path();
@@ -1158,8 +1229,7 @@ static void clean(int has_props)
 	size_t path_len;
 	size_t len;
 
-	home = user_home();
-	if (!home)
+	if (!(home = user_home()))
 		return;
 
 	path_len = limit_path();
@@ -1206,9 +1276,9 @@ int main(int ac, char **av)
 		{ NULL, NULL }
 	};
 
-	const char *key = "key";
-	const char *value = "value";
-	const char *not_key = "not key";
+	const char * const key = "key";
+	const char * const value = "value";
+	const char * const not_key = "not key";
 	int has_props = props_exist();
 	const char *val;
 	int ival, i;
@@ -1216,6 +1286,12 @@ int main(int ac, char **av)
 	double double_val;
 	int bool_val;
 	int errors = 0;
+
+	if (ac == 2 && !strcmp(av[1], "help"))
+	{
+		printf("usage: %s\n", *av);
+		return EXIT_SUCCESS;
+	}
 
 	printf("Testing: prop\n");
 	prog_init();
@@ -1246,10 +1322,7 @@ int main(int ac, char **av)
 		++errors, printf("Test8: prop_save() (without progname) failed (%d not -1)\n", ival);
 
 	prog_set_name("prop.test");
-	prop_release(g.prop);
-	g.prop = NULL;
-	g.init = 0;
-	g.dirty = 0;
+	prop_clear();
 
 	val = prop_get(not_key);
 	if (val != NULL)
@@ -1265,10 +1338,7 @@ int main(int ac, char **av)
 		++errors, printf("Test12: prop_save() (with progname) failed (%d not 0)\n", ival);
 
 	clean(has_props);
-	prop_release(g.prop);
-	g.prop = NULL;
-	g.init = 0;
-	g.dirty = 0;
+	prop_clear();
 
 	for (i = 0; data[i].key; ++i)
 	{
@@ -1284,10 +1354,7 @@ int main(int ac, char **av)
 	if (ival != 0)
 		++errors, printf("Test21: prop_save() (with progname) failed (%d not 0)\n", ival);
 
-	prop_release(g.prop);
-	g.prop = NULL;
-	g.init = 0;
-	g.dirty = 0;
+	prop_clear();
 
 	for (i = 0; data[i].key; ++i)
 	{
@@ -1297,10 +1364,7 @@ int main(int ac, char **av)
 	}
 
 	clean(has_props);
-	prop_release(g.prop);
-	g.prop = NULL;
-	g.init = 0;
-	g.dirty = 0;
+	prop_clear();
 
 	if ((int_val = prop_set_int("i", 37)) != 37)
 		++errors, printf("Test26: prop_set_int() failed (%d not 37)\n", int_val);
@@ -1343,7 +1407,7 @@ int main(int ac, char **av)
 	else
 		printf("All tests passed\n");
 
-	return 0;
+	return (errors == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 #endif

@@ -18,46 +18,64 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20010215 raf <raf@raf.org>
+* 20011109 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_STD_H
 #define LIBSLACK_STD_H
 
+#ifndef NO_STDC
 #ifndef __STDC__
 #define __STDC__
 #endif
+#endif
 
+#ifndef NO_STRICT_ANSI
 #ifndef __STRICT_ANSI__
 #define __STRICT_ANSI__
 #endif
+#endif
 
+#ifndef NO_POSIX_SOURCE
 #ifndef _POSIX_SOURCE
 #define _POSIX_SOURCE
 #endif
+#endif
 
+#ifndef NO_POSIX_C_SOURCE
 #ifndef _POSIX_C_SOURCE
 #define _POSIX_C_SOURCE 199506L
 #endif
+#endif
 
+#ifndef NO_XOPEN_SOURCE
 #ifndef _XOPEN_SOURCE
 #define _XOPEN_SOURCE 600
 #endif
+#endif
 
+#ifndef NO_ISOC9X_SOURCE
 #ifndef _ISOC9X_SOURCE
 #define _ISOC9X_SOURCE
 #endif
+#endif
 
+#ifndef NO_EXTENSIONS
 #ifndef __EXTENSIONS__
 #define __EXTENSIONS__
 #endif
+#endif
 
+#ifndef NO_REENTRANT
 #ifndef _REENTRANT
 #define _REENTRANT
 #endif
+#endif
 
+#ifndef NO_THREAD_SAFE
 #ifndef _THREAD_SAFE
 #define _THREAD_SAFE
+#endif
 #endif
 
 #include <assert.h>

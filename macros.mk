@@ -19,7 +19,7 @@
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
 
-# 20010215 raf <raf@raf.org>
+# 20011109 raf <raf@raf.org>
 
 # Uncomment this to override the default value of 600 seconds
 # as the minimum amount of time that a client can live if it
@@ -36,21 +36,26 @@
 # DAEMON_DEFINES += -DNDEBUG
 
 DAEMON_NAME := daemon
-DAEMON_VERSION := 0.4
-DAEMON_DATE := 20010215
+DAEMON_VERSION := 0.5
+DAEMON_DATE := 20011109
 DAEMON_URL := http://libslack.org/daemon/
 DAEMON_ID := $(DAEMON_NAME)-$(DAEMON_VERSION)
 DAEMON_DIST := $(DAEMON_ID).tar.gz
+DAEMON_HTML_DIST := $(DAEMON_ID).html.tar.gz
+
 DAEMON_DEFINES += -DDAEMON_NAME=\"$(DAEMON_NAME)\"
 DAEMON_DEFINES += -DDAEMON_VERSION=\"$(DAEMON_VERSION)\"
 DAEMON_DEFINES += -DDAEMON_DATE=\"$(DAEMON_DATE)\"
 DAEMON_DEFINES += -DDAEMON_URL=\"$(DAEMON_URL)\"
 
-# Uncomment these if your system doesn't have POSIX threads reader/writer
-# locks or barriers, respectively.
+# Uncomment this if your system has POSIX threads reader/writer locks.
 #
-# DAEMON_DEFINES += -DNEEDS_PTHREAD_RWLOCK=1
-# DAEMON_DEFINES += -DNEEDS_PTHREAD_BARRIER=1
+DAEMON_DEFINES += -DHAVE_SNPRINTF=1
+DAEMON_DEFINES += -DHAVE_VSSCANF=1
+DAEMON_DEFINES += -DHAVE_GETOPT_LONG=1
+DAEMON_DEFINES += -DHAVE_PTHREAD_RWLOCK=1
+# DAEMON_DEFINES += -DNO_POSIX_SOURCE=1
+# DAEMON_DEFINES += -DNO_XOPEN_SOURCE=1
 
 DAEMON_TARGET := $(DAEMON_SRCDIR)/$(DAEMON_NAME)
 DAEMON_MODULES := daemon
@@ -76,6 +81,7 @@ DIST_TARGETS += dist-daemon
 RPM_TARGETS += rpm-daemon
 DEB_TARGETS += deb-daemon
 PKG_TARGETS += pkg-daemon
+OBSD_TARGETS += obsd-daemon
 
 CLEAN_FILES += $(DAEMON_OFILES) $(DAEMON_MANFILES) $(DAEMON_HTMLFILES)
 CLOBBER_FILES += $(DAEMON_TARGET) $(DAEMON_SRCDIR)/tags
@@ -86,12 +92,16 @@ DAEMON_PKG := RAFOdmn
 
 DAEMON_CPPFLAGS += $(DAEMON_DEFINES) $(patsubst %, -I%, $(DAEMON_INCDIRS))
 DAEMON_CCFLAGS += $(CCFLAGS)
+# DAEMON_LDFLAGS += -pthread
 DAEMON_CFLAGS += $(DAEMON_CPPFLAGS) $(DAEMON_CCFLAGS)
-DAEMON_LIBS += slack pthread
+DAEMON_LIBS += slack
+DAEMON_LIBS += pthread
 
-# Uncomment this on Solaris for sockets
+# Uncomment these on Solaris for sockets
 #
 # DAEMON_LIBS += xnet
+# DAEMON_LIBS += socket
+# DAEMON_LIBS += nsl
 
 DAEMON_LDFLAGS += $(patsubst %, -L%, $(DAEMON_LIBDIRS)) $(patsubst %, -l%, $(DAEMON_LIBS))
 

@@ -19,7 +19,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
-# 20010215 raf <raf@raf.org>
+# 20011109 raf <raf@raf.org>
 
 var() { eval $1='$2'; export $1; }
 
@@ -41,13 +41,14 @@ usage()
 	cat <<EOF
 usage: libslack-config [options]
 options:
-    -h, --help     - Print this help and exit
-    -v, --version  - Print the version of the currently installed libslack
-    -L, --latest   - Print the latest version of libslack (uses wget and perl)
-    -D, --download - Download the latest version of libslack (uses wget)
-    -p, --prefix   - Print prefix of libslack installation
-    -c, --cflags   - Print CFLAGS needed to compile clients of libslack
-    -l, --libs     - Print LDFLAGS needed to link against libslack
+    -h, --help      - Print this help and exit
+    -v, --version   - Print the version of the currently installed libslack
+    -L, --latest    - Print the latest version of libslack (uses wget and perl)
+    -D, --download  - Download the latest version of libslack (uses wget)
+    -p, --prefix    - Print the prefix directory of the libslack installation
+    -c, --cflags    - Print CFLAGS needed to compile clients of libslack
+    -l, --libs      - Print LDFLAGS needed to link against libslack
+    -u, --uninstall - Uninstall libslack
 
 Command line example:
     gcc -o app app.c \`libslack-config --cflags --libs\`
@@ -107,19 +108,51 @@ download()
 	wget "$latest"
 }
 
+uninstall()
+{
+@@UNINSTALL@@
+}
+
 test $# -eq 0 && usage 1 1>&2
 
 while test $# -gt 0
 do
 	case $1 in
-		-h|--help)     usage 0;;
-		-v|--version)  echo "$version";;
-		-L|--latest)   latest;;
-		-D|--download) download;;
-		-p|--prefix)   echo "$prefix";;
-		-c|--cflags)   echo "$cflags";;
-		-l|--libs)     echo "$libs";;
-		*)             usage 1 >&2;;
+		-h|--help)
+			usage 0
+			;;
+
+		-v|--version)
+			echo "$version"
+			;;
+
+		-L|--latest)
+			latest
+			;;
+
+		-D|--download)
+			download
+			;;
+
+		-p|--prefix)
+			echo "$prefix"
+			;;
+
+		-c|--cflags)
+			echo "$cflags"
+			;;
+
+		-l|--libs)
+			echo "$libs"
+			;;
+
+		-u|--uninstall)
+			uninstall
+			;;
+
+		*)
+			usage 1 >&2
+			;;
 	esac
 	shift
 done

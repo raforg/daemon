@@ -18,14 +18,14 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20010215 raf <raf@raf.org>
+* 20011109 raf <raf@raf.org>
 */
 
 /*
 
 =head1 NAME
 
-I<libslack(err)> - message/error/debug/verbosity messaging module
+I<libslack(err)> - message/error/debug/verbosity/alert messaging module
 
 =head1 SYNOPSIS
 
@@ -43,6 +43,8 @@ I<libslack(err)> - message/error/debug/verbosity messaging module
     void vfatal(const char *fmt, va_list args);
     void dump(const char *fmt, ...);
     void vdump(const char *fmt, va_list args);
+    void alert(int priority, const char *fmt, ...);
+    void valert(int priority, const char *fmt, va_list args);
     void debugsysf(size_t level, const char *fmt, ...);
     void vdebugsysf(size_t level, const char *fmt, va_list args);
     int errorsys(const char *fmt, ...);
@@ -51,7 +53,10 @@ I<libslack(err)> - message/error/debug/verbosity messaging module
     void vfatalsys(const char *fmt, va_list args);
     void dumpsys(const char *fmt, ...);
     void vdumpsys(const char *fmt, va_list args);
+    void alertsys(int priority, const char *fmt, ...);
+    void valertsys(int priority, const char *fmt, va_list args);
     int set_errno(int errnum);
+    void *set_errnull(int errnum);
 
     #define debug(args)
     #define vdebug(args)
@@ -64,23 +69,33 @@ I<libslack(err)> - message/error/debug/verbosity messaging module
 This module works with the I<prog> and I<msg> modules to provide functions
 for emitting various types of message with simple call syntax and flexible
 behaviour. The message types catered for are: normal, verbose, debug, error,
-fatal error and dump messages. All messages are created and sent with
-I<printf>-like syntax. The destinations for these messages are configurable
-by the client. Calling I<prog_init()> causes normal and verbose messages to
-be sent to standard output; debug, error, fatal error and dump messages to
-be sent to standard error.
+fatal error, dump and alert messages. All messages are created and sent with
+I<printf(3)>-like syntax. The destinations for these messages are
+configurable by the client. Calling I<prog_init()> causes normal and verbose
+messages to be sent to standard output; debug, error, fatal error, dump and
+alert messages to be sent to standard error.
 
-Calls to I<prog_out_fd()>, I<prog_out_stdout()>, I<prog_out_file()>,
-I<prog_out_syslog()>, I<prog_out_none()> cause normal and verbose messages
-to be sent to the specified destination. Calls to I<prog_err_fd()>,
-I<prog_err_stderr()>, I<prog_err_file()>, I<prog_err_syslog()>,
-I<prog_err_none()> cause error, fatal error and dump messages to be sent to
-the specified destination. Calls to I<prog_dbg_fd()>, I<prog_dbg_stdout()>,
+Calls to I<prog_set_out()>, I<prog_out_fd()>, I<prog_out_stdout()>,
+I<prog_out_file()>, I<prog_out_syslog()> and I<prog_out_none()> cause normal
+and verbose messages to be sent to the specified destination.
+
+Calls to I<prog_set_err()>, I<prog_err_fd()>, I<prog_err_stderr()>,
+I<prog_err_file()>, I<prog_err_syslog()> and I<prog_err_none()> cause error,
+fatal error and dump messages to be sent to the specified destination.
+
+Calls to I<prog_set_dbg()>, I<prog_dbg_fd()>, I<prog_dbg_stdout()>,
 I<prog_dbg_stderr()>, I<prog_dbg_file()>, I<prog_dbg_syslog()>,
 I<prog_dbg_none()> cause debug messages to be sent to the specified
-destination. Calls to the generic functions I<prog_set_out()>,
-I<prog_set_err()> and I<prog_set_dbg()> cause their respective message types
-to be sent to the specified destination or destinations (multiplexing
+destination.
+
+Calls to I<prog_set_alert()>, I<prog_alert_fd()>, I<prog_alert_stdout()>,
+I<prog_alert_stderr()>, I<prog_alert_file()>, I<prog_alert_syslog()>,
+I<prog_alert_none()> cause alert messages to be sent to the specified
+destination.
+
+Calls to the generic functions I<prog_set_out()>, I<prog_set_err()>,
+I<prog_set_dbg()> and I<prog_set_alert()> cause their respective message
+types to be sent to the specified destination or destinations (multiplexing
 messages is only possible via these functions). See I<msg(3)> for more
 details.
 
@@ -90,22 +105,25 @@ details.
 
 */
 
+#include "config.h"
 #include "std.h"
 
 #include "msg.h"
 #include "prog.h"
 #include "err.h"
 
-#ifdef NEEDS_SNPRINTF
+#ifndef HAVE_SNPRINTF
 #include "snprintf.h"
 #endif
+
+#ifndef TEST
 
 /*
 
 =item C<void msg(const char *fmt, ...)>
 
 Outputs a message to the program's normal message destination. C<fmt> is a
-I<printf>-like format string and processes any remaining arguments in the
+I<printf(3)>-like format string and processes any remaining arguments in the
 same way as I<printf(3)>.
 
 B<Warning: Do not under any circumstances ever pass a non-literal string as
@@ -154,8 +172,8 @@ C<level> is less than or equal to the program's current verbosity level. If
 the program's name has been supplied using I<prog_set_name()>, the message
 will be preceeded by the name, a colon and a space. The message is also
 preceeded by as many spaces as the message level. This indents messages
-according to their verbosity. C<fmt> is a I<printf>-like format string and
-processes any remaining arguments in the same way as I<printf(3)>. The
+according to their verbosity. C<fmt> is a I<printf(3)>-like format string
+and processes any remaining arguments in the same way as I<printf(3)>. The
 message is followed by a newline.
 
 =cut
@@ -203,21 +221,41 @@ void vverbose(size_t level, const char *fmt, va_list args)
 =item C<void debugf(size_t level, const char *fmt, ...)>
 
 Outputs a debug message to the program's debug message destination if
-C<level> is less than or equal to the current program debug level. If the
-program's name has been supplied using I<prog_set_name()>, the message will
-be preceeded by the name, a colon and a space. The message is also preceeded
-by as many spaces as the message level. This indents debug messages
-according to their debug level. C<fmt> is a I<printf>-like format string
-and processes any remaining arguments in the same way as I<printf(3)>. The
-message is followed by a newline.
+C<level> satisfies the program's current debug level. The debug level is
+broken into two components. The low byte specifies the level. The next three
+bytes specify a section within which the level applies. Debug messages with
+a section value whose bits overlap those of the program's current debug
+section and with a level that is less than or equal to the program's current
+debug level are emitted. As a convenience, if the program's current debug
+section is zero, debug messages with a sufficiently small level are emitted
+regardless of the message section. See I<prog_set_debug_level()> for
+examples. If the program's name has been supplied using I<prog_set_name()>,
+the message will be preceeded by the name, a colon and a space. The message
+is also preceeded by as many spaces as the debug level. This indents debug
+messages according to their debug level. C<fmt> is a I<printf(3)>-like
+format string and processes any remaining arguments in the same way as
+I<printf(3)>. The message is followed by a newline.
 
 =cut
 
 */
 
+static int debug_level_match(size_t level)
+{
+	size_t debug_level, debug_section, section;
+	
+	debug_level = prog_debug_level();
+	debug_section = debug_level & 0xffffff00;
+	debug_level &= 0x000000ff;
+	section = level & 0xffffff00;
+	level &= 0x000000ff;
+
+	return (!debug_section || debug_section & section) && debug_level >= level;
+}
+
 void debugf(size_t level, const char *fmt, ...)
 {
-	if (prog_debug_level() >= level)
+	if (debug_level_match(level))
 	{
 		va_list args;
 		va_start(args, fmt);
@@ -239,15 +277,18 @@ directly as for I<vprintf(3)>.
 
 void vdebugf(size_t level, const char *fmt, va_list args)
 {
-	if (prog_debug_level() >= level)
+	if (debug_level_match(level))
 	{
-		char msg[MSG_SIZE];
+		char msg[MSG_SIZE], prefix[32] = "";
 		vsnprintf(msg, MSG_SIZE, fmt, args);
 
+		if (level & 0xffffff00)
+			snprintf(prefix, 32, " [%d]", (level & 0xffffff00) >> 8);
+
 		if (prog_name())
-			msg_out(prog_dbg(), "%s: debug: %*s%s\n", prog_name(), level, "", msg);
+			msg_out(prog_dbg(), "%s: debug:%s%*s%s\n", prog_name(), prefix, level & 0xff, "", msg);
 		else
-			msg_out(prog_dbg(), "debug: %*s%s\n", level, "", msg);
+			msg_out(prog_dbg(), "debug:%s%*s%s\n", prefix, level & 0xff, "", msg);
 	}
 }
 
@@ -257,7 +298,7 @@ void vdebugf(size_t level, const char *fmt, va_list args)
 
 Outputs an error message to the program's error message destination. If the
 program's name has been supplied using I<prog_set_name()>, the message will
-be preceeded by the name, a colon and a space. C<fmt> is a I<printf>-like
+be preceeded by the name, a colon and a space. C<fmt> is a I<printf(3)>-like
 format string and processes any remaining arguments in the same way as
 I<printf(3)>. The message is followed by a newline. Returns -1.
 
@@ -304,11 +345,13 @@ int verror(const char *fmt, va_list args)
 =item C<void fatal(const char *fmt, ...)>
 
 Outputs an error message to the program's error message destination and then
-calls I<exit(3)> with a return code of 1. If the program's name was supplied
-using I<prog_set_name()>, the message will be preceeded by the name, a colon
-and a space. This is followed by the string C<"fatal: ">. C<fmt> is a
-I<printf>-like format string and processes any remaining arguments in the
-same way as I<printf(3)>. The message is followed by a newline.
+calls I<exit(3)> with a return code of C<EXIT_FAILURE>. If the program's
+name was supplied using I<prog_set_name()>, the message will be preceeded by
+the name, a colon and a space. This is followed by the string C<"fatal: ">.
+C<fmt> is a I<printf(3)>-like format string and processes any remaining
+arguments in the same way as I<printf(3)>. The message is followed by a
+newline. B<Note:> Never use this in a library. Only an application can
+decide which errors are fatal.
 
 =cut
 
@@ -338,7 +381,7 @@ void vfatal(const char *fmt, va_list args)
 	char msg[MSG_SIZE];
 	vsnprintf(msg, MSG_SIZE, fmt, args);
 	error("fatal: %s", msg);
-	exit(1);
+	exit(EXIT_FAILURE);
 }
 
 /*
@@ -349,8 +392,10 @@ Outputs an error message to the program's error message destination and then
 calls I<abort(3)>. If the program's name was supplied using
 I<prog_set_name()>, the message will be preceeded by the name, a colon and a
 space. This is followed by the string C<"dump: ">. C<fmt> is a
-I<printf>-like format string and processes any remaining arguments in the
-same way as I<printf(3)>. The message is followed by a newline.
+I<printf(3)>-like format string and processes any remaining arguments in the
+same way as I<printf(3)>. The message is followed by a newline. B<Note:>
+Never use this in a library. Only an application can decide which errors are
+fatal.
 
 =cut
 
@@ -385,17 +430,75 @@ void vdump(const char *fmt, va_list args)
 
 /*
 
+=item C<void alert(int priority, const char *fmt, ...)>
+
+Outputs an alert message of the given C<priority> to the program's alert
+message destination. If the program's name has been supplied using
+I<prog_set_name()>, the message will be preceeded by the name, a colon and a
+space. C<fmt> is a I<printf(3)>-like format string and processes any
+remaining arguments in the same way as I<printf(3)>. The message is followed
+by a newline. Note that this only works when the program's alert message
+destination is a simple syslog destination. If the alert message destination
+is anything else (including a multiplexing message destination containing
+syslog destinations), C<priority> is ignored.
+
+=cut
+
+*/
+
+void alert(int priority, const char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	valert(priority, fmt, args);
+	va_end(args);
+}
+
+/*
+
+=item C<void valert(int priority, const char *fmt, va_list args)>
+
+Equivalent to I<alert()> with the variable argument list specified
+directly as for I<vprintf(3)>.
+
+=cut
+
+*/
+
+void valert(int priority, const char *fmt, va_list args)
+{
+	Msg *alert;
+	char msg[MSG_SIZE];
+	int err;
+
+	vsnprintf(msg, MSG_SIZE, fmt, args);
+
+	alert = prog_alert();
+
+	if ((err = msg_wrlock(alert)))
+	{
+		set_errno(err);
+		return;
+	}
+
+	msg_syslog_set_priority_unlocked(alert, priority);
+
+	if (prog_name())
+		msg_out_unlocked(alert, "%s: %s\n", prog_name(), msg);
+	else
+		msg_out_unlocked(alert, "%s\n", msg);
+
+	if ((err = msg_unlock(alert)))
+		set_errno(err);
+}
+
+/*
+
 =item C<void debugsysf(size_t level, const char *fmt, ...)>
 
-Outputs a debug message to the program's debug message destination if
-C<level> is less than or equal to the current program debug level. If the
-program's name has been supplied using I<prog_set_name()>, the message will
-be preceeded by the name, a colon and a space. The message is also preceeded
-by as many spaces as the message level. This indents debug messages
-according to their debug level. C<fmt> is a I<printf>-like format string
-and processes any remaining arguments in the same way as I<printf(3)>. The
-message is followed by a colon, a space, the string representation of
-C<errno> and a newline.
+Equivalent to I<debugf()> except that the message is followed by a colon, a
+space, the string representation of C<errno> and a newline (rather than just
+a newline).
 
 =cut
 
@@ -403,7 +506,7 @@ C<errno> and a newline.
 
 void debugsysf(size_t level, const char *fmt, ...)
 {
-	if (prog_debug_level() >= level)
+	if (debug_level_match(level))
 	{
 		va_list args;
 		va_start(args, fmt);
@@ -414,7 +517,7 @@ void debugsysf(size_t level, const char *fmt, ...)
 
 /*
 
-=item C<void vdebugsysf(size_t level, const char *fmt, value args)>
+=item C<void vdebugsysf(size_t level, const char *fmt, va_list args)>
 
 Equivalent to I<debugsysf()> with the variable argument list specified
 directly as for I<vprintf(3)>.
@@ -425,7 +528,7 @@ directly as for I<vprintf(3)>.
 
 void vdebugsysf(size_t level, const char *fmt, va_list args)
 {
-	if (prog_debug_level() >= level)
+	if (debug_level_match(level))
 	{
 		char msg[MSG_SIZE];
 		int errno_saved = errno;
@@ -438,12 +541,9 @@ void vdebugsysf(size_t level, const char *fmt, va_list args)
 
 =item C<int errorsys(const char *fmt, ...)>
 
-Outputs an error message to the program's error message destination. If the
-program's name has been supplied using I<prog_set_name()>, the message will
-be preceeded by the name, a colon and a space. C<fmt> is a I<printf>-like
-format string and processes any remaining arguments in the same way as
-I<printf(3)>. The message is followed by a colon, a space, the string
-representation of C<errno> and a newline. Returns -1.
+Equivalent to I<error()> except that the message is followed by a colon, a
+space, the string representation of C<errno> and a newline (rather than just
+a newline).
 
 =cut
 
@@ -481,13 +581,9 @@ int verrorsys(const char *fmt, va_list args)
 
 =item C<void fatalsys(const char *fmt, ...)>
 
-Outputs an error message to the program's error message destination and then
-calls I<exit(3)> with a return code of 1. If the program's name was supplied
-using I<prog_set_name()>, the message will be preceeded by the name, a colon
-and a space. This is followed by the string C<"fatal: ">. C<fmt> is a
-I<printf>-like format string and processes any remaining arguments in the
-same way as I<printf(3)>. The message is followed by a colon, a space, the
-string representation of C<errno> and a newline.
+Equivalent to I<fatal()> except that the message is followed by a colon, a
+space, the string representation of C<errno> and a newline (rather than just
+a newline).
 
 =cut
 
@@ -515,21 +611,18 @@ directly as for I<vprintf(3)>.
 void vfatalsys(const char *fmt, va_list args)
 {
 	char msg[MSG_SIZE];
+	int errno_saved = errno;
 	vsnprintf(msg, MSG_SIZE, fmt, args);
-	fatal("%s: %s", msg, strerror(errno));
+	fatal("%s: %s", msg, strerror(errno_saved));
 }
 
 /*
 
 =item C<void dumpsys(const char *fmt, ...)>
 
-Outputs an error message to the program's error message destination and then
-calls I<abort(3)>. If the program's name was supplied using
-I<prog_set_name()>, the message will be preceeded by the name, a colon and a
-space. This is followed by the string C<"dump: ">. C<fmt> is a
-I<printf>-like format string and processes any remaining arguments in the
-same way as I<printf(3)>. The message is followed by a colon, a space, the
-string representation of C<errno> and a newline.
+Equivalent to I<dump()> except that the message is followed by a colon, a
+space, the string representation of C<errno> and a newline (rather than just
+a newline).
 
 =cut
 
@@ -557,8 +650,48 @@ directly as for I<vprintf(3)>.
 void vdumpsys(const char *fmt, va_list args)
 {
 	char msg[MSG_SIZE];
+	int errno_saved = errno;
 	vsnprintf(msg, MSG_SIZE, fmt, args);
-	dump("%s: %s", msg, strerror(errno));
+	dump("%s: %s", msg, strerror(errno_saved));
+}
+
+/*
+
+=item C<void alertsys(int priority, const char *fmt, ...)>
+
+Equivalent to I<alert()> except that the message is followed by a colon, a
+space, the string representation of C<errno> and a newline (rather than just
+a newline).
+
+=cut
+
+*/
+
+void alertsys(int priority, const char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	valertsys(priority, fmt, args);
+	va_end(args);
+}
+
+/*
+
+=item C<void valertsys(int priority, const char *fmt, va_list args)>
+
+Equivalent to I<alertsys()> with the variable argument list specified
+directly as for I<vprintf(3)>.
+
+=cut
+
+*/
+
+void valertsys(int priority, const char *fmt, va_list args)
+{
+	char msg[MSG_SIZE];
+	int errno_saved = errno;
+	vsnprintf(msg, MSG_SIZE, fmt, args);
+	alert(priority, "%s: %s", msg, strerror(errno_saved));
 }
 
 /*
@@ -571,7 +704,7 @@ Sets C<errno> to C<errnum> and returns -1.
 
 */
 
-int set_errno(int errnum)
+int (set_errno)(int errnum)
 {
 	errno = errnum;
 	return -1;
@@ -579,31 +712,60 @@ int set_errno(int errnum)
 
 /*
 
+=item C<void *set_errnull(int errnum)>
+
+Sets C<errno> to C<errnum> and returns C<null>.
+
+=cut
+
+*/
+
+void *(set_errnull)(int errnum)
+{
+	errno = errnum;
+	return NULL;
+}
+
+/*
+
 =item C< #define debug(args)>
 
 Calls I<debugf()> unless C<NDEBUG> is defined. C<args> must be supplied with
-extra parentheses. (e.g. C<debug((1, "rc=%d", rc))>).
+extra parentheses. e.g.
+
+    debug((1, "rc=%d", rc))
 
 =item C< #define vdebug(args)>
 
 Calls I<vdebugf()> unless C<NDEBUG> is defined. C<args> must be supplied
-with extra parentheses. (e.g. C<vdebug((1, fmt, args))>).
+with extra parentheses. e.g.
+
+    vdebug((1, fmt, args))
 
 =item C< #define debugsys(args)>
 
 Calls I<debugsysf()> unless C<NDEBUG> is defined. C<args> must be supplied
-with extra parentheses. (e.g. C<debugsys((1, "fd=%d", fd))>).
+with extra parentheses. e.g.
+
+    debugsys((1, "fd=%d", fd))
 
 =item C< #define vdebugsys(args)>
 
 Calls I<vdebugsysf()> unless C<NDEBUG> is defined. C<args> must be supplied
-with extra parentheses. (e.g. C<vdebugsys((1, fmt, args))>).
+with extra parentheses. e.g.
 
-=item C< #define check(test, msg)>
+    vdebugsys((1, fmt, args))
 
-Like I<assert()> but includes a C<msg> argument for including an explanation
-of the test and it calls C<dump()> to terminate the program so that the
-output of the assertion failure message will be sent to the right place.
+=item C< #define check(cond, msg)>
+
+Like I<assert(3)> but includes a string argument, C<msg>, for including an
+explanation of the condition tested and then calls I<dump()> to terminate
+the program. This means the message will be sent to the right place(s)
+rather than just to C<stderr>. B<Note:> Like I<assert(3)>, this function is
+largely useless. It should never be left in production code (because it's
+rude) so you need to write code to handle error conditions properly anyway.
+You might as well not bother using I<assert()> or I<check()> in the first
+place.
 
 =back
 
@@ -620,18 +782,19 @@ L<printf(3)|printf(3)>
 
 =head1 AUTHOR
 
-20010215 raf <raf@raf.org>
+20011109 raf <raf@raf.org>
 
 =cut
 
 */
 
+#endif
+
 #ifdef TEST
 
-#include <signal.h>
-#include <wait.h>
 #include <fcntl.h>
 
+#include <sys/wait.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -647,7 +810,7 @@ int verify(int test, const char *name, const char *result)
 		return 1;
 	}
 
-	memset(buf, '\0', BUFSIZ);
+	memset(buf, 0, BUFSIZ);
 	bytes = read(fd, buf, BUFSIZ);
 	close(fd);
 	unlink(name);
@@ -681,9 +844,14 @@ int main(int ac, char **av)
 	const char * const out = "err.out";
 	const char * const err = "err.err";
 	const char * const dbg = "err.dbg";
+	const char * const alertfile = "err.alert";
 	const char * const core = "core";
+	const char * const core2 = "err.core"; /* OpenBSD */
+	char buf[BUFSIZ];
+	int rci;
+	void *rcp;
 
-	const char *results[10] =
+	const char *results[12] =
 	{
 		"msg\n",
 		"verbose\n",
@@ -694,13 +862,29 @@ int main(int ac, char **av)
 		"debug: debugsys: %s\n",
 		"errorsys: %s\n",
 		"fatal: fatalsys: %s\n",
-		"dump: dumpsys: %s\n"
+		"dump: dumpsys: %s\n",
+		"debug: [1] lexer debug\n"
+		"debug: [2] parser debug\n"
+		"debug: [1] lexer debug\n"
+		"debug: [2] parser debug\n"
+		"debug: [4] interp debug\n"
+		"debug: global debug\n",
+		"alert\n"
+		"alertsys: " /* followed by "Success" or "Error 0" */
 	};
 
 	pid_t pid;
 	int errors = 0;
 
+	if (ac == 2 && !strcmp(av[1], "help"))
+	{
+		printf("usage: %s\n", *av);
+		return EXIT_SUCCESS;
+	}
+
 	printf("Testing: err\n");
+
+	/* Test debug, verbose and error */
 
 	prog_set_debug_level(1);
 	prog_set_verbosity_level(1);
@@ -710,16 +894,18 @@ int main(int ac, char **av)
 	errors += verify(1, out, results[0]);
 
 	prog_out_file(out);
-	verbose(0, "verbose");
+	verbose(1, "verbose");
 	errors += verify(2, out, results[1]);
 
 	prog_dbg_file(dbg);
-	debugf(0, "debug");
+	debugf(1, "debug");
 	errors += verify(3, dbg, results[2]);
 
 	prog_err_file(err);
 	error("error");
 	errors += verify(4, err, results[3]);
+
+	/* Test fatal */
 
 	switch (pid = fork())
 	{
@@ -746,15 +932,16 @@ int main(int ac, char **av)
 				break;
 			}
 
-			if (WIFSIGNALED(status) && WTERMSIG(status) != SIGABRT)
-				++errors, printf("Test5: failed: received signal %d\n", WTERMSIG(status));
-
-			if (WIFEXITED(status) && WEXITSTATUS(status) != 1)
-				++errors, printf("Test5: failed: exit status %d\n", WEXITSTATUS(status));
+			if (!WIFEXITED(status) || WEXITSTATUS(status) != EXIT_FAILURE)
+				++errors, printf("Test5: failed: %s %d\n",
+					WIFSIGNALED(status) ? "received signal" : "exit code",
+					WIFSIGNALED(status) ? WTERMSIG(status) : WEXITSTATUS(status));
 		}
 	}
 
 	errors += verify(5, err, results[4]);
+
+	/* Test dump */
 
 	switch (pid = fork())
 	{
@@ -762,6 +949,7 @@ int main(int ac, char **av)
 		{
 			prog_err_file(err);
 			unlink(core);
+			unlink(core2);
 			dump("dump");
 		}
 
@@ -783,30 +971,37 @@ int main(int ac, char **av)
 				break;
 			}
 
-			if (WIFSIGNALED(status) && WTERMSIG(status) != SIGABRT)
-				++errors, printf("Test6: failed: received signal %d\n", WTERMSIG(status));
+			if (!WIFSIGNALED(status) || WTERMSIG(status) != SIGABRT)
+				++errors, printf("Test5: failed: %s %d\n",
+					WIFSIGNALED(status) ? "received signal" : "exit code",
+					WIFSIGNALED(status) ? WTERMSIG(status) : WEXITSTATUS(status));
 
-			if (WIFEXITED(status) && WEXITSTATUS(status) != 1)
-				++errors, printf("Test6: failed: exit status %d\n", WEXITSTATUS(status));
-
-			if (stat(core, statbuf) == -1 && errno == ENOENT)
-				++errors, printf("Test6: failed: no core file produced\n");
+			if (stat(core, statbuf) == -1 && errno == ENOENT &&
+				stat(core2, statbuf) == -1 && errno == ENOENT)
+				++errors, printf("Test6: failed: no core file produced (ulimit?)\n");
 			else
+			{
 				unlink(core);
+				unlink(core2);
+			}
 		}
 	}
 
 	errors += verify(6, err, results[5]);
 
+	/* Test debugsys, errorsys */
+
 	prog_dbg_file(dbg);
 	set_errno(EPERM);
-	debugsysf(0, "debugsys");
+	debugsysf(1, "debugsys");
 	errors += verifysys(7, dbg, results[6], EPERM);
 
 	prog_err_file(err);
 	set_errno(ENOENT);
 	errorsys("errorsys");
 	errors += verifysys(8, err, results[7], ENOENT);
+
+	/* Test fatalsys */
 
 	switch (pid = fork())
 	{
@@ -835,15 +1030,16 @@ int main(int ac, char **av)
 				break;
 			}
 
-			if (WIFSIGNALED(status) && WTERMSIG(status) != SIGABRT)
-				++errors, printf("Test9: failed: received signal %d\n", WTERMSIG(status));
-
-			if (WIFEXITED(status) && WEXITSTATUS(status) != 1)
-				++errors, printf("Test9: failed: exit status %d\n", WEXITSTATUS(status));
+			if (!WIFEXITED(status) || WEXITSTATUS(status) != EXIT_FAILURE)
+				++errors, printf("Test5: failed: %s %d\n",
+					WIFSIGNALED(status) ? "received signal" : "exit code",
+					WIFSIGNALED(status) ? WTERMSIG(status) : WEXITSTATUS(status));
 		}
 	}
 
 	errors += verifysys(9, err, results[8], EPERM);
+
+	/* Test dumpsys */
 
 	switch (pid = fork())
 	{
@@ -851,6 +1047,7 @@ int main(int ac, char **av)
 		{
 			prog_err_file(err);
 			unlink(core);
+			unlink(core2);
 			set_errno(ENOENT);
 			dumpsys("dumpsys");
 		}
@@ -874,31 +1071,180 @@ int main(int ac, char **av)
 				break;
 			}
 
-			if (WIFSIGNALED(status) && WTERMSIG(status) != SIGABRT)
-				++errors, printf("Test10: failed: received signal %d\n", WTERMSIG(status));
+			if (!WIFSIGNALED(status) || WTERMSIG(status) != SIGABRT)
+				++errors, printf("Test5: failed: %s %d\n",
+					WIFSIGNALED(status) ? "received signal" : "exit code",
+					WIFSIGNALED(status) ? WTERMSIG(status) : WEXITSTATUS(status));
 
-			if (WIFEXITED(status) && WEXITSTATUS(status) != 1)
-				++errors, printf("Test10: failed: exit status %d\n", WEXITSTATUS(status));
-
-			if (stat(core, statbuf) == -1 && errno == ENOENT)
-				++errors, printf("Test10: failed: no core file produced\n");
+			if (stat(core, statbuf) == -1 && errno == ENOENT &&
+				stat(core2, statbuf) == -1 && errno == ENOENT)
+				++errors, printf("Test10: failed: no core file produced (ulimit?)\n");
 			else
+			{
 				unlink(core);
+				unlink(core2);
+			}
 		}
 	}
 
 	errors += verifysys(10, err, results[9], ENOENT);
 
+	/* Test check true */
+
+	switch (pid = fork())
+	{
+		case 0:
+		{
+			int i = 1;
+			prog_err_file(err);
+			unlink(core);
+			unlink(core2);
+			set_errno(ENOENT);
+			check(i == 1, "check");
+			_exit(EXIT_SUCCESS);
+		}
+
+		case -1:
+		{
+			++errors;
+			printf("Test11: failed to perform test - fork() failed (%s)\n", strerror(errno));
+			break;
+		}
+
+		default:
+		{
+			int status;
+
+			if (waitpid(pid, &status, 0) == -1)
+			{
+				++errors;
+				printf("Test11: failed to wait for test - waitpid(%d) failed (%s)\n", (int)pid, strerror(errno));
+				break;
+			}
+
+			if (!WIFEXITED(status) || WEXITSTATUS(status) != EXIT_SUCCESS)
+				++errors, printf("Test5: failed: %s %d\n",
+					WIFSIGNALED(status) ? "received signal" : "exit code",
+					WIFSIGNALED(status) ? WTERMSIG(status) : WEXITSTATUS(status));
+		}
+	}
+
+	/* Test check false */
+
+	switch (pid = fork())
+	{
+		case 0:
+		{
+			int i = 1;
+			prog_err_file(err);
+			unlink(core);
+			unlink(core2);
+			set_errno(ENOENT);
+			check(i == 0, "check");
+			_exit(EXIT_SUCCESS);
+		}
+
+		case -1:
+		{
+			++errors;
+			printf("Test12: failed to perform test - fork() failed (%s)\n", strerror(errno));
+			break;
+		}
+
+		default:
+		{
+			struct stat statbuf[1];
+			int status;
+
+			if (waitpid(pid, &status, 0) == -1)
+			{
+				++errors;
+				printf("Test12: failed to wait for test - waitpid(%d) failed (%s)\n", (int)pid, strerror(errno));
+				break;
+			}
+
+			if (!WIFSIGNALED(status) || WTERMSIG(status) != SIGABRT)
+				++errors, printf("Test5: failed: %s %d\n",
+					WIFSIGNALED(status) ? "received signal" : "exit code",
+					WIFSIGNALED(status) ? WTERMSIG(status) : WEXITSTATUS(status));
+
+			if (stat(core, statbuf) == -1 && errno == ENOENT &&
+				stat(core2, statbuf) == -1 && errno == ENOENT)
+				++errors, printf("Test12: failed: no core file produced (ulimit?)\n");
+			else
+			{
+				unlink(core);
+				unlink(core2);
+			}
+		}
+	}
+
+	snprintf(buf, BUFSIZ, "dump: Internal Error: %s: %s [", "i == 0", "check");
+	errors += verify(12, err, buf);
+
+	/* Test debug sections */
+
+#define LEXER_SECTION  (1 << 8)
+#define PARSER_SECTION (2 << 8)
+#define INTERP_SECTION (4 << 8)
+
+    prog_set_debug_level(LEXER_SECTION | PARSER_SECTION | 1);
+	prog_dbg_file(dbg);
+	msg_set_timestamp_format("");
+
+    debugf(LEXER_SECTION  | 1, "lexer debug");  /* yes */
+    debugf(LEXER_SECTION  | 4, "lexer debug");  /* no (level too high) */
+    debugf(PARSER_SECTION | 1, "parser debug"); /* yes */
+    debugf(INTERP_SECTION | 1, "interp debug"); /* no (wrong section) */
+    debugf(1, "global debug");                  /* no (no section to match) */
+
+    prog_set_debug_level(1);
+    debugf(LEXER_SECTION  | 1, "lexer debug");  /* yes */
+    debugf(LEXER_SECTION  | 4, "lexer debug");  /* no (level too high) */
+    debugf(PARSER_SECTION | 1, "parser debug"); /* yes */
+    debugf(INTERP_SECTION | 1, "interp debug"); /* yes */
+    debugf(1, "global debug");                  /* yes */
+    debugf(4, "global debug");                  /* no (level too high) */
+
+	errors += verify(13, dbg, results[10]);
+
+#undef LEXER_SECTION
+#undef PARSER_SECTION
+#undef INTERP_SECTION
+
+	/* Test alert() and alertsys() */
+
+	prog_alert_file(alertfile);
+	alert(LOG_INFO, "alert");
+	errno = 0;
+	alertsys(LOG_INFO, "alertsys");
+	errors += verify(14, alertfile, results[11]);
+
 	prog_out_none();
 	prog_err_none();
 	prog_dbg_none();
+	prog_alert_none();
+
+	/* Test set_errno() and set_errnull() */
+
+	errno = 0;
+	if ((rci = set_errno(EINVAL)) != -1)
+		++errors, printf("Test15: set_errno(EINVAL) failed (returned %d, not %d)\n", rci, -1);
+	else if (errno != EINVAL)
+		++errors, printf("Test15: set_errno(EINVAL) failed (errno = %s, not %s)\n", strerror(errno), strerror(EINVAL));
+
+	errno = 0;
+	if ((rcp = set_errnull(EINVAL)) != NULL)
+		++errors, printf("Test16: set_errnull(EINVAL) failed (returned %p, not %p)\n", rcp, NULL);
+	else if (errno != EINVAL)
+		++errors, printf("Test16: set_errnull(EINVAL) failed (errno = %s, not %s)\n", strerror(errno), strerror(EINVAL));
 
 	if (errors)
-		printf("%d/10 tests failed\n", errors);
+		printf("%d/16 tests failed\n", errors);
 	else
 		printf("All tests passed\n");
 
-	return 0;
+	return (errors == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 #endif

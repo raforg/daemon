@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20010215 raf <raf@raf.org>
+* 20011109 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_VSSCANF_H
@@ -28,8 +28,8 @@
 
 #include <slack/hdr.h>
 
-_start_decls
-int vsscanf _args ((const char *str, const char *format, va_list args));
+_begin_decls
+int vsscanf _args ((const char *str, const char *fmt, va_list args));
 _end_decls
 
 #endif

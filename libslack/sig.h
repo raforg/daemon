@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20010215 raf <raf@raf.org>
+* 20011109 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_SIG_H
@@ -30,9 +30,9 @@
 
 typedef void sighandler_t(int signo);
 
-_start_decls
+_begin_decls
 int signal_set_handler _args ((int signo, int flags, sighandler_t *handler));
-int signal_addset _args ((int signo_handled, int signo_masked));
+int signal_addset _args ((int signo_handled, int signo_blocked));
 int signal_received _args ((int signo));
 int signal_raise _args ((int signo));
 int signal_handle _args ((int signo));

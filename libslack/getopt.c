@@ -170,7 +170,7 @@ option character.)  Otherwise, I<getopt_long()> returns 0, and
 C<flag> points to a variable which is set to C<val> if the
 option is found, but left unchanged if the option is not found.
 
-=item I<val>
+=item C<val>
 
 is the value to return, or to load into the variable pointed
 to by C<flag>.
@@ -182,7 +182,7 @@ The last element of the array has to be filled with zeroes.
 If C<longindex> is not C<NULL>, it points to a variable which is
 set to the index of the long option relative to C<longopts>.
 
-I<getopt_long_only()> is like C<getopt_long()>, but `-' as well
+I<getopt_long_only()> is like I<getopt_long()>, but `-' as well
 as `--' can indicate a long option.  If an option that starts with `-'
 (not `--') doesn't match a long option, but does match a short option,
 it is parsed as a short option instead.
@@ -447,7 +447,7 @@ __getopt_clean_environment (char **env)
    License along with the GNU C Library; see the file COPYING.LIB.  If not,
    write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.  */
-
+
 /* This tells Alpha OSF/1 not to define a getopt prototype in <stdio.h>.
    Ditto for AIX 3.2 and <stdlib.h>.  */
 #ifndef _NO_PROTO
@@ -615,7 +615,7 @@ static enum
 
 /* Value of POSIXLY_CORRECT environment variable.  */
 static char *posixly_correct;
-
+
 #ifdef	__GNU_LIBRARY__
 /* We want to avoid inclusion of string.h with non-GNU libraries
    because there are many ways it can cause trouble.
@@ -665,7 +665,7 @@ extern int strlen (const char *);
 #endif /* __GNUC__ */
 
 #endif /* not __GNU_LIBRARY__ */
-
+
 /* Handle permutation of arguments.  */
 
 /* Describe the part of ARGV that contains non-options that have
@@ -878,7 +878,7 @@ _getopt_initialize (argc, argv, optstring)
 
   return optstring;
 }
-
+
 /* Scan elements of ARGV (whose length is ARGC) for option characters
    given in OPTSTRING.
 
@@ -1404,7 +1404,6 @@ getopt (argc, argv, optstring)
 }
 
 #endif	/* Not ELIDE_CODE.  */
-
 
 /* getopt_long and getopt_long_only entry points for GNU getopt.
    Copyright (C) 1987,88,89,90,91,92,93,94,96,97,98
@@ -1425,7 +1424,7 @@ getopt (argc, argv, optstring)
    License along with the GNU C Library; see the file COPYING.LIB.  If not,
    write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.  */
-
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -1500,7 +1499,7 @@ getopt_long_only (argc, argv, options, long_options, opt_index)
 
 
 #endif	/* Not ELIDE_CODE.  */
-
+
 #ifdef TEST
 
 #include <stdio.h>

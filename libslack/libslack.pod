@@ -18,38 +18,45 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
-# 20010215 raf <raf@raf.org>
+# 20011109 raf <raf@raf.org>
 
 =head1 NAME
 
-I<libslack> - A UNIX/C library of general utilities for programmers with slack
+I<libslack> - A UNIX/C library of general utilities for programmers with Slack
+
+    Slack(n.): The state in which you need nothing,
+               because you already have it.
+                   -- Dobbs, 1956
 
 =head1 SYNOPSIS
 
     gcc -o app app.c `libslack-config --cflags --libs`
 
+    #include <slack/std.h>
     #include <slack/lib.h>
 
+    #include <slack/agent.h>
+    #include <slack/coproc.h>
     #include <slack/daemon.h>
     #include <slack/err.h>
     #include <slack/fio.h>
     #include <slack/getopt.h>
     #include <slack/hsort.h>
-    #include <slack/lib.h>
     #include <slack/lim.h>
+    #include <slack/link.h>
     #include <slack/list.h>
+    #include <slack/locker.h>
     #include <slack/map.h>
     #include <slack/mem.h>
     #include <slack/msg.h>
     #include <slack/net.h>
     #include <slack/prog.h>
     #include <slack/prop.h>
+    #include <slack/pseudo.h>
     #include <slack/sig.h>
     #include <slack/snprintf.h>
     #include <slack/socks.h>
-    #include <slack/std.h>
     #include <slack/str.h>
-    #include <slack/thread.h>
     #include <slack/vsscanf.h>
 
 =head1 DESCRIPTION
@@ -85,10 +92,10 @@ files, file descriptors, syslog or multiplexed to any of the above (and to
 anywhere else (e.g. dialog boxes) if you implement your own message
 handlers) without complicating the call syntax. 
 
-ANSI C imposes extreme restrictions on signal handlers. POSIX imposes less
+ISO C imposes extreme restrictions on signal handlers. POSIX imposes less
 extreme but still annoying restrictions. I<Libslack> contains functions that
 provide a level of abstraction between the signal handlers that you write
-and the real (ANSI C compliant) signal handlers. This allows you to write
+and the real (ISO C compliant) signal handlers. This allows you to write
 unrestricted signal handlers. 
 
 Coarse grained persistence of simple configuration information is provided
@@ -99,35 +106,78 @@ by the use of Java style properties files in "well-known" locations.
 I<Libslack> provides functions that make writing daemons trivial. It
 includes functions to become a daemon and to optionally create a locked pid
 file to ensure that only a single instance of a named daemon is ever active
-at the same time. There are also functions to streamline the parsing of
-simple configuration files (like those commonly found in the C</etc>
-directory). There are also functions that help you write more secure
-daemons.
+at the same time. The daemon function behaves appropriately if the client
+process is started by I<init(8)> or I<inetd(8)>. There are also functions to
+streamline the parsing of simple configuration files (like those commonly
+found in the C</etc> directory). There are also functions that help you
+write more secure daemons (i.e. revoke setuid/setgid privileges, prevent
+core file generation, change user and group, test the safety of a given file
+path).
 
 =item Network Services
 
-I<Libslack> provides functions to simplify the implementation of TCP/IP
-network servers and clients and the (text or binary) application protocols
-that they use. Network servers and clients (IPv4 or IPv6) can be setup in a
-single line of code. Text protocols are implemented by sequences of expect
-and send functions. Binary protocol packets can be packed and unpacked
-(using functions lifted from I<Perl>). There's also a function to send mail.
+I<Libslack> provides functions to simplify the implementation of network
+servers and clients (TCP, UDP, unicast and multicast) and the (text or
+binary) application protocols that they use. Network servers and clients can
+be setup in a single line of code. There is transparent support for IPv4,
+IPv6 and UNIX domain socket addresses. There is support for reliability over
+UDP. Text protocols are implemented by sequences of expect and send
+functions. Binary protocol packets can be packed and unpacked (using
+functions similar to I<pack()> and I<unpack()> in I<Perl> but
+network/storage friendly). There's also a function to send mail.
+
+=item Agent Oriented Programming
+
+I<Libslack> provides a generic agent oriented programming model in the form
+of the I<Agent> data type. Like objects, agents can react to external
+stimuli. Unlike objects, agents can can also take independent actions. This
+is performed by multiplexing I/O events on arbitrary file descriptors using
+I<poll()> or I<select()> and also multiplexing timers for scheduling
+actions. Connecting and disconnecting file descriptors is done in constant
+time. Scheduling and cancelling actions is done in constant time. Timer
+maintenance is performed in constant average time. This means that agents
+are scalable with respect to the number of outstanding timers and can
+support thousands of scheduled actions. A single agent may be used like a
+simple event loop, or multiple agents can be connected to each other in
+arbitrary networks across multiple threads, processes and/or hosts. A single
+agent isn't scalable with respect to the number of connected descriptors but
+multiple agents can be combined to achieve much higher scalability.
+They're useful for networked applications, distributed systems and
+simulations.
 
 =item Data Types
 
-I<Libslack> provides a generic growable array data type called I<List>, a
-generic growable hash table data type called I<Map> and a decent I<String>
-data type that comes with heaps of functions (many lifted from I<Perl>).
+I<Libslack> provides a generic growable pointer array data type called
+I<List>, a generic growable hash table data type called I<Map> and a decent
+I<String> data type that comes with heaps of functions (many lifted from
+I<Perl>). There are also abstract singly and doubly linked list data types
+with optional, "growable" freelists.
+
+=item Decoupled Thread Safety
+
+I<Libslack> provides the I<Locker> data type which decouples thread
+synchronisation strategies from client code. This allows code to be written
+that delegates the choice of synchronisation strategy to the client. This
+enables run time selection of locking strategies which means it's even
+possible to let the end user specify which locking strategy to use. It
+supports mutual exclusion locks, readers/writer locks and no locking. There
+are also debug versions that print messages to standard output to help
+clients locate deadlocks. See
+L<http://raf.org/papers/mt-disciplined.html|http://raf.org/papers/mt-disciplined.html>.
 
 =item Miscellaneous
 
 I<Libslack> contains convenience/shorthand functions for random things such
-as reading a line with any line ending, fifo and file control, retrieving
-POSIX.1 limits, parsing syslog facility/priority pairs, dynamic allocation
-of multi-dimensional arrays, memory pools, secure memory, secure memory
-pools, There's also a heap sort function. And there are also implementations
-of GNU getopt_long(), snprintf() and vsscanf() for systems that don't have
-them.
+as reading a line of text with any line ending (UNIX, DOS or Macintosh),
+fifo and file control, retrieving POSIX.1 limits, parsing syslog
+facility/priority pairs, dynamic allocation of multi-dimensional arrays,
+memory pools, secure memory, secure memory pools, There's also a heap sort
+function. And there are also implementations of GNU I<getopt_long()>,
+I<strlcat()>, I<strlcpy()>, I<snprintf()>, I<vsnprintf()>, I<vsscanf()>,
+I<asprinf()> and I<vasprintf()> for systems that don't have them. There are
+also functions for creating pseudo terminals portably and for creating
+coprocesses that use either pipes or pseudo terminals for communication with
+the client process.
 
 =back
 
@@ -135,23 +185,27 @@ them.
 
 Libslack contains the following modules:
 
+    agent    - agent oriented programming
+    coproc   - coprocesses using pipes or pseudo terminals
     daemon   - becoming a daemon
-    err      - message/error/debug/verbosity messaging
+    err      - message/error/debug/verbosity/alert messaging
     fio      - fifo and file control and some I/O
     getopt   - GNU getopt_long() for systems that don't have it
-    hsort    - heap sort (by Stephen Russell)
+    hsort    - generic heap sort
     lim      - POSIX.1 limits convenience functions
-    list     - list data type
+    link     - abstract linked lists with optional growable free lists
+    list     - list (growable pointer array) data type
+    locker   - abstract locking and reader/writer lock implementation
     map      - map (hash table) data type
-    mem      - memory helper functions
+    mem      - memory helper functions, secure memory, memory pools
     msg      - message handling and syslog helper functions
     net      - network functions (clients/servers, expect/send, pack/unpack, mail)
-    prog     - program framework and flexible command linr option handling
+    prog     - program framework and flexible command line option handling
     prop     - program properties files
-    sig      - ANSI C compliant signal handling
-    snprintf - safe sprintf() for systems that don't have it (by Theo de Raadt)
+    pseudo   - pseudo terminals
+    sig      - ISO C compliant signal handling
+    snprintf - safe sprintf() for systems that don't have it
     str      - string data type (tr, regexpr, regsub, fmt, trim, lc, uc, ...)
-    thread   - abstract locking, pthread shortcuts, rwlocks, barriers
     vsscanf  - sscanf() with va_list argument for systems that don't have it
 
 Each module, as well as each function, has its own section 3 manpage.
@@ -199,26 +253,32 @@ digests as above but append C<-digest> to the listname.
 =head1 SEE ALSO
 
 L<http://libslack.org/|http://libslack.org/>,
+L<http://raf.org/papers/mt-disciplined.html|http://raf.org/papers/mt-disciplined.html>,
+L<libslack-config(1)|libslack-config(1)>,
+L<agent(3)|agent(3)>,
+L<coproc(3)|coproc(3)>,
 L<daemon(3)|daemon(3)>,
 L<err(3)|err(3)>,
 L<fio(3)|fio(3)>,
 L<getopt(3)|getopt(3)>,
 L<hsort(3)|hsort(3)>,
 L<lim(3)|lim(3)>,
+L<link(3)|link(3)>,
 L<list(3)|list(3)>,
+L<locker(3)|locker(3)>,
 L<map(3)|map(3)>,
 L<mem(3)|mem(3)>,
 L<msg(3)|msg(3)>,
 L<net(3)|net(3)>,
 L<prog(3)|prog(3)>,
 L<prop(3)|prop(3)>,
+L<pseudo(3)|pseudo(3)>,
 L<sig(3)|sig(3)>,
 L<snprintf(3)|snprintf(3)>,
 L<str(3)|str(3)>,
-L<thread(3)|thread(3)>,
 L<vsscanf(3)|vsscanf(3)>
 
 =head1 AUTHOR
 
-20010215 raf <raf@raf.org>
+20011109 raf <raf@raf.org>
 

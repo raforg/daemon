@@ -18,15 +18,16 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20010215 raf <raf@raf.org>
+* 20011109 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_PROP_H
 #define LIBSLACK_PROP_H
 
 #include <slack/hdr.h>
+#include <slack/locker.h>
 
-_start_decls
+_begin_decls
 const char *prop_get _args ((const char *name));
 const char *prop_get_or _args ((const char *name, const char *default_value));
 const char *prop_set _args ((const char *name, const char *value));
@@ -41,6 +42,8 @@ int prop_get_bool_or _args ((const char *name, int default_value));
 int prop_set_bool _args ((const char *name, int value));
 int prop_unset _args ((const char *name));
 int prop_save _args ((void));
+int prop_clear _args ((void));
+int prop_locker _args ((Locker *locker));
 _end_decls
 
 #endif

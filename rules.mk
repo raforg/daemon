@@ -19,7 +19,7 @@
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
 
-# 20010215 raf <raf@raf.org>
+# 20011109 raf <raf@raf.org>
 
 ifneq ($(DAEMON_TARGET),./$(DAEMON_NAME))
 
@@ -80,7 +80,7 @@ uninstall-daemon-man:
 uninstall-daemon-html:
 	@rm -f $(patsubst %, $(DAEMON_HTMLDIR)/%, $(notdir $(DAEMON_HTMLFILES)))
 
-.PHONY: dist-daemon rpm-daemon deb-daemon pkg-daemon
+.PHONY: dist-daemon dist-daemon-slack rpm-daemon deb-daemon pkg-daemon obsd-daemon
 
 dist-daemon: distclean
 	@set -e; \
@@ -89,10 +89,24 @@ dist-daemon: distclean
 	src=`basename \`pwd\``; \
 	dst=$(DAEMON_ID); \
 	cd ..; \
-	$(TEST) "$$src" != "$$dst" -a ! -e "$$dst" && ln -s $$src $$dst; \
+	[ "$$src" != "$$dst" -a ! -d "$$dst" ] && ln -s $$src $$dst; \
 	tar chzf $$up/$(DAEMON_DIST) $$dst; \
-	$(TEST) -L "$$dst" && rm -f $$dst; \
-	tar tzf $$up/$(DAEMON_DIST)
+	[ -h "$$dst" ] && rm -f $$dst; \
+	tar tzfv $$up/$(DAEMON_DIST); \
+	ls -l $$up/$(DAEMON_DIST)
+
+dist-html-daemon: html-daemon
+	@set -e; \
+	up="`pwd`/.."; \
+	cd $(DAEMON_SRCDIR); \
+	src=`basename \`pwd\``; \
+	dst=$(DAEMON_ID); \
+	cd ..; \
+	[ "$$src" != "$$dst" -a ! -d "$$dst" ] && ln -s $$src $$dst; \
+	tar chzf $$up/$(DAEMON_HTML_DIST) $(patsubst $(DAEMON_SRCDIR)/%, $$dst/%, $(DAEMON_SRCDIR)/README $(DAEMON_HTMLFILES)); \
+	[ -h "$$dst" ] && rm -f $$dst; \
+	tar tzfv $$up/$(DAEMON_HTML_DIST); \
+	ls -l $$up/$(DAEMON_HTML_DIST)
 
 REDHAT := /usr/src/redhat
 
@@ -231,6 +245,52 @@ $(DAEMON_SRCDIR)/daemon.pkginfo:
 		} \
 	' < $(DAEMON_SRCDIR)/README > $(DAEMON_SRCDIR)/daemon.pkginfo
 
+obsd-daemon: $(DAEMON_SRCDIR)/obsd-daemon-oneline $(DAEMON_SRCDIR)/obsd-daemon-description
+	@set -e; \
+	base="`pwd`"; \
+	up="$$base/.."; \
+	mkdir -p "$$base/obsd-$(DAEMON_NAME)/build"; \
+	mkdir -p "$$base/obsd-$(DAEMON_NAME)/install"; \
+	cd "$$base/obsd-$(DAEMON_NAME)/build"; \
+	tar xzf "$$up/$(DAEMON_DIST)"; \
+	cd ./$(DAEMON_ID); \
+	conf/openbsd; \
+	make PREFIX=../../install FINAL_PREFIX="$(PREFIX)" all install-daemon; \
+	cd "$$base"; \
+	echo "@name $(DAEMON_ID)" > $(DAEMON_SRCDIR)/obsd-daemon-packinglist; \
+	echo "@cwd $(PREFIX)" >> $(DAEMON_SRCDIR)/obsd-daemon-packinglist; \
+	echo "@src $$base/obsd-$(DAEMON_NAME)/install" >> $(DAEMON_SRCDIR)/obsd-daemon-packinglist; \
+	for file in $(patsubst $(PREFIX)/%, %, $(sort $(DAEMON_RPM_FILES) $(DAEMON_RPM_DOCFILES))); do echo $$file >> $(DAEMON_SRCDIR)/obsd-daemon-packinglist; done; \
+	pkg_create -f $(DAEMON_SRCDIR)/obsd-daemon-packinglist -c $(DAEMON_SRCDIR)/obsd-daemon-oneline -d $(DAEMON_SRCDIR)/obsd-daemon-description -v $(DAEMON_NAME); \
+	arch="`uname -m`"; \
+	mv $(DAEMON_NAME).tgz "$$up/$(DAEMON_ID)-obsd-$$arch.tar.gz"; \
+	rm -rf "$$base/obsd-$(DAEMON_NAME)" $(DAEMON_SRCDIR)/obsd-daemon-packinglist $(DAEMON_SRCDIR)/obsd-daemon-oneline $(DAEMON_SRCDIR)/obsd-daemon-description
+
+$(DAEMON_SRCDIR)/obsd-daemon-oneline:
+	@perl -ne ' \
+		next if /^~+$$/; \
+		chop($$section = $$_), next if /^[A-Z]+$$/; \
+		chop($$description = $$_) if $$section eq "README" && /^\w/; \
+		if ($$section ne "README") \
+		{ \
+			my ($$name, $$desc) = $$description =~ /^(\w+) - (.*)$$/; \
+			print "$$desc\n"; \
+			exit; \
+		} \
+	' < $(DAEMON_SRCDIR)/README > $(DAEMON_SRCDIR)/obsd-daemon-oneline
+
+$(DAEMON_SRCDIR)/obsd-daemon-description:
+	@perl -ne ' \
+		next if /^~+$$/; \
+		chop($$section = $$_), next if /^[A-Z]+$$/; \
+		$$description .= $$_ if $$section eq "DESCRIPTION"; \
+		if ($$section ne "README" && $$section ne "DESCRIPTION") \
+		{ \
+			print $$description; \
+			exit; \
+		} \
+	' < $(DAEMON_SRCDIR)/README > $(DAEMON_SRCDIR)/obsd-daemon-description
+
 # Present make targets separately in help if we are not alone
 
 ifneq ($(DAEMON_SRCDIR), .)
@@ -255,9 +315,11 @@ help::
 	echo " uninstall-daemon-man  -- uninstalls the $(DAEMON_NAME) manpage from $(APP_MANDIR)"; \
 	echo " uninstall-daemon-html -- uninstalls the $(DAEMON_NAME) html manpage from $(DAEMON_HTMLDIR)"; \
 	echo " dist-daemon           -- makes a source tarball for daemon+libslack"; \
+	echo " dist-html-daemon      -- makes a tarball of daemon's html manpages"; \
 	echo " rpm-daemon            -- makes binary and source rpm packages for daemon"; \
 	echo " deb-daemon            -- makes a binary deb package for daemon"; \
 	echo " pkg-daemon            -- makes a binary solaris pkg for daemon"; \
+	echo " obsd-daemon           -- makes a binary openbsd pkg for daemon"; \
 	echo
 endif
 
@@ -266,6 +328,7 @@ help-macros::
 	echo "DAEMON_VERSION = $(DAEMON_VERSION)"; \
 	echo "DAEMON_ID = $(DAEMON_ID)"; \
 	echo "DAEMON_DIST = $(DAEMON_DIST)"; \
+	echo "DAEMON_HTML_DIST = $(DAEMON_HTML_DIST)"; \
 	echo "DAEMON_TARGET = $(DAEMON_TARGET)"; \
 	echo "DAEMON_MODULES = $(DAEMON_MODULES)"; \
 	echo "DAEMON_SUBTARGETS = $(DAEMON_SUBTARGETS)"; \

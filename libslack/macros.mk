@@ -18,7 +18,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
-# 20010215 raf <raf@raf.org>
+# 20011109 raf <raf@raf.org>
 
 # Uncomment these to override the defines in daemon.h and prog.h
 #
@@ -28,59 +28,33 @@
 # SLACK_DEFINES += -DROOT_PID_DIR=\"/var/run\"
 # SLACK_DEFINES += -DUSER_PID_DIR=\"/tmp\"
 
-# Uncomment this if your system doesn't have snprintf()
-#
-# SNPRINTF := snprintf
-# SLACK_DEFINES += -DNEEDS_SNPRINTF=1
-
 # Uncomment this if your system doesn't have GNU getopt_long()
 #
 # GETOPT := getopt
-# SLACK_DEFINES += -DNEEDS_GETOPT=1
-# SLACK_CLIENT_CFLAGS += -DNEEDS_GETOPT=1
+
+# Uncomment this if your system does have getopt_long()
+#
+SLACK_CLIENT_CFLAGS += -DHAVE_GETOPT_LONG=1
+
+# Uncomment this if your system doesn't have a good snprintf()
+#
+# SNPRINTF := snprintf
+
+# Uncomment this if your system does have a good snprintf()
+#
+SLACK_CLIENT_CFLAGS += -DHAVE_SNPRINTF=1
 
 # Uncomment this if your system doesn't have vsscanf()
 #
 # VSSCANF := vsscanf
-# SLACK_DEFINES += -DNEEDS_VSSCANF=1
 
-# Uncomment this if your system uses SOCKS
+# Uncomment this if your system does have vsscanf()
 #
-# SLACK_DEFINES += -DSOCKS=1
+SLACK_CLIENT_CFLAGS += -DHAVE_VSSCANF=1
 
-# Uncomment this if your system doesn't have POSIX 1003.2 compliant regular
-# expression functions and you don't want to download them (see README).
+# Uncomment these if your system has POSIX threads reader/writer locks.
 #
-# SLACK_DEFINES += -DREGEX_MISSING=1
-# SLACK_CLIENT_CFLAGS += -DREGEX_MISSING=1
-
-# Uncomment this if mlock() on your system requires that its first argument
-# be a page boundary.
-#
-# SLACK_DEFINES += -DMLOCK_NEEDS_PAGE_BOUNDARY=1
-
-# Uncomment these if your system doesn't have strcasecmp() and strncasecmp().
-#
-# SLACK_DEFINES += -DNEEDS_STRCASECMP=1
-# SLACK_DEFINES += -DNEEDS_STRNCASECMP=1
-
-# Uncomment these if your system doesn't have strlcpy() and strlcat().
-#
-SLACK_DEFINES += -DNEEDS_STRLCPY=1
-SLACK_DEFINES += -DNEEDS_STRLCAT=1
-
-# Uncomment these if your system doesn't have POSIX threads reader/writer
-# locks or barriers, respectively.
-#
-# SLACK_DEFINES += -DNEEDS_PTHREAD_RWLOCK=1
-# SLACK_DEFINES += -DNEEDS_PTHREAD_BARRIER=1
-# SLACK_CLIENT_CFLAGS += -DNEEDS_PTHREAD_RWLOCK=1
-# SLACK_CLIENT_CFLAGS += -DNEEDS_PTHREAD_BARRIER=1
-
-# Uncomment one of these on SVR4 if required (see next)
-#
-# SLACK_DEFINES += -DSVR4
-# SLACK_DEFINES += -USVR4
+SLACK_CLIENT_CFLAGS += -DHAVE_PTHREAD_RWLOCK=1
 
 # Uncomment this to prevent an extra fork on SVR4 which prevents
 # the process from ever gaining a controlling terminal. If this is
@@ -99,11 +73,10 @@ SLACK_DEFINES += -DNEEDS_STRLCAT=1
 #
 # SLACK_DEFINES += -DMEM_MAX_DIM=32
 
-# Uncomment these if your system has the "long long int" type (64 bit)
-# and you want to include the long format ("l") in pack() and unpack().
+# Uncomment these if your system has the "long long int" type.
 #
-SLACK_DEFINES += -DWANT_LONG_LONG=1
 SLACK_CCFLAGS += -Wno-long-long
+SLACK_TEST_CCFLAGS += -Wno-long-long
 
 # Uncomment this to exclude compilation of the debug locker functions.
 # These functions shamefully assume that pthread_self() can be cast into
@@ -113,17 +86,18 @@ SLACK_CCFLAGS += -Wno-long-long
 # SLACK_DEFINES += -DNO_DEBUG_LOCKERS=1
 
 SLACK_NAME := slack
-SLACK_VERSION := 0.4
+SLACK_VERSION := 0.5
 SLACK_URL := http://libslack.org/
 SLACK_ID := lib$(SLACK_NAME)-$(SLACK_VERSION)
 SLACK_DIST := $(SLACK_ID).tar.gz
+SLACK_HTML_DIST := $(SLACK_ID).html.tar.gz
 
 SLACK_TARGET := $(SLACK_SRCDIR)/lib$(SLACK_NAME).a
 SLACK_INSTALL := $(SLACK_ID).a
 SLACK_INSTALL_LINK := lib$(SLACK_NAME).a
 SLACK_CONFIG := $(SLACK_SRCDIR)/lib$(SLACK_NAME)-config
-SLACK_MODULES := daemon err fio $(GETOPT) hsort lim list map mem msg net prog prop sig $(SNPRINTF) str thread $(VSSCANF)
-SLACK_HEADERS := std lib hdr socks
+SLACK_MODULES := agent coproc daemon err fio $(GETOPT) hsort lim link list locker map mem msg net prog prop pseudo sig $(SNPRINTF) str $(VSSCANF)
+SLACK_HEADERS := std lib hdr config socks
 SLACK_LIB_PODS := libslack
 SLACK_APP_PODS := libslack-config
 
@@ -135,7 +109,7 @@ SLACK_HFILES := $(patsubst %, $(SLACK_SRCDIR)/%.h, $(SLACK_MODULES) $(SLACK_HEAD
 
 SLACK_LIB_PODNAMES := $(patsubst %.pod, %, $(SLACK_LIB_PODS)) $(SLACK_MODULES)
 SLACK_LIB_MANFILES := $(patsubst %, $(SLACK_SRCDIR)/%.$(LIB_MANSECT), $(SLACK_LIB_PODNAMES))
-SLACK_LIB_HTMLFILES := $(patsubst %, $(SLACK_SRCDIR)/%.$(LIB_MANSECT).html, $(SLACK_LIB_PODNAMES))
+SLACK_LIB_HTMLFILES := $(sort $(patsubst %, $(SLACK_SRCDIR)/%.$(LIB_MANSECT).html, $(SLACK_LIB_PODNAMES) getopt snprintf vsscanf))
 
 SLACK_APP_PODNAMES := $(patsubst %.pod, %, $(SLACK_APP_PODS))
 SLACK_APP_MANFILES := $(patsubst %, $(SLACK_SRCDIR)/%.$(APP_MANSECT), $(SLACK_APP_PODNAMES))
@@ -165,9 +139,10 @@ DIST_TARGETS += dist-slack
 RPM_TARGETS += rpm-slack
 DEB_TARGETS += deb-slack
 PKG_TARGETS += pkg-slack
+OBSD_TARGETS += obsd-slack
 
 CLEAN_FILES += $(SLACK_OFILES) $(SLACK_CONFIG) $(SLACK_LIB_MANFILES) $(SLACK_APP_MANFILES) $(SLACK_LIB_HTMLFILES) $(SLACK_APP_HTMLFILES) $(SLACK_SRCDIR)/pod2html-*
-CLOBBER_FILES += $(SLACK_TARGET) $(SLACK_SRCDIR)/tags $(SLACK_TESTDIR)
+CLOBBER_FILES += $(SLACK_TARGET) $(SLACK_SRCDIR)/tags $(SLACK_TESTDIR) $(SLACK_INCLINK)
 
 SLACK_RPM_FILES += $(LIB_INSDIR)/$(SLACK_INSTALL_LINK)
 SLACK_RPM_FILES += $(LIB_INSDIR)/$(SLACK_INSTALL)
@@ -181,23 +156,35 @@ SLACK_PKG := RAFOslk
 SLACK_CPPFLAGS += $(SLACK_DEFINES) $(patsubst %, -I%, $(SLACK_INCDIRS))
 SLACK_CCFLAGS += $(CCFLAGS)
 SLACK_CFLAGS += $(SLACK_CPPFLAGS) $(SLACK_CCFLAGS)
-SLACK_LIBS += $(SLACK_NAME) pthread
-SLACK_CLIENT_LIBS += $(SLACK_NAME) pthread
+
+SLACK_TEST_CPPFLAGS += $(SLACK_TEST_DEFINES) $(patsubst %, -I%, $(SLACK_INCDIRS))
+SLACK_TEST_CCFLAGS += -Wall -pedantic
+SLACK_TEST_CFLAGS += $(SLACK_TEST_CPPFLAGS) $(SLACK_TEST_CCFLAGS)
+
+# SLACK_TEST_LDFLAGS += -pthread
+SLACK_TEST_LIBS += $(SLACK_NAME)
+SLACK_TEST_LIBS += pthread
+SLACK_TEST_LIBS += util
+
+# SLACK_CLIENT_LDFLAGS += -pthread
+SLACK_CLIENT_LIBS += $(SLACK_NAME)
+SLACK_CLIENT_LIBS += pthread
+SLACK_CLIENT_LIBS += util
 
 # Uncomment this on Solaris for sockets (used by the daemon and net modules)
 #
-# SLACK_LIBS += xnet
+# SLACK_TEST_LIBS += xnet
+# SLACK_TEST_LIBS += socket
+# SLACK_TEST_LIBS += nsl
 # SLACK_CLIENT_LIBS += xnet
-
-# Uncomment this on Solaris for semaphores (used by tests)
-#
-# SLACK_LIBS += posix4
+# SLACK_CLIENT_LIBS += socket
+# SLACK_CLIENT_LIBS += nsl
 
 # Uncomment this on Solaris if you are using Sun's C compiler (used by tests)
 #
-# SLACK_LIBS += m
+# SLACK_TEST_LIBS += m
 
-SLACK_LDFLAGS += $(patsubst %, -L%, $(SLACK_LIBDIRS)) $(patsubst %, -l%, $(SLACK_LIBS))
+SLACK_TEST_LDFLAGS += $(patsubst %, -L%, $(SLACK_LIBDIRS)) $(patsubst %, -l%, $(SLACK_TEST_LIBS))
 SLACK_CLIENT_LDFLAGS += $(patsubst %, -l%, $(SLACK_CLIENT_LIBS))
 
 SLACK_SUBTARGETS :=

@@ -8,13 +8,15 @@ I<hsort(3)> - generic heap sort
 
     #include <slack/hsort.h>
 
-    void hsort(void *base, size_t nelem, size_t size, int (*cmp)(const void *, const void *))
+    typedef int hsort_cmp_t(const void *, const void *);
+
+    void hsort(void *base, size_t n, size_t size, hsort_cmp_t *cmp);
 
 =head1 DESCRIPTION
 
 I<hsort()> is an implementation of the heap sort algorithm. It sorts a table
 of data in place. C<base> points to the element at the base of the table.
-C<nelem> is the number of elements in the table. C<size> is the size of the
+C<n> is the number of elements in the table. C<size> is the size of the
 elements in bytes. C<cmp> is the comparison function, which is called with
 two arguments that point to the elements being compared. As the function
 must return an integer less than, equal to, or greater than zero, so must
@@ -32,6 +34,9 @@ unpredictable.
 =head1 MT-Level
 
 MT-Safe
+
+Note that the array being sorted will still have to be write locked during
+I<hsort()> if it is accessed by other threads.
 
 =head1 SEE ALSO
 
@@ -70,6 +75,8 @@ L<qsort(3)|qsort(3)>
 #include "std.h"
 
 #include "hsort.h"
+
+#ifndef TEST
 
 #ifdef INLINE
 
@@ -230,6 +237,8 @@ void hsort(void *base, size_t n, size_t size, hsort_cmp_t *cmp)
 	}
 }
 
+#endif
+
 #ifdef TEST
 
 char *string[4];
@@ -255,6 +264,12 @@ void verify(int test)
 
 int main(int ac, char **av)
 {
+	if (ac == 2 && !strcmp(av[1], "help"))
+	{
+		printf("usage: %s\n", *av);
+		return EXIT_SUCCESS;
+	}
+
 	printf("Testing: hsort\n");
 
 	string[0] = "abc";
@@ -283,7 +298,7 @@ int main(int ac, char **av)
 	else
 		printf("All tests passed\n");
 
-	return 0;
+	return (errors == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 #endif

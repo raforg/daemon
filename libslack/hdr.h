@@ -18,38 +18,27 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20010215 raf <raf@raf.org>
+* 20011109 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_HDR_H
 #define LIBSLACK_HDR_H
 
-#undef _start_decls
+#undef _begin_decls
 #undef _end_decls
 #undef _args
-#undef _throw
 #undef const
 
 #ifdef __cplusplus
-#define _start_decls extern "C" {
+#define _begin_decls extern "C" {
 #define _end_decls }
 #else
-#define _start_decls
+#define _begin_decls
 #define _end_decls
 #endif
 
-#define _throw
-#if 0
-#ifdef __GNUC__
-#if __cplusplus && ((__GNUC__) >= 3 || (__GNUC_MINOR__) >= 8)
-#undef _throw
-#define _throw throw ()
-#endif
-#endif
-#endif
-
 #if defined __STDC__ || defined __cplusplus
-#define _args(args) args _throw
+#define _args(args) args
 #else
 #define _args(args) ()
 #define const

@@ -5,8 +5,7 @@ perl -e '
 	for (0..4)
 	{
 		sleep 1;
-		print $_, "\n";
+		print STDOUT $_, "\n";
+		print STDERR $_, "\n";
 	}
-	close STDOUT, STDERR;
-	sleep 5;
 '

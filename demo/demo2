@@ -6,10 +6,12 @@
 # then closes its stdout and stderr, then sleeps for another 5 seconds
 # before terminating. The daemon.conf file causes client2 to be run with
 # debug=9, with output redirected to syslog destination daemon.err, and
-# respawning. Terminate the demonstration be sending daemon a TERM signal.
+# respawning. Terminate the demonstration by sending daemon a TERM signal.
 #
 # Note: Respawning won't occur unless libslack was compiled with
 # RESPAWN_THRESHOLD less than 5 or client2 modified to run for more
 # than 600 seconds.
+
+cc -o client2 client2.c
 
 ../daemon -C "`pwd`/daemon.conf" -n client2 "`pwd`/client2"

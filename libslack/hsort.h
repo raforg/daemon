@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20010215 raf <raf@raf.org>
+* 20011109 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_HSORT_H
@@ -30,7 +30,7 @@
 
 typedef int hsort_cmp_t(const void *, const void *);
 
-_start_decls
+_begin_decls
 void hsort _args ((void *base, size_t n, size_t size, hsort_cmp_t *cmp));
 _end_decls
 

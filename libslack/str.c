@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20010215 raf <raf@raf.org>
+* 20011109 raf <raf@raf.org>
 */
 
 /*
@@ -63,7 +63,7 @@ I<libslack(str)> - string module
     #include <slack/str.h>
 
     typedef struct String String;
-    typedef struct StrTR StrTR;
+    typedef struct StringTR StringTR;
 
     typedef enum
     {
@@ -73,7 +73,7 @@ I<libslack(str)> - string module
         ALIGN_CENTER     = '|',
         ALIGN_FULL       = '='
     }
-    StrAlignment;
+    StringAlignment;
 
     typedef enum
     {
@@ -81,142 +81,216 @@ I<libslack(str)> - string module
         TR_DELETE     = 2,
         TR_SQUASH     = 4
     }
-    StrTROption;
+    StringTROption;
 
     String *str_create(const char *fmt, ...);
-    String *str_create_locked(Locker *locker, const char *fmt, ...);
+    String *str_create_with_locker(Locker *locker, const char *fmt, ...);
     String *str_vcreate(const char *fmt, va_list args);
-    String *str_vcreate_locked(Locker *locker, const char *fmt, va_list args);
+    String *str_vcreate_with_locker(Locker *locker, const char *fmt, va_list args);
     String *str_create_sized(size_t size, const char *fmt, ...);
-    String *str_create_locked_sized(Locker *locker, size_t size, const char *fmt, ...);
+    String *str_create_with_locker_sized(Locker *locker, size_t size, const char *fmt, ...);
     String *str_vcreate_sized(size_t size, const char *fmt, va_list args);
-    String *str_vcreate_locked_sized(Locker *locker, size_t size, const char *fmt, va_list args);
+    String *str_vcreate_with_locker_sized(Locker *locker, size_t size, const char *fmt, va_list args);
     String *str_copy(const String *str);
-    String *str_copy_locked(Locker *locker, const String *str);
+    String *str_copy_unlocked(const String *str);
+    String *str_copy_with_locker(Locker *locker, const String *str);
+    String *str_copy_with_locker_unlocked(Locker *locker, const String *str);
     String *str_fgetline(FILE *stream);
-    String *str_fgetline_locked(Locker *locker, FILE *stream);
+    String *str_fgetline_with_locker(Locker *locker, FILE *stream);
     void str_release(String *str);
     void *str_destroy(String **str);
     int str_rdlock(const String *str);
     int str_wrlock(const String *str);
     int str_unlock(const String *str);
     int str_empty(const String *str);
-    size_t str_length(const String *str);
+    int str_empty_unlocked(const String *str);
+    ssize_t str_length(const String *str);
+    ssize_t str_length_unlocked(const String *str);
     char *cstr(const String *str);
     ssize_t str_set_length(String *str, size_t length);
     ssize_t str_set_length_unlocked(String *str, size_t length);
     ssize_t str_recalc_length(String *str);
     ssize_t str_recalc_length_unlocked(String *str);
     String *str_clear(String *str);
+    String *str_clear_unlocked(String *str);
     String *str_remove(String *str, ssize_t index);
+    String *str_remove_unlocked(String *str, ssize_t index);
     String *str_remove_range(String *str, ssize_t index, ssize_t range);
+    String *str_remove_range_unlocked(String *str, ssize_t index, ssize_t range);
     String *str_insert(String *str, ssize_t index, const char *fmt, ...);
+    String *str_insert_unlocked(String *str, ssize_t index, const char *fmt, ...);
     String *str_vinsert(String *str, ssize_t index, const char *fmt, va_list args);
+    String *str_vinsert_unlocked(String *str, ssize_t index, const char *fmt, va_list args);
     String *str_insert_str(String *str, ssize_t index, const String *src);
+    String *str_insert_str_unlocked(String *str, ssize_t index, const String *src);
     String *str_append(String *str, const char *fmt, ...);
+    String *str_append_unlocked(String *str, const char *fmt, ...);
     String *str_vappend(String *str, const char *fmt, va_list args);
+    String *str_vappend_unlocked(String *str, const char *fmt, va_list args);
     String *str_append_str(String *str, const String *src);
+    String *str_append_str_unlocked(String *str, const String *src);
     String *str_prepend(String *str, const char *fmt, ...);
+    String *str_prepend_unlocked(String *str, const char *fmt, ...);
     String *str_vprepend(String *str, const char *fmt, va_list args);
+    String *str_vprepend_unlocked(String *str, const char *fmt, va_list args);
     String *str_prepend_str(String *str, const String *src);
+    String *str_prepend_str_unlocked(String *str, const String *src);
     String *str_replace(String *str, ssize_t index, ssize_t range, const char *fmt, ...);
+    String *str_replace_unlocked(String *str, ssize_t index, ssize_t range, const char *fmt, ...);
     String *str_vreplace(String *str, ssize_t index, ssize_t range, const char *fmt, va_list args);
+    String *str_vreplace_unlocked(String *str, ssize_t index, ssize_t range, const char *fmt, va_list args);
     String *str_replace_str(String *str, ssize_t index, ssize_t range, const String *src);
+    String *str_replace_str_unlocked(String *str, ssize_t index, ssize_t range, const String *src);
     String *str_substr(const String *str, ssize_t index, ssize_t range);
-    String *str_substr_locked(Locker *locker, const String *str, ssize_t index, ssize_t range);
+    String *str_substr_unlocked(const String *str, ssize_t index, ssize_t range);
+    String *str_substr_with_locker(Locker *locker, const String *str, ssize_t index, ssize_t range);
+    String *str_substr_with_locker_unlocked(Locker *locker, const String *str, ssize_t index, ssize_t range);
     String *substr(const char *str, ssize_t index, ssize_t range);
-    String *substr_locked(Locker *locker, const char *str, ssize_t index, ssize_t range);
+    String *substr_with_locker(Locker *locker, const char *str, ssize_t index, ssize_t range);
     String *str_splice(String *str, ssize_t index, ssize_t range);
-    String *str_splice_locked(Locker *locker, String *str, ssize_t index, ssize_t range);
+    String *str_splice_unlocked(String *str, ssize_t index, ssize_t range);
+    String *str_splice_with_locker(Locker *locker, String *str, ssize_t index, ssize_t range);
+    String *str_splice_with_locker_unlocked(Locker *locker, String *str, ssize_t index, ssize_t range);
     String *str_repeat(size_t count, const char *fmt, ...);
-    String *str_repeat_locked(Locker *locker, size_t count, const char *fmt, ...);
+    String *str_repeat_with_locker(Locker *locker, size_t count, const char *fmt, ...);
     String *str_vrepeat(size_t count, const char *fmt, va_list args);
-    String *str_vrepeat_locked(Locker *locker, size_t count, const char *fmt, va_list args);
+    String *str_vrepeat_with_locker(Locker *locker, size_t count, const char *fmt, va_list args);
     int str_tr(String *str, const char *from, const char *to, int option);
+    int str_tr_unlocked(String *str, const char *from, const char *to, int option);
     int str_tr_str(String *str, const String *from, const String *to, int option);
+    int str_tr_str_unlocked(String *str, const String *from, const String *to, int option);
     int tr(char *str, const char *from, const char *to, int option);
-    StrTR *str_tr_compile(const String *from, const String *to, int option);
-    StrTR *str_tr_compile_locked(Locker *locker, const String *from, const String *to, int option);
-    StrTR *tr_compile(const char *from, const char *to, int option);
-    StrTR *tr_compile_locked(Locker *locker, const char *from, const char *to, int option);
-    void tr_release(StrTR *tr);
-    void *tr_destroy(StrTR **tr);
-    int str_tr_compiled(String *str, StrTR *table);
-    int tr_compiled(char *str, StrTR *table);
+    StringTR *tr_compile(const char *from, const char *to, int option);
+    StringTR *tr_compile_with_locker(Locker *locker, const char *from, const char *to, int option);
+    StringTR *str_tr_compile(const String *from, const String *to, int option);
+    StringTR *str_tr_compile_unlocked(const String *from, const String *to, int option);
+    StringTR *str_tr_compile_with_locker(Locker *locker, const String *from, const String *to, int option);
+    StringTR *str_tr_compile_with_locker_unlocked(Locker *locker, const String *from, const String *to, int option);
+    void tr_release(StringTR *tr);
+    void *tr_destroy(StringTR **tr);
+    int str_tr_compiled(String *str, StringTR *table);
+    int str_tr_compiled_unlocked(String *str, StringTR *table);
+    int tr_compiled(char *str, StringTR *table);
     List *str_regexpr(const char *pattern, const String *text, int cflags, int eflags);
-    List *str_regexpr_locked(Locker *locker, const char *pattern, const String *text, int cflags, int eflags);
+    List *str_regexpr_unlocked(const char *pattern, const String *text, int cflags, int eflags);
+    List *str_regexpr_with_locker(Locker *locker, const char *pattern, const String *text, int cflags, int eflags);
+    List *str_regexpr_with_locker_unlocked(Locker *locker, const char *pattern, const String *text, int cflags, int eflags);
     List *regexpr(const char *pattern, const char *text, int cflags, int eflags);
-    List *regexpr_locked(Locker *locker, const char *pattern, const char *text, int cflags, int eflags);
+    List *regexpr_with_locker(Locker *locker, const char *pattern, const char *text, int cflags, int eflags);
     int regexpr_compile(regex_t *compiled, const char *pattern, int cflags);
     void regexpr_release(regex_t *compiled);
     List *str_regexpr_compiled(const regex_t *compiled, const String *text, int eflags);
-    List *str_regexpr_compiled_locked(Locker *locker, const regex_t *compiled, const String *text, int eflags);
+    List *str_regexpr_compiled_unlocked(const regex_t *compiled, const String *text, int eflags);
+    List *str_regexpr_compiled_with_locker(Locker *locker, const regex_t *compiled, const String *text, int eflags);
+    List *str_regexpr_compiled_with_locker_unlocked(Locker *locker, const regex_t *compiled, const String *text, int eflags);
     List *regexpr_compiled(const regex_t *compiled, const char *text, int eflags);
-    List *regexpr_compiled_locked(Locker *locker, const regex_t *compiled, const char *text, int eflags);
+    List *regexpr_compiled_with_locker(Locker *locker, const regex_t *compiled, const char *text, int eflags);
     String *str_regsub(const char *pattern, const char *replacement, String *text, int cflags, int eflags, int all);
+    String *str_regsub_unlocked(const char *pattern, const char *replacement, String *text, int cflags, int eflags, int all);
     String *str_regsub_compiled(const regex_t *compiled, const char *replacement, String *text, int eflags, int all);
-    List *str_fmt(const String *str, size_t line_width, StrAlignment alignment);
-    List *str_fmt_locked(Locker *locker, const String *str, size_t line_width, StrAlignment alignment);
-    List *fmt(const char *str, size_t line_width, StrAlignment alignment);
-    List *fmt_locked(Locker *locker, const char *str, size_t line_width, StrAlignment alignment);
+    String *str_regsub_compiled_unlocked(const regex_t *compiled, const char *replacement, String *text, int eflags, int all);
+    List *str_fmt(const String *str, size_t line_width, StringAlignment alignment);
+    List *str_fmt_unlocked(const String *str, size_t line_width, StringAlignment alignment);
+    List *str_fmt_with_locker(Locker *locker, const String *str, size_t line_width, StringAlignment alignment);
+    List *str_fmt_with_locker_unlocked(Locker *locker, const String *str, size_t line_width, StringAlignment alignment);
+    List *fmt(const char *str, size_t line_width, StringAlignment alignment);
+    List *fmt_with_locker(Locker *locker, const char *str, size_t line_width, StringAlignment alignment);
     List *str_split(const String *str, const char *delim);
-    List *str_split_locked(Locker *locker, const String *str, const char *delim);
+    List *str_split_unlocked(const String *str, const char *delim);
+    List *str_split_with_locker(Locker *locker, const String *str, const char *delim);
+    List *str_split_with_locker_unlocked(Locker *locker, const String *str, const char *delim);
     List *split(const char *str, const char *delim);
-    List *split_locked(Locker *locker, const char *str, const char *delim);
+    List *split_with_locker(Locker *locker, const char *str, const char *delim);
     List *str_regexpr_split(const String *str, const char *delim, int cflags, int eflags);
-    List *str_regexpr_split_locked(Locker *locker, const String *str, const char *delim, int cflags, int eflags);
+    List *str_regexpr_split_unlocked(const String *str, const char *delim, int cflags, int eflags);
+    List *str_regexpr_split_with_locker(Locker *locker, const String *str, const char *delim, int cflags, int eflags);
+    List *str_regexpr_split_with_locker_unlocked(Locker *locker, const String *str, const char *delim, int cflags, int eflags);
     List *regexpr_split(const char *str, const char *delim, int cflags, int eflags);
-    List *regexpr_split_locked(Locker *locker, const char *str, const char *delim, int cflags, int eflags);
-    String *str_join(const List *str, const char *delim);
-    String *str_join_locked(Locker *locker, const List *str, const char *delim);
-    String *join(const List *str, const char *delim);
-    String *join_locked(Locker *locker, const List *str, const char *delim);
+    List *regexpr_split_with_locker(Locker *locker, const char *str, const char *delim, int cflags, int eflags);
+    String *str_join(const List *list, const char *delim);
+    String *str_join_unlocked(const List *list, const char *delim);
+    String *str_join_with_locker(Locker *locker, const List *list, const char *delim);
+    String *str_join_with_locker_unlocked(Locker *locker, const List *list, const char *delim);
+    String *join(const List *list, const char *delim);
+    String *join_with_locker(Locker *locker, const List *list, const char *delim);
+    int str_soundex(const String *str);
+    int str_soundex_unlocked(const String *str);
+    int soundex(const char *str);
     String *str_trim(String *str);
+    String *str_trim_unlocked(String *str);
     char *trim(char *str);
     String *str_trim_left(String *str);
+    String *str_trim_left_unlocked(String *str);
     char *trim_left(char *str);
     String *str_trim_right(String *str);
+    String *str_trim_right_unlocked(String *str);
     char *trim_right(char *str);
     String *str_squeeze(String *str);
+    String *str_squeeze_unlocked(String *str);
     char *squeeze(char *str);
     String *str_quote(const String *str, const char *quotable, char quote_char);
-    String *str_quote_locked(Locker *locker, const String *str, const char *quotable, char quote_char);
+    String *str_quote_unlocked(const String *str, const char *quotable, char quote_char);
+    String *str_quote_with_locker(Locker *locker, const String *str, const char *quotable, char quote_char);
+    String *str_quote_with_locker_unlocked(Locker *locker, const String *str, const char *quotable, char quote_char);
     String *quote(const char *str, const char *quotable, char quote_char);
-    String *quote_locked(Locker *locker, const char *str, const char *quotable, char quote_char);
+    String *quote_with_locker(Locker *locker, const char *str, const char *quotable, char quote_char);
     String *str_unquote(const String *str, const char *quotable, char quote_char);
-    String *str_unquote_locked(Locker *locker, const String *str, const char *quotable, char quote_char);
+    String *str_unquote_unlocked(const String *str, const char *quotable, char quote_char);
+    String *str_unquote_with_locker(Locker *locker, const String *str, const char *quotable, char quote_char);
+    String *str_unquote_with_locker_unlocked(Locker *locker, const String *str, const char *quotable, char quote_char);
     String *unquote(const char *str, const char *quotable, char quote_char);
-    String *unquote_locked(Locker *locker, const char *str, const char *quotable, char quote_char);
+    String *unquote_with_locker(Locker *locker, const char *str, const char *quotable, char quote_char);
     String *str_encode(const String *str, const char *uncoded, const char *coded, char quote_char, int printable);
-    String *str_encode_locked(Locker *locker, const String *str, const char *uncoded, const char *coded, char quote_char, int printable);
+    String *str_encode_unlocked(const String *str, const char *uncoded, const char *coded, char quote_char, int printable);
+    String *str_encode_with_locker(Locker *locker, const String *str, const char *uncoded, const char *coded, char quote_char, int printable);
+    String *str_encode_with_locker_unlocked(Locker *locker, const String *str, const char *uncoded, const char *coded, char quote_char, int printable);
     String *str_decode(const String *str, const char *uncoded, const char *coded, char quote_char, int printable);
-    String *str_decode_locked(Locker *locker, const String *str, const char *uncoded, const char *coded, char quote_char, int printable);
+    String *str_decode_unlocked(const String *str, const char *uncoded, const char *coded, char quote_char, int printable);
+    String *str_decode_with_locker(Locker *locker, const String *str, const char *uncoded, const char *coded, char quote_char, int printable);
+    String *str_decode_with_locker_unlocked(Locker *locker, const String *str, const char *uncoded, const char *coded, char quote_char, int printable);
     String *encode(const char *str, const char *uncoded, const char *coded, char quote_char, int printable);
-    String *encode_locked(Locker *locker, const char *str, const char *uncoded, const char *coded, char quote_char, int printable);
+    String *encode_with_locker(Locker *locker, const char *str, const char *uncoded, const char *coded, char quote_char, int printable);
     String *decode(const char *str, const char *uncoded, const char *coded, char quote_char, int printable);
-    String *decode_locked(Locker *locker, const char *str, const char *uncoded, const char *coded, char quote_char, int printable);
+    String *decode_with_locker(Locker *locker, const char *str, const char *uncoded, const char *coded, char quote_char, int printable);
     String *str_lc(String *str);
+    String *str_lc_unlocked(String *str);
     char *lc(char *str);
     String *str_lcfirst(String *str);
+    String *str_lcfirst_unlocked(String *str);
     char *lcfirst(char *str);
     String *str_uc(String *str);
+    String *str_uc_unlocked(String *str);
     char *uc(char *str);
     String *str_ucfirst(String *str);
+    String *str_ucfirst_unlocked(String *str);
     char *ucfirst(char *str);
-    char str_chop(String *str);
-    char chop(char *str);
+    int str_chop(String *str);
+    int str_chop_unlocked(String *str);
+    int chop(char *str);
     int str_chomp(String *str);
+    int str_chomp_unlocked(String *str);
     int chomp(char *str);
-    int str_bin(const String *bin);
-    int bin(const char *bin);
-    int str_hex(const String *hex);
-    int hex(const char *hex);
-    int str_oct(const String *oct);
-    int oct(const char *oct);
+    int str_bin(const String *str);
+    int str_bin_unlocked(const String *str);
+    int bin(const char *str);
+    int str_hex(const String *str);
+    int str_hex_unlocked(const String *str);
+    int hex(const char *str);
+    int str_oct(const String *str);
+    int str_oct_unlocked(const String *str);
+    int oct(const char *str);
     int strcasecmp(const char *s1, const char *s2);
     int strncasecmp(const char *s1, const char *s2, size_t n);
     size_t strlcpy(char *dst, const char *src, size_t size);
     size_t strlcat(char *dst, const char *src, size_t size);
+    char *cstrcpy(char *dst, const char *src);
+    char *cstrcat(char *dst, const char *src);
+    char *cstrchr(const char *str, int c);
+    char *cstrpbrk(const char *str, const char *brk);
+    char *cstrrchr(const char *str, int c);
+    char *cstrstr(const char *str, const char *srch);
+    int asprintf(char **str, const char *fmt, ...);
+    int vasprintf(char **str, const char *fmt, va_list args);
 
 =head1 DESCRIPTION
 
@@ -231,14 +305,17 @@ operators in I<perlfunc(1)> and I<perlop(1)>. Others came from OpenBSD.
 
 */
 
+#include "config.h"
 #include "std.h"
+
+#include <netinet/in.h>
 
 #include "err.h"
 #include "str.h"
 #include "mem.h"
 #include "fio.h"
 
-#ifdef NEEDS_SNPRINTF
+#ifndef HAVE_SNPRINTF
 #include "snprintf.h"
 #endif
 
@@ -260,7 +337,7 @@ struct String
 
 #define CHARSET 256
 
-struct StrTR
+struct StringTR
 {
 	int squash;           /* whether or not to squash duplicate characters */
 	short table[CHARSET]; /* the translation table */
@@ -274,6 +351,7 @@ typedef enum
 }
 TRCode;
 
+#define is_alpha(c)  isalpha((int)(unsigned char)(c))
 #define is_alnum(c)  isalnum((int)(unsigned char)(c))
 #define is_print(c)  isprint((int)(unsigned char)(c))
 #define is_space(c)  isspace((int)(unsigned char)(c))
@@ -282,12 +360,23 @@ TRCode;
 #define to_lower(c)  tolower((int)(unsigned char)(c))
 #define to_upper(c)  toupper((int)(unsigned char)(c))
 
+#ifndef TEST
+
+void (flockfile)(FILE *stream); /* Missing from old glibc headers */
+void (funlockfile)(FILE *stream);
+
+#ifndef HAVE_FLOCKFILE
+#define flockfile(stream)
+#define funlockfile(stream)
+#define getc_unlocked(stream) getc(stream)
+#endif
+
 /*
 
 C<int grow(String *str, size_t bytes)>
 
 Allocates enough memory to add C<bytes> extra bytes to C<str> if necessary.
-On success, returns 0. On error, returns -1.
+On success, returns C<0>. On error, returns C<-1>.
 
 */
 
@@ -316,7 +405,7 @@ static int grow(String *str, size_t bytes)
 C<int shrink(String *str, size_t bytes)>
 
 Allocates less memory for removing C<bytes> bytes from C<str> if necessary.
-On success, returns 0. On error, returns -1.
+On success, returns C<0>. On error, returns C<-1>.
 
 */
 
@@ -343,8 +432,8 @@ static int shrink(String *str, size_t bytes)
 
 C<int expand(String *str, ssize_t index, size_t range)>
 
-Slides C<str>'s bytes, starting at C<index>, C<range> positions to the right to
-make room for more. On success, returns 0. On error, returns -1.
+Slides C<str>'s bytes, starting at C<index>, C<range> positions to the right
+to make room for more. On success, returns C<0>. On error, returns C<-1>.
 
 */
 
@@ -364,8 +453,8 @@ static int expand(String *str, ssize_t index, size_t range)
 C<int contract(String *str, ssize_t index, size_t range)>
 
 Slides C<str>'s bytes, starting at C<index> + C<range>, C<range> positions
-to the left to close a gap starting at C<index>. On success, returns 0. On
-error, returns -1.
+to the left to close a gap starting at C<index>. On success, returns C<0>.
+On error, returns C<-1>.
 
 */
 
@@ -385,9 +474,9 @@ static int contract(String *str, ssize_t index, size_t range)
 
 C<int adjust(String *str, ssize_t index, size_t range, size_t length)>
 
-Expands or contracts C<str> as required so that I<str[index + range ..]>
-occupies I<str[index + length ..]>. On success, returns 0. On error,
-returns -1.
+Expands or contracts C<str> as required so that C<str[index + range ..]>
+occupies C<str[index + length ..]>. On success, returns C<0>. On error,
+returns C<-1>.
 
 */
 
@@ -409,7 +498,7 @@ static int adjust(String *str, ssize_t index, size_t range, size_t length)
 Creates a I<String> specified by C<fmt> and the following arguments as in
 I<sprintf(3)>. On success, returns the new string. It is the caller's
 responsibility to deallocate the new string with I<str_release()> or
-I<str_destroy()>. On error, returns C<NULL>.
+I<str_destroy()>. On error, returns C<null> with C<errno> set appropriately.
 
 B<Warning: Do not under any circumstances ever pass a non-literal string as
 the fmt argument unless you know exactly how many conversions will take
@@ -429,14 +518,14 @@ String *str_create(const char *fmt, ...)
 	String *str;
 	va_list args;
 	va_start(args, fmt);
-	str = str_vcreate_locked_sized(NULL, MIN_STRING_SIZE, fmt, args);
+	str = str_vcreate_with_locker_sized(NULL, MIN_STRING_SIZE, fmt, args);
 	va_end(args);
 	return str;
 }
 
 /*
 
-=item C<String *str_create_locked(Locker *locker, const char *fmt, ...)>
+=item C<String *str_create_with_locker(Locker *locker, const char *fmt, ...)>
 
 Equivalent to I<str_create()> except that multiple threads accessing the new
 string will be synchronized by C<locker>.
@@ -445,12 +534,12 @@ string will be synchronized by C<locker>.
 
 */
 
-String *str_create_locked(Locker *locker, const char *fmt, ...)
+String *str_create_with_locker(Locker *locker, const char *fmt, ...)
 {
 	String *str;
 	va_list args;
 	va_start(args, fmt);
-	str = str_vcreate_locked_sized(locker, MIN_STRING_SIZE, fmt, args);
+	str = str_vcreate_with_locker_sized(locker, MIN_STRING_SIZE, fmt, args);
 	va_end(args);
 	return str;
 }
@@ -468,12 +557,12 @@ directly as for I<vprintf(3)>.
 
 String *str_vcreate(const char *fmt, va_list args)
 {
-	return str_vcreate_locked_sized(NULL, MIN_STRING_SIZE, fmt, args);
+	return str_vcreate_with_locker_sized(NULL, MIN_STRING_SIZE, fmt, args);
 }
 
 /*
 
-=item C<String *str_vcreate_locked(Locker *locker, const char *fmt, va_list args)>
+=item C<String *str_vcreate_with_locker(Locker *locker, const char *fmt, va_list args)>
 
 Equivalent to I<str_vcreate()> except that multiple threads accessing the new
 string will be synchronized by C<locker>.
@@ -482,9 +571,9 @@ string will be synchronized by C<locker>.
 
 */
 
-String *str_vcreate_locked(Locker *locker, const char *fmt, va_list args)
+String *str_vcreate_with_locker(Locker *locker, const char *fmt, va_list args)
 {
-	return str_vcreate_locked_sized(locker, MIN_STRING_SIZE, fmt, args);
+	return str_vcreate_with_locker_sized(locker, MIN_STRING_SIZE, fmt, args);
 }
 
 /*
@@ -495,7 +584,7 @@ Creates a I<String> specified by C<fmt> and the following arguments as in
 I<sprintf(3)>. The initial allocation for the string data is at least
 C<size> bytes. On success, returns the new string. It is the caller's
 responsibility to deallocate the new string with I<str_release()> or
-I<str_destroy()>. On error, returns C<NULL>.
+I<str_destroy()>. On error, returns C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -506,14 +595,14 @@ String *str_create_sized(size_t size, const char *fmt, ...)
 	String *str;
 	va_list args;
 	va_start(args, fmt);
-	str = str_vcreate_locked_sized(NULL, size, fmt, args);
+	str = str_vcreate_with_locker_sized(NULL, size, fmt, args);
 	va_end(args);
 	return str;
 }
 
 /*
 
-=item C<String *str_create_locked_sized(Locker *locker, size_t size, const char *fmt, ...)>
+=item C<String *str_create_with_locker_sized(Locker *locker, size_t size, const char *fmt, ...)>
 
 Equivalent to I<str_create_sized()> except that multiple threads accessing
 the new string will be synchronised by C<locker>.
@@ -522,12 +611,12 @@ the new string will be synchronised by C<locker>.
 
 */
 
-String *str_create_locked_sized(Locker *locker, size_t size, const char *fmt, ...)
+String *str_create_with_locker_sized(Locker *locker, size_t size, const char *fmt, ...)
 {
 	String *str;
 	va_list args;
 	va_start(args, fmt);
-	str = str_vcreate_locked_sized(locker, size, fmt, args);
+	str = str_vcreate_with_locker_sized(locker, size, fmt, args);
 	va_end(args);
 	return str;
 }
@@ -545,12 +634,12 @@ directly as for I<vprintf(3)>.
 
 String *str_vcreate_sized(size_t size, const char *fmt, va_list args)
 {
-	return str_vcreate_locked_sized(NULL, size, fmt, args);
+	return str_vcreate_with_locker_sized(NULL, size, fmt, args);
 }
 
 /*
 
-=item C<String *str_vcreate_locked_sized(Locker *locker, size_t size, const char *fmt, va_list args)>
+=item C<String *str_vcreate_with_locker_sized(Locker *locker, size_t size, const char *fmt, va_list args)>
 
 Equivalent to I<str_vcreate_sized()> except that multiple threads accessing
 the new string will be synchronised by C<locker>.
@@ -559,7 +648,7 @@ the new string will be synchronised by C<locker>.
 
 */
 
-String *str_vcreate_locked_sized(Locker *locker, size_t size, const char *fmt, va_list args)
+String *str_vcreate_with_locker_sized(Locker *locker, size_t size, const char *fmt, va_list args)
 {
 	String *str;
 	char *buf = NULL;
@@ -576,7 +665,7 @@ String *str_vcreate_locked_sized(Locker *locker, size_t size, const char *fmt, v
 	}
 
 	if (!bit)
-		return NULL;
+		return set_errnull(EINVAL);
 
 	if (!fmt)
 		fmt = "";
@@ -594,7 +683,7 @@ String *str_vcreate_locked_sized(Locker *locker, size_t size, const char *fmt, v
 			break;
 	}
 
-	if (!(str = mem_new(String)))
+	if (!(str = mem_new(String))) /* XXX decouple */
 	{
 		mem_release(buf);
 		return NULL;
@@ -612,9 +701,9 @@ String *str_vcreate_locked_sized(Locker *locker, size_t size, const char *fmt, v
 
 =item C<String *str_copy(const String *str)>
 
-Creates a clone of C<str>. On success, returns the clone. It is the caller's
+Creates a copy of C<str>. On success, returns the copy. It is the caller's
 responsibility to deallocate the new string with I<str_release()> or
-I<str_destroy()>. On error, returns C<NULL>.
+I<str_destroy()>. On error, returns C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -622,12 +711,27 @@ I<str_destroy()>. On error, returns C<NULL>.
 
 String *str_copy(const String *str)
 {
-	return str_copy_locked(NULL, str);
+	return str_copy_with_locker(NULL, str);
 }
 
 /*
 
-=item C<String *str_copy_locked(Locker *locker, const String *str)>
+=item C<String *str_copy_unlocked(const String *str)>
+
+Equivalent to I<str_copy()> except that C<str> is not read locked.
+
+=cut
+
+*/
+
+String *str_copy_unlocked(const String *str)
+{
+	return str_copy_with_locker_unlocked(NULL, str);
+}
+
+/*
+
+=item C<String *str_copy_with_locker(Locker *locker, const String *str)>
 
 Equivalent to I<str_copy()> except that multiple threads accessing the new
 string will be synchronised by C<locker>.
@@ -636,9 +740,24 @@ string will be synchronised by C<locker>.
 
 */
 
-String *str_copy_locked(Locker *locker, const String *str)
+String *str_copy_with_locker(Locker *locker, const String *str)
 {
-	return str_substr_locked(locker, str, 0, -1);
+	return str_substr_with_locker(locker, str, 0, -1);
+}
+
+/*
+
+=item C<String *str_copy_with_locker_unlocked(Locker *locker, const String *str)>
+
+Equivalent to I<str_copy_with_locker()> except that C<str> is not read locked.
+
+=cut
+
+*/
+
+String *str_copy_with_locker_unlocked(Locker *locker, const String *str)
+{
+	return str_substr_with_locker_unlocked(locker, str, 0, -1);
 }
 
 /*
@@ -646,15 +765,15 @@ String *str_copy_locked(Locker *locker, const String *str)
 =item C<String *str_fgetline(FILE *stream)>
 
 Similar to I<fgets(3)> except that it recognises UNIX ("\n"), DOS ("\r\n")
-and Macintosh ("\r") line endings (even different line ending in the same
+and Macintosh ("\r") line endings (even different line endings in the same
 file) and it can read a line of any size into the I<String> that it returns.
 Reading stops after an C<EOF> or the end of the line. A newline is placed in
 the string. A C<nul> is placed after the last character in the buffer. On
 success, returns a new I<String>. It is the caller's responsibility to
 deallocate the new string with I<str_release()> or I<str_destroy()>. On
 error, or when the end of file occurs while no characters have been read,
-returns C<NULL>. Calls to this function can be mixed with calls to other
-input functions from the I<stdio> library for the same input stream.
+returns C<null>. Calls to this function can be mixed with calls to other
+input functions from the I<stdio> library on the same input stream.
 
 =cut
 
@@ -662,12 +781,12 @@ input functions from the I<stdio> library for the same input stream.
 
 String *str_fgetline(FILE *stream)
 {
-	return str_fgetline_locked(NULL, stream);
+	return str_fgetline_with_locker(NULL, stream);
 }
 
 /*
 
-=item C<String *str_fgetline_locked(Locker *locker, FILE *stream)>
+=item C<String *str_fgetline_with_locker(Locker *locker, FILE *stream)>
 
 Equivalent to I<str_fgetline()> except that multiple threads accessing the new
 string will be synchronised by C<locker>.
@@ -676,20 +795,17 @@ string will be synchronised by C<locker>.
 
 */
 
-void flockfile(FILE *stream); /* Missing from old glibc headers */
-void funlockfile(FILE *stream);
-
-String *str_fgetline_locked(Locker *locker, FILE *stream)
+String *str_fgetline_with_locker(Locker *locker, FILE *stream)
 {
 	char buf[BUFSIZ];
-	String *ret = str_create_locked(locker, "");
+	String *ret = str_create_with_locker(locker, "");
 
 	if (!ret)
 		return NULL;
 
 	flockfile(stream);
 
-	while (fgetline(buf, BUFSIZ, stream))
+	while (fgetline_unlocked(buf, BUFSIZ, stream))
 	{
 		if (!str_append(ret, "%s", buf))
 		{
@@ -723,7 +839,7 @@ void str_release(String *str)
 	if (!str)
 		return;
 
-	if (str_wrlock(str) == -1)
+	if (str_wrlock(str))
 		return;
 
 	locker = str->locker;
@@ -736,8 +852,8 @@ void str_release(String *str)
 
 =item C<void *str_destroy(String **str)>
 
-Destroys (deallocates and sets to C<NULL>) C<str>. Returns C<NULL>. B<Note:>
-strings shared by multiple threads must not be destroyed until after the
+Destroys (deallocates and sets to C<null>) C<*str>. Returns C<null>. B<Note:>
+strings shared by multiple threads must not be destroyed until after all
 threads have finished with it.
 
 =cut
@@ -759,75 +875,78 @@ void *str_destroy(String **str)
 
 =item C<int str_rdlock(const String *str)>
 
-Claims a read lock on C<str> (if C<str> was created with a I<locker>). Clients
-need to call this only before calling C<cstr()> (for the purpose of reading the
-raw string data) on a string that was created with a I<locker>. It is the
-client's responsibility to call I<str_unlock()> when finished with the raw
-string data. The only functions that may be called on C<str> between calls to
-I<str_rdlock()> and I<str_unlock()> are I<cstr()> and I<str_length
-unlocked()>. On success, returns C<0>. On error, returns C<-1>.
+Claims a read lock on C<str> (if C<str> was created with a I<Locker>).
+Clients must call this before calling I<cstr()> (for the purpose of reading
+the raw string data) on a string that was created with a I<Locker>. It is
+the client's responsibility to call I<str_unlock()> when finished with the
+raw string data. It is also needed when multiple read only I<str> module
+functions need to be called atomically. It is the caller's responsbility to
+call I<str_unlock()> after the atomic operation. The only functions that may
+be called on C<str> between calls to I<str_rdlock()> and I<str_unlock()> are
+I<cstr()> and any read only I<str> module functions whose name ends with
+C<_unlocked>. On success, returns C<0>. On error, returns an error code.
 
 =cut
 
 */
 
-int str_rdlock(const String *str)
-{
-	if (!str)
-		return set_errno(EINVAL);
+#define str_rdlock(str) ((str) ? locker_rdlock((str)->locker) : EINVAL)
+#define str_wrlock(str) ((str) ? locker_wrlock((str)->locker) : EINVAL)
+#define str_unlock(str) ((str) ? locker_unlock((str)->locker) : EINVAL)
 
-	return locker_rdlock(str->locker);
+int (str_rdlock)(const String *str)
+{
+	return str_rdlock(str);
 }
 
 /*
 
 =item C<int str_wrlock(const String *str)>
 
-Claims a write lock on C<str> (if C<str> was created with a I<locker>). Clients
-need to call this only before calling C<cstr()> (for the purpose of modifying
-the raw string data) on a string that was created with a I<locker>. It is the
-client's responsibility to call I<str_unlock()> when finished with the raw
-string data. The only functions that may be called on C<str> between calls to
-I<str_wrlock()> and I<str_unlock()> are I<cstr()>, I<str_length_unlocked()>,
-I<str_set_length_unlocked()> and I<str_recalc_length_unlocked()>). On success,
-returns C<0>. On error, returns C<-1>.
+Claims a write lock on C<str> (if C<str> was created with a I<Locker>).
+Clients need to call this before calling I<cstr()> (for the purpose of
+modifying the raw string data) on a string that was created with a
+I<Locker>. It is the client's responsibility to call I<str_unlock()> when
+finished with the raw string data. It is also needed when multiple
+read/write I<str> module functions need to be called atomically. It is the
+caller's responsbility to call I<str_unlock()> after the atomic operation.
+The only functions that may be called on C<str> between calls to
+I<str_wrlock()> and I<str_unlock()> are I<cstr()> and any I<str> module
+functions whose name ends with C<_unlocked>. On success, returns C<0>. On
+error, returns an error code.
 
 =cut
 
 */
 
-int str_wrlock(const String *str)
+int (str_wrlock)(const String *str)
 {
-	if (!str)
-		return set_errno(EINVAL);
-
-	return locker_wrlock(str->locker);
+	return str_wrlock(str);
 }
 
 /*
 
 =item C<int str_unlock(const String *str)>
 
-Unlocks C<str> if C<str> was created with a C<locker>.
-On success, returns C<0>. On error, returns C<-1>.
+Unlocks a read or write lock on C<str> obtained with I<str_rdlock()> or
+I<str_wrlock()> (if C<str> was created with a I<Locker>). On success,
+returns C<0>. On error, returns an error code.
 
 =cut
 
 */
 
-int str_unlock(const String *str)
+int (str_unlock)(const String *str)
 {
-	if (!str)
-		return set_errno(EINVAL);
-
-	return locker_unlock(str->locker);
+	return str_unlock(str);
 }
 
 /*
 
 =item C<int str_empty(const String *str)>
 
-Returns whether or not C<str> is the empty string.
+Returns whether or not C<str> is the empty string. On error, returns C<-1>
+with C<errno> set appropriately.
 
 =cut
 
@@ -836,69 +955,85 @@ Returns whether or not C<str> is the empty string.
 int str_empty(const String *str)
 {
 	int empty;
+	int err;
 
 	if (!str)
-		return 1;
+		return set_errno(EINVAL);
 
-	if (str_rdlock(str) == -1)
-		return -1;
+	if ((err = str_rdlock(str)))
+		return set_errno(err);
 
-	empty = (str->length == 1);
+	empty = str_empty_unlocked(str);
 
-	if (str_unlock(str) == -1)
-		return -1;
+	if ((err = str_unlock(str)))
+		return set_errno(err);
 
 	return empty;
 }
 
 /*
 
-=item C<size_t str_length(const String *str)>
+=item C<int str_empty_unlocked(const String *str)>
 
-Returns the length of C<str>.
+Equivalent to I<str_empty()> except that C<str> is not read locked.
 
 =cut
 
 */
 
-static size_t str_length_locked(const String *str, int lock_str)
+int str_empty_unlocked(const String *str)
 {
-	size_t length;
-
 	if (!str)
-		return 0;
+		return set_errno(EINVAL);
 
-	if (lock_str && str_rdlock(str) == -1)
-		return -1;
-
-	length = str->length - 1;
-
-	if (lock_str && str_unlock(str) == -1)
-		return -1;
-
-	return length;
-}
-
-size_t str_length(const String *str)
-{
-	return str_length_locked(str, 1);
+	return (str->length == 1);
 }
 
 /*
 
-=item C<size_t str_length(const String *str)>
+=item C<ssize_t str_length(const String *str)>
 
-Returns the length of C<str> without claiming a read lock on C<str>. This is
-only to be used between calls to I<str_rdlock()> or I<str_wrlock()> and
-I<str_unlock()>.
+Returns the length of C<str>. On error, returns C<-1> with C<errno> set
+appropriately.
 
 =cut
 
 */
 
-static size_t str_length_unlocked(const String *str)
+ssize_t str_length(const String *str)
 {
-	return str_length_locked(str, 0);
+	size_t length;
+	int err;
+
+	if (!str)
+		return set_errno(EINVAL);
+
+	if ((err = str_rdlock(str)))
+		return set_errno(err);
+
+	length = str_length_unlocked(str);
+
+	if ((err = str_unlock(str)))
+		return set_errno(err);
+
+	return length;
+}
+/*
+
+=item C<ssize_t str_length_unlocked(const String *str)>
+
+Equivalent to I<str_length()> except that C<str> is not read locked.
+
+=cut
+
+*/
+
+ssize_t str_length_unlocked(const String *str)
+{
+	if (!str)
+		return set_errno(EINVAL);
+
+	return str->length - 1;
 }
 
 /*
@@ -907,10 +1042,10 @@ static size_t str_length_unlocked(const String *str)
 
 Returns the raw C string in C<str>. Do not use this pointer to extend the
 length of the string. It's ok to use it to reduce the length of the string
-provided you call I<str_set_length()> or I<str_recalc_length()> immediately
-afterwards. When used on a string that is shared by multiple threads,
-I<cstr()> must appear between calls to I<str_rdlock()> or I<str_wrlock()>
-and I<str_unlock()>.
+provided you call I<str_set_length_unlocked()> or
+I<str_recalc_length_unlocked()> immediately afterwards. When used on a
+string that is shared by multiple threads, I<cstr()> must appear between
+calls to I<str_rdlock()> or I<str_wrlock()> and I<str_unlock()>.
 
 =cut
 
@@ -919,7 +1054,7 @@ and I<str_unlock()>.
 char *cstr(const String *str)
 {
 	if (!str)
-		return NULL;
+		return set_errnull(EINVAL);
 
 	return str->str;
 }
@@ -930,42 +1065,30 @@ char *cstr(const String *str)
 
 Sets the length of C<str> to C<length>. Only needed after the raw C string
 returned by I<cstr()> has been used to shorten a string. On success, returns
-the length of C<str>. On error, returns -1.
+the length of C<str>. On error, returns C<-1> with C<errno> set
+appropriately.
 
 =cut
 
 */
 
-static ssize_t str_set_length_locked(String *str, size_t length, int lock_str)
-{
-	ssize_t len;
-
-	if (!str)
-		return -1;
-
-	if (lock_str && str_wrlock(str) == -1)
-		return -1;
-
-	if (length >= str->length)
-	{
-		if (lock_str)
-			str_unlock(str);
-		return -1;
-	}
-
-	str->length = length + 1;
-	str->str[str->length - 1] = '\0';
-	len = str->length - 1;
-
-	if (lock_str && str_unlock(str) == -1)
-		return -1;
-
-	return len;
-}
-
 ssize_t str_set_length(String *str, size_t length)
 {
-	return str_set_length_locked(str, length, 1);
+	ssize_t len;
+	int err;
+
+	if (!str)
+		return set_errno(EINVAL);
+
+	if ((err = str_wrlock(str)))
+		return set_errno(err);
+
+	len = str_set_length_unlocked(str, length);
+
+	if ((err = str_unlock(str)))
+		return set_errno(err);
+
+	return len;
 }
 
 /*
@@ -973,8 +1096,6 @@ ssize_t str_set_length(String *str, size_t length)
 =item C<ssize_t str_set_length_unlocked(String *str, size_t length)>
 
 Equivalent to I<str_set_length()> except that C<str> is not write locked.
-This can only be used between calls to I<str_wrlock()> and I<str_unlock()>.
-On success, returns C<0>. In error, returns C<-1>.
 
 =cut
 
@@ -982,7 +1103,13 @@ On success, returns C<0>. In error, returns C<-1>.
 
 ssize_t str_set_length_unlocked(String *str, size_t length)
 {
-	return str_set_length_locked(str, length, 0);
+	if (!str || length >= str->length)
+		return set_errno(EINVAL);
+
+	str->length = length + 1;
+	str->str[str->length - 1] = '\0';
+
+	return str->length - 1;
 }
 
 /*
@@ -993,34 +1120,29 @@ Calculates and stores the length of C<str>. Only needed after the raw C
 string returned by I<cstr()> has been used to shorten a string. Note: Treats
 C<str> as a C<nul>-terminated string and should be avoided. Use
 I<str_set_length()> instead. On success, returns the length of C<str>. On
-error, returns -1.
+error, returns C<-1> with C<errno> set appropriately.
 
 =cut
 
 */
 
-static ssize_t str_recalc_length_locked(String *str, int lock_str)
-{
-	ssize_t len;
-
-	if (!str)
-		return -1;
-
-	if (lock_str && str_wrlock(str) == -1)
-		return -1;
-
-	str->length = strlen(str->str) + 1;
-	len = str->length - 1;
-
-	if (lock_str && str_unlock(str) == -1)
-		return -1;
-
-	return len;
-}
-
 ssize_t str_recalc_length(String *str)
 {
-	return str_recalc_length_locked(str, 1);
+	ssize_t len;
+	int err;
+
+	if (!str)
+		return set_errno(EINVAL);
+
+	if ((err = str_wrlock(str)))
+		return set_errno(err);
+
+	len = str_recalc_length_unlocked(str);
+
+	if ((err = str_unlock(str)))
+		return set_errno(err);
+
+	return len;
 }
 
 /*
@@ -1028,8 +1150,6 @@ ssize_t str_recalc_length(String *str)
 =item C<ssize_t str_recalc_length_unlocked(String *str)>
 
 Equivalent to I<str_recalc_length()> except that C<str> is not write locked.
-This can only be used between calls to I<str_wrlock()> and I<str_unlock()>.
-On success, returns C<0>. In error, returns C<-1>.
 
 =cut
 
@@ -1037,7 +1157,12 @@ On success, returns C<0>. In error, returns C<-1>.
 
 ssize_t str_recalc_length_unlocked(String *str)
 {
-	return str_recalc_length_locked(str, 0);
+	if (!str)
+		return set_errno(EINVAL);
+
+	str->length = strlen(str->str) + 1;
+
+	return str->length - 1;
 }
 
 /*
@@ -1045,7 +1170,7 @@ ssize_t str_recalc_length_unlocked(String *str)
 =item C<String *str_clear(String *str)>
 
 Makes C<str> the empty string. On success, returns C<str>. On error, returns
-C<NULL>.
+C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -1058,12 +1183,28 @@ String *str_clear(String *str)
 
 /*
 
+=item C<String *str_clear_unlocked(String *str)>
+
+Equivalent to I<str_clear()> except that C<str> is not write locked.
+
+=cut
+
+*/
+
+String *str_clear_unlocked(String *str)
+{
+	return str_remove_range_unlocked(str, 0, -1);
+}
+
+/*
+
 =item C<String *str_remove(String *str, ssize_t index)>
 
-Removes the C<index>'th char from C<str>. If C<index> is negative, it refers to
-a character position relative to the end of the string (C<-1> is the position
-after the last character, C<-2> is the position before the last character and
-so on). On success, returns C<str>. On error, returns C<NULL>.
+Removes the C<index>'th character from C<str>. If C<index> is negative, it
+refers to a character position relative to the end of the string (C<-1> is
+the position after the last character, C<-2> is the position of the last
+character and so on). On success, returns C<str>. On error, returns C<null>
+with C<errno> set appropriately.
 
 =cut
 
@@ -1076,66 +1217,96 @@ String *str_remove(String *str, ssize_t index)
 
 /*
 
-=item C<String *str_remove_range(String *str, ssize_t index, ssize_t range)>
+=item C<String *str_remove_unlocked(String *str, ssize_t index)>
 
-Removes C<range> characters from C<str> starting at C<index>. If C<index> or
-C<range> are negative, they refer to character positions relative to the end of
-the string (C<-1> is the position after the last character, C<-2> is the
-position before the last character and so on). On success, returns C<str>. On
-error, returns C<NULL>.
+Equivalent to I<str_remove()> except that C<str> is not write locked.
 
 =cut
 
 */
 
-static String *str_remove_range_locked(String *str, ssize_t index, ssize_t range, int lock_str)
+String *str_remove_unlocked(String *str, ssize_t index)
+{
+	return str_remove_range_unlocked(str, index, 1);
+}
+
+/*
+
+=item C<String *str_remove_range(String *str, ssize_t index, ssize_t range)>
+
+Removes C<range> characters from C<str> starting at C<index>. If C<index> or
+C<range> are negative, they refer to character positions relative to the end
+of the string (C<-1> is the position after the last character, C<-2> is the
+position of the last character and so on). On success, returns C<str>. On
+error, returns C<null> with C<errno> set appropriately.
+
+=cut
+
+*/
+
+String *str_remove_range(String *str, ssize_t index, ssize_t range)
+{
+	String *ret;
+	int err;
+
+	if (!str)
+		return set_errnull(EINVAL);
+
+	if ((err = str_wrlock(str)))
+		return set_errnull(err);
+
+	ret = str_remove_range_unlocked(str, index, range);
+
+	if ((err = str_unlock(str)))
+		return set_errnull(err);
+
+	return ret;
+}
+
+/*
+
+=item C<String *str_remove_range_unlocked(String *str, ssize_t index, ssize_t range)>
+
+Equivalent to I<str_remove_range()> except that C<str> is not write locked.
+
+=cut
+
+*/
+
+String *str_remove_range_unlocked(String *str, ssize_t index, ssize_t range)
 {
 	if (!str)
-		return NULL;
-
-	if (lock_str && str_wrlock(str) == -1)
-		return NULL;
+		return set_errnull(EINVAL);
 
 	if (index < 0)
 		index = str->length + index;
 
+	if (index < 0)
+		return set_errnull(EINVAL);
+
 	if (range < 0)
 		range = str->length + range - index;
 
+	if (range < 0)
+		return set_errnull(EINVAL);
+
 	if (str->length - 1 < index + range)
-	{
-		if (lock_str)
-			str_unlock(str);
-		return NULL;
-	}
+		return set_errnull(EINVAL);
 
 	contract(str, index, range);
 
-	if (lock_str && str_unlock(str) == -1)
-		return NULL;
-
 	return str;
-}
-
-String *str_remove_range(String *str, ssize_t index, ssize_t range)
-{
-	return str_remove_range_locked(str, index, range, 1);
-}
-
-static String *str_remove_range_unlocked(String *str, ssize_t index, ssize_t range)
-{
-	return str_remove_range_locked(str, index, range, 0);
 }
 
 /*
 
 =item C<String *str_insert(String *str, ssize_t index, const char *fmt, ...)>
 
-Adds the string specified by C<fmt> to C<str> at position C<index>. If C<index>
-is negative, it refers to a character position relative to the end of the
-string (C<-1> is the position after the last character, C<-2> is the position
-before the last character and so on). On success, returns C<str>. On error,
-returns C<NULL>.
+Adds the string specified by C<fmt> to C<str> at position C<index>. If
+C<index> is negative, it refers to a character position relative to the end
+of the string (C<-1> is the position after the last character, C<-2> is the
+position of the last character and so on). On success, returns C<str>. On
+error, returns C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -1153,6 +1324,26 @@ String *str_insert(String *str, ssize_t index, const char *fmt, ...)
 
 /*
 
+=item C<String *str_insert_unlocked(String *str, ssize_t index, const char *fmt, ...)>
+
+Equivalent to I<str_insert()> except that C<str> is not write locked.
+
+=cut
+
+*/
+
+String *str_insert_unlocked(String *str, ssize_t index, const char *fmt, ...)
+{
+	String *ret;
+	va_list args;
+	va_start(args, fmt);
+	ret = str_vinsert_unlocked(str, index, fmt, args);
+	va_end(args);
+	return ret;
+}
+
+/*
+
 =item C<String *str_vinsert(String *str, ssize_t index, const char *fmt, va_list args)>
 
 Equivalent to I<str_insert()> with the variable argument list specified
@@ -1162,38 +1353,56 @@ directly as for I<vprintf(3)>.
 
 */
 
-static String *str_insert_str_unlocked(String *str, ssize_t index, const String *src);
-
 String *str_vinsert(String *str, ssize_t index, const char *fmt, va_list args)
+{
+	String *ret;
+	int err;
+
+	if (!str)
+		return set_errnull(EINVAL);
+
+	if ((err = str_wrlock(str)))
+		return set_errnull(err);
+
+	ret = str_vinsert_unlocked(str, index, fmt, args);
+
+	if ((err = str_unlock(str)))
+		return set_errnull(err);
+
+	return ret;
+}
+
+/*
+
+=item C<String *str_vinsert_unlocked(String *str, ssize_t index, const char *fmt, va_list args)>
+
+Equivalent to I<str_vinsert()> except that C<str> is not write locked.
+
+=cut
+
+*/
+
+String *str_vinsert_unlocked(String *str, ssize_t index, const char *fmt, va_list args)
 {
 	String *tmp, *ret;
 
 	if (!str)
-		return NULL;
-
-	if (str_wrlock(str) == -1)
-		return NULL;
+		return set_errnull(EINVAL);
 
 	if (index < 0)
 		index = str->length + index;
 
+	if (index < 0)
+		return set_errnull(EINVAL);
+
 	if (str->length - 1 < index)
-	{
-		str_unlock(str);
-		return NULL;
-	}
+		return set_errnull(EINVAL);
 
 	if (!(tmp = str_vcreate(fmt, args)))
-	{
-		str_unlock(str);
 		return NULL;
-	}
 
 	ret = str_insert_str_unlocked(str, index, tmp);
 	str_release(tmp);
-
-	if (str_unlock(str) == -1)
-		return NULL;
 
 	return ret;
 }
@@ -1203,69 +1412,83 @@ String *str_vinsert(String *str, ssize_t index, const char *fmt, va_list args)
 =item C<String *str_insert_str(String *str, ssize_t index, const String *src)>
 
 Inserts C<src> into C<str>, starting at position C<index>. If C<index> is
-negative, it refers to a character position relative to the end of the string
-(C<-1> is the position after the last character, C<-2> is the position before
-the last character and so on). On success, returns C<str>. On error, returns
-C<NULL>.
+negative, it refers to a character position relative to the end of the
+string (C<-1> is the position after the last character, C<-2> is the
+position of the last character and so on). On success, returns C<str>. On
+error, returns C<null> with C<errno> set appropriately.
 
 =cut
 
 */
 
-static String *str_insert_str_locked(String *str, ssize_t index, const String *src, int lock_str)
+String *str_insert_str(String *str, ssize_t index, const String *src)
+{
+	String *ret;
+	int err;
+
+	if (!str || !src)
+		return set_errnull(EINVAL);
+
+	if ((err = str_rdlock(src)))
+		return set_errnull(err);
+
+	if ((err = str_wrlock(str)))
+	{
+		str_unlock(src);
+		return set_errnull(err);
+	}
+
+	ret = str_insert_str_unlocked(str, index, src);
+
+	if ((err = str_unlock(str)))
+	{
+		str_unlock(src);
+		return set_errnull(err);
+	}
+
+	if ((err = str_unlock(src)))
+		return set_errnull(err);
+
+	return ret;
+}
+
+/*
+
+=item C<String *str_insert_str_unlocked(String *str, ssize_t index, const String *src)>
+
+Equivalent to I<str_insert_str()> except that C<str> is not write locked and
+C<src> is not read locked. Note: If C<src> needs to be read locked, it is
+the caller's responsibility to lock and unlock it explicitly with
+I<str_rdlock()> and I<str_unlock()>.
+
+=cut
+
+*/
+
+String *str_insert_str_unlocked(String *str, ssize_t index, const String *src)
 {
 	size_t length;
 
 	if (!str || !src)
-		return NULL;
-
-	if (str_rdlock(src) == -1)
-		return NULL;
-
-	if (lock_str && str_wrlock(str) == -1)
-	{
-		str_unlock(src);
-		return NULL;
-	}
+		return set_errnull(EINVAL);
 
 	if (index < 0)
 		index = str->length + index;
 
+	if (index < 0)
+		return set_errnull(EINVAL);
+
 	if (str->length - 1 < index)
-	{
-		if (lock_str)
-			str_unlock(str);
-		str_unlock(src);
-		return NULL;
-	}
+		return set_errnull(EINVAL);
 
 	length = src->length - 1;
 
 	if (expand(str, index, length) == -1)
-	{
-		if (lock_str)
-			str_unlock(str);
-		str_unlock(src);
 		return NULL;
-	}
 
 	memcpy(str->str + index, src->str, length);
 
-	if (lock_str)
-		str_unlock(str);
-	str_unlock(src);
-
 	return str;
-}
-
-String *str_insert_str(String *str, ssize_t index, const String *src)
-{
-	return str_insert_str_locked(str, index, src, 1);
-}
-
-static String *str_insert_str_unlocked(String *str, ssize_t index, const String *src)
-{
-	return str_insert_str_locked(str, index, src, 0);
 }
 
 /*
@@ -1273,7 +1496,7 @@ static String *str_insert_str_unlocked(String *str, ssize_t index, const String 
 =item C<String *str_append(String *str, const char *fmt, ...)>
 
 Appends the string specified by C<fmt> to C<str>. On success, returns
-C<str>. On error, returns C<NULL>.
+C<str>. On error, returns C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -1285,6 +1508,26 @@ String *str_append(String *str, const char *fmt, ...)
 	va_list args;
 	va_start(args, fmt);
 	ret = str_vinsert(str, -1, fmt, args);
+	va_end(args);
+	return ret;
+}
+
+/*
+
+=item C<String *str_append_unlocked(String *str, const char *fmt, ...)>
+
+Equivalent to I<str_append()> except that C<str> is not write locked.
+
+=cut
+
+*/
+
+String *str_append_unlocked(String *str, const char *fmt, ...)
+{
+	String *ret;
+	va_list args;
+	va_start(args, fmt);
+	ret = str_vinsert_unlocked(str, -1, fmt, args);
 	va_end(args);
 	return ret;
 }
@@ -1307,10 +1550,25 @@ String *str_vappend(String *str, const char *fmt, va_list args)
 
 /*
 
+=item C<String *str_vappend_unlocked(String *str, const char *fmt, va_list args)>
+
+Equivalent to I<str_vappend()> except that C<str> is not write locked.
+
+=cut
+
+*/
+
+String *str_vappend_unlocked(String *str, const char *fmt, va_list args)
+{
+	return str_vinsert_unlocked(str, -1, fmt, args);
+}
+
+/*
+
 =item C<String *str_append_str(String *str, const String *src)>
 
 Appends C<src> to C<str>. On success, returns C<str>. On error, returns
-C<NULL>.
+C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -1323,10 +1581,28 @@ String *str_append_str(String *str, const String *src)
 
 /*
 
+=item C<String *str_append_str_unlocked(String *str, const String *src)>
+
+Equivalent to I<str_append_str()> except that C<str> is not write locked and
+C<src> is not read locked. Note: If C<src> needs to be read locked, it is
+the caller's responsibility to lock and unlock it explicitly with
+I<str_rdlock()> and I<str_unlock()>.
+
+=cut
+
+*/
+
+String *str_append_str_unlocked(String *str, const String *src)
+{
+	return str_insert_str_unlocked(str, -1, src);
+}
+
+/*
+
 =item C<String *str_prepend(String *str, const char *fmt, ...)>
 
 Prepends the string specified by C<fmt> to C<str>. On success, returns
-C<str>. On error, returns C<NULL>.
+C<str>. On error, returns C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -1338,6 +1614,26 @@ String *str_prepend(String *str, const char *fmt, ...)
 	va_list args;
 	va_start(args, fmt);
 	ret = str_vinsert(str, 0, fmt, args);
+	va_end(args);
+	return ret;
+}
+
+/*
+
+=item C<String *str_prepend_unlocked(String *str, const char *fmt, ...)>
+
+Equivalent to I<str_prepend()> except that C<str> is not write locked.
+
+=cut
+
+*/
+
+String *str_prepend_unlocked(String *str, const char *fmt, ...)
+{
+	String *ret;
+	va_list args;
+	va_start(args, fmt);
+	ret = str_vinsert_unlocked(str, 0, fmt, args);
 	va_end(args);
 	return ret;
 }
@@ -1360,10 +1656,25 @@ String *str_vprepend(String *str, const char *fmt, va_list args)
 
 /*
 
+=item C<String *str_vprepend_unlocked(String *str, const char *fmt, va_list args)>
+
+Equivalent to I<str_vprepend()> except that C<str> is not write locked.
+
+=cut
+
+*/
+
+String *str_vprepend_unlocked(String *str, const char *fmt, va_list args)
+{
+	return str_vinsert_unlocked(str, 0, fmt, args);
+}
+
+/*
+
 =item C<String *str_prepend_str(String *str, const String *src)>
 
 Prepends C<src> to C<str>. On success, returns C<str>. On error, returns
-C<NULL>.
+C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -1376,13 +1687,32 @@ String *str_prepend_str(String *str, const String *src)
 
 /*
 
+=item C<String *str_prepend_str_unlocked(String *str, const String *src)>
+
+Equivalent to I<str_prepend_str()> except that C<str> is not write locked
+and C<src> is not read locked. Note: If C<src> needs to be read locked, it
+is the caller's responsibility to lock and unlock it explicitly with
+I<str_rdlock()> and I<str_unlock()>.
+
+=cut
+
+*/
+
+String *str_prepend_str_unlocked(String *str, const String *src)
+{
+	return str_insert_str_unlocked(str, 0, src);
+}
+
+/*
+
 =item C<String *str_replace(String *str, ssize_t index, ssize_t range, const char *fmt, ...)>
 
-Replaces C<range> characters in C<str>, starting at C<index>, with the string
-specified by C<fmt>. If C<index> or C<range> are negative, they refer to
-character positions relative to the end of the string (C<-1> is the position
-after the last character, C<-2> is the position before the last character and
-so on). On success, returns C<str>. On error, returns C<NULL>.
+Replaces C<range> characters in C<str>, starting at C<index>, with the
+string specified by C<fmt>. If C<index> or C<range> are negative, they refer
+to character positions relative to the end of the string (C<-1> is the
+position after the last character, C<-2> is the position of the last
+character and so on). On success, returns C<str>. On error, returns C<null>
+with C<errno> set appropriately.
 
 =cut
 
@@ -1400,9 +1730,29 @@ String *str_replace(String *str, ssize_t index, ssize_t range, const char *fmt, 
 
 /*
 
+=item C<String *str_replace_unlocked(String *str, ssize_t index, ssize_t range, const char *fmt, ...)>
+
+Equivalent to I<str_replace()> except that C<str> is not write locked.
+
+=cut
+
+*/
+
+String *str_replace_unlocked(String *str, ssize_t index, ssize_t range, const char *fmt, ...)
+{
+	String *ret;
+	va_list args;
+	va_start(args, fmt);
+	ret = str_vreplace_unlocked(str, index, range, fmt, args);
+	va_end(args);
+	return ret;
+}
+
+/*
+
 =item C<String *str_vreplace(String *str, ssize_t index, ssize_t range, const char *fmt, va_list args)>
 
-Equivalent to I<str_prepend()> with the variable argument list specified
+Equivalent to I<str_replace()> with the variable argument list specified
 directly as for I<vprintf(3)>.
 
 =cut
@@ -1414,7 +1764,7 @@ String *str_vreplace(String *str, ssize_t index, ssize_t range, const char *fmt,
 	String *tmp, *ret;
 
 	if (!str)
-		return NULL;
+		return set_errnull(EINVAL);
 
 	if (!(tmp = str_vcreate(fmt, args)))
 		return NULL;
@@ -1427,88 +1777,132 @@ String *str_vreplace(String *str, ssize_t index, ssize_t range, const char *fmt,
 
 /*
 
-=item C<String *str_replace_str(String *str, ssize_t index, ssize_t range, const String *src)>
+=item C<String *str_vreplace_unlocked(String *str, ssize_t index, ssize_t range, const char *fmt, va_list args)>
 
-Replaces C<range> characters in C<str>, starting at C<index>, with C<src>. If
-C<index> or C<range> are negative, they refer to character positions relative
-to the end of the string (C<-1> is the position after the last character, C<-2>
-is the position before the last character and so on). On success, return
-C<str>. On error, returns C<NULL>.
+Equivalent to I<str_vreplace()> except that C<str> is not write locked.
 
 =cut
 
 */
 
-static String *str_replace_str_locked(String *str, ssize_t index, ssize_t range, const String *src, int lock_str)
+String *str_vreplace_unlocked(String *str, ssize_t index, ssize_t range, const char *fmt, va_list args)
+{
+	String *tmp, *ret;
+
+	if (!str)
+		return set_errnull(EINVAL);
+
+	if (!(tmp = str_vcreate(fmt, args)))
+		return NULL;
+
+	ret = str_replace_str_unlocked(str, index, range, tmp);
+	str_release(tmp);
+
+	return ret;
+}
+
+/*
+
+=item C<String *str_replace_str(String *str, ssize_t index, ssize_t range, const String *src)>
+
+Replaces C<range> characters in C<str>, starting at C<index>, with C<src>.
+If C<index> or C<range> are negative, they refer to character positions
+relative to the end of the string (C<-1> is the position after the last
+character, C<-2> is the position of the last character and so on). On
+success, return C<str>. On error, returns C<null> with C<errno> set
+appropriately.
+
+=cut
+
+*/
+
+String *str_replace_str(String *str, ssize_t index, ssize_t range, const String *src)
+{
+	String *ret;
+	int err;
+
+	if (!src || !str)
+		return set_errnull(EINVAL);
+
+	if ((err = str_rdlock(src)))
+		return set_errnull(err);
+
+	if ((err = str_wrlock(str)))
+	{
+		str_unlock(src);
+		return set_errnull(err);
+	}
+
+	ret = str_replace_str_unlocked(str, index, range, src);
+
+	if ((err = str_unlock(str)))
+	{
+		str_unlock(src);
+		return set_errnull(err);
+	}
+
+	if ((err = str_unlock(src)))
+		return set_errnull(err);
+
+	return ret;
+}
+
+/*
+
+=item C<String *str_replace_str_unlocked(String *str, ssize_t index, ssize_t range, const String *src)>
+
+Equivalent to I<str_replace_str()> except that C<str> is not write locked
+and C<src> is not read locked. Note: If C<src> needs to be read locked, it
+is the caller's responsibility to lock and unlock it explicitly with
+I<str_rdlock()> and I<str_unlock()>.
+
+=cut
+
+*/
+
+String *str_replace_str_unlocked(String *str, ssize_t index, ssize_t range, const String *src)
 {
 	size_t length;
 
 	if (!src || !str)
-		return NULL;
-
-	if (str_rdlock(src) == -1)
-		return NULL;
-
-	if (lock_str && str_wrlock(str) == -1)
-	{
-		str_unlock(src);
-		return NULL;
-	}
+		return set_errnull(EINVAL);
 
 	if (index < 0)
 		index = str->length + index;
 
+	if (index < 0)
+		return set_errnull(EINVAL);
+
 	if (range < 0)
 		range = str->length + range - index;
 
+	if (range < 0)
+		return set_errnull(EINVAL);
+
 	if (str->length - 1 < index + range)
-	{
-		if (lock_str)
-			str_unlock(str);
-		str_unlock(src);
-		return NULL;
-	}
+		return set_errnull(EINVAL);
 
 	length = src->length - 1;
 
 	if (adjust(str, index, range, length) == -1)
-	{
-		if (lock_str)
-			str_unlock(str);
-		str_unlock(src);
 		return NULL;
-	}
 
 	memcpy(str->str + index, src->str, length);
 
-	if (lock_str)
-		str_unlock(str);
-	str_unlock(src);
-
 	return str;
-}
-
-String *str_replace_str(String *str, ssize_t index, ssize_t range, const String *src)
-{
-	return str_replace_str_locked(str, index, range, src, 1);
-}
-
-static String *str_replace_str_unlocked(String *str, ssize_t index, ssize_t range, const String *src)
-{
-	return str_replace_str_locked(str, index, range, src, 0);
 }
 
 /*
 
 =item C<String *str_substr(const String *str, ssize_t index, ssize_t range)>
 
-Creates a new I<String> object consisting of C<range> characters from C<str>,
-starting at C<index>. If C<index> or C<range> are negative, they refer to
-character positions relative to the end of the string (C<-1> is the position
-after the last character, C<-2> is the position before the last character and
-so on). On success, returns the new string. It is the caller's responsibility
-to deallocate the new string with I<str_release()> or I<str_destroy()>. On
-error, returns C<NULL>.
+Creates a new I<String> object consisting of C<range> characters from
+C<str>, starting at C<index>. If C<index> or C<range> are negative, they
+refer to character positions relative to the end of the string (C<-1> is the
+position after the last character, C<-2> is the position of the last
+character and so on). On success, returns the new string. It is the caller's
+responsibility to deallocate the new string with I<str_release()> or
+I<str_destroy()>. On error, returns C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -1516,12 +1910,27 @@ error, returns C<NULL>.
 
 String *str_substr(const String *str, ssize_t index, ssize_t range)
 {
-	return str_substr_locked(NULL, str, index, range);
+	return str_substr_with_locker(NULL, str, index, range);
 }
 
 /*
 
-=item C<String *str_substr_locked(Locker *locker, const String *str, ssize_t index, ssize_t range)>
+=item C<String *str_substr_unlocked(const String *str, ssize_t index, ssize_t range)>
+
+Equivalent to I<str_substr()> except that C<str> is not read locked.
+
+=cut
+
+*/
+
+String *str_substr_unlocked(const String *str, ssize_t index, ssize_t range)
+{
+	return str_substr_with_locker_unlocked(NULL, str, index, range);
+}
+
+/*
+
+=item C<String *str_substr_with_locker(Locker *locker, const String *str, ssize_t index, ssize_t range)>
 
 Equivalent to I<str_substr()> except that multiple threads accessing the new
 substring will be synchronised by C<locker>.
@@ -1530,63 +1939,73 @@ substring will be synchronised by C<locker>.
 
 */
 
-static String *str_substr_locked_locked(Locker *locker, const String *str, ssize_t index, ssize_t range, int lock_str)
+String *str_substr_with_locker(Locker *locker, const String *str, ssize_t index, ssize_t range)
+{
+	String *ret;
+	int err;
+
+	if (!str)
+		return set_errnull(EINVAL);
+
+	if ((err = str_rdlock(str)))
+		return set_errnull(err);
+
+	ret = str_substr_with_locker_unlocked(locker, str, index, range);
+
+	if ((err = str_unlock(str)))
+		return set_errnull(err);
+
+	return ret;
+}
+
+/*
+
+=item C<String *str_substr_with_locker_unlocked(Locker *locker, const String *str, ssize_t index, ssize_t range)>
+
+Equivalent to I<str_substr_with_locker()> except that C<str> is not read
+locked.
+
+=cut
+
+*/
+
+String *str_substr_with_locker_unlocked(Locker *locker, const String *str, ssize_t index, ssize_t range)
 {
 	String *ret;
 
 	if (!str)
-		return NULL;
-
-	if (lock_str && str_rdlock(str) == -1)
-		return NULL;
+		return set_errnull(EINVAL);
 
 	if (index < 0)
 		index = str->length + index;
 
+	if (index < 0)
+		return set_errnull(EINVAL);
+
 	if (range < 0)
 		range = str->length + range - index;
 
-	if (str->length - 1 < index + range)
-	{
-		if (lock_str)
-			str_unlock(str);
-		return NULL;
-	}
+	if (range < 0)
+		return set_errnull(EINVAL);
 
-	if (!(ret = str_create_locked_sized(locker, range + 1, NULL)))
-	{
-		if (lock_str)
-			str_unlock(str);
+	if (str->length - 1 < index + range)
+		return set_errnull(EINVAL);
+
+	if (!(ret = str_create_with_locker_sized(locker, range + 1, NULL)))
 		return NULL;
-	}
 
 	memcpy(ret->str, str->str + index, range);
 	ret->length = range + 1;
 	ret->str[ret->length - 1] = '\0';
 
-	if (lock_str && str_unlock(str) == -1)
-		return NULL;
-
 	return ret;
-}
-
-String *str_substr_locked(Locker *locker, const String *str, ssize_t index, ssize_t range)
-{
-	return str_substr_locked_locked(locker, str, index, range, 1);
-}
-
-static String *str_substr_locked_unlocked(Locker *locker, const String *str, ssize_t index, ssize_t range)
-{
-	return str_substr_locked_locked(locker, str, index, range, 0);
 }
 
 /*
 
 =item C<String *substr(const char *str, ssize_t index, ssize_t range)>
 
-Equivalent to I<str_substr()> but works on an ordinary C string. It is the
-caller's responsibility to ensure that C<str> points to at least C<index +
-range> bytes.
+Equivalent to I<str_substr()> but works on an ordinary C string.
 
 =cut
 
@@ -1594,12 +2013,12 @@ range> bytes.
 
 String *substr(const char *str, ssize_t index, ssize_t range)
 {
-	return substr_locked(NULL, str, index, range);
+	return substr_with_locker(NULL, str, index, range);
 }
 
 /*
 
-=item C<String *substr_locked(Locker *locker, const char *str, ssize_t index, ssize_t range)>
+=item C<String *substr_with_locker(Locker *locker, const char *str, ssize_t index, ssize_t range)>
 
 Equivalent to I<substr()> except that multiple threads accessing the new
 substring will be synchronised by C<locker>. Note that no locking is
@@ -1609,13 +2028,13 @@ performed on C<str> as it is a raw C string.
 
 */
 
-String *substr_locked(Locker *locker, const char *str, ssize_t index, ssize_t range)
+String *substr_with_locker(Locker *locker, const char *str, ssize_t index, ssize_t range)
 {
 	String *ret;
 	size_t len = 0;
 
 	if (!str)
-		return NULL;
+		return set_errnull(EINVAL);
 
 	if (index < 0 || range < 0)
 		len = strlen(str) + 1;
@@ -1623,10 +2042,16 @@ String *substr_locked(Locker *locker, const char *str, ssize_t index, ssize_t ra
 	if (index < 0)
 		index = len + index;
 
+	if (index < 0)
+		return set_errnull(EINVAL);
+
 	if (range < 0)
 		range = len + range - index;
 
-	if (!(ret = str_create_locked_sized(locker, range + 1, NULL)))
+	if (range < 0)
+		return set_errnull(EINVAL);
+
+	if (!(ret = str_create_with_locker_sized(locker, range + 1, NULL)))
 		return NULL;
 
 	memcpy(ret->str, str + index, range);
@@ -1643,10 +2068,10 @@ String *substr_locked(Locker *locker, const char *str, ssize_t index, ssize_t ra
 Removes a substring from C<str> starting at C<index> of length C<range>
 characters. If C<index> or C<range> are negative, they refer to character
 positions relative to the end of the string (C<-1> is the position after the
-last character, C<-2> is the position before the last character and so on). On
-success, returns the substring. It is the caller's responsibility to deallocate
-the new substring with I<str_release()> or I<str_destroy()>. On error, returns
-C<NULL>.
+last character, C<-2> is the position of the last character and so on). On
+success, returns the substring. It is the caller's responsibility to
+deallocate the new substring with I<str_release()> or I<str_destroy()>. On
+error, returns C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -1654,12 +2079,27 @@ C<NULL>.
 
 String *str_splice(String *str, ssize_t index, ssize_t range)
 {
-	return str_splice_locked(NULL, str, index, range);
+	return str_splice_with_locker(NULL, str, index, range);
 }
 
 /*
 
-=item C<String *str_splice_locked(Locker *locker, String *str, ssize_t index, ssize_t range)>
+=item C<String *str_splice_unlocked(String *str, ssize_t index, ssize_t range)>
+
+Equivalent to I<str_splice()> except that C<str> is not write locked.
+
+=cut
+
+*/
+
+String *str_splice_unlocked(String *str, ssize_t index, ssize_t range)
+{
+	return str_splice_with_locker_unlocked(NULL, str, index, range);
+}
+
+/*
+
+=item C<String *str_splice_with_locker(Locker *locker, String *str, ssize_t index, ssize_t range)>
 
 Equivalent to I<str_splice()> except that multiple threads accessing the new
 string will be synchronised by C<locker>.
@@ -1668,31 +2108,54 @@ string will be synchronised by C<locker>.
 
 */
 
-String *str_splice_locked(Locker *locker, String *str, ssize_t index, ssize_t range)
+String *str_splice_with_locker(Locker *locker, String *str, ssize_t index, ssize_t range)
+{
+	String *ret;
+	int err;
+
+	if (!str)
+		return set_errnull(EINVAL);
+
+	if ((err = str_wrlock(str)))
+		return set_errnull(err);
+
+	ret = str_splice_with_locker_unlocked(locker, str, index, range);
+
+	if ((err = str_unlock(str)))
+	{
+		str_release(ret);
+		return set_errnull(err);
+	}
+
+	return ret;
+}
+
+/*
+
+=item C<String *str_splice_with_locker_unlocked(Locker *locker, String *str, ssize_t index, ssize_t range)>
+
+Equivalent to I<str_splice_with_locker()> except that C<str> is not write
+locked.
+
+=cut
+
+*/
+
+String *str_splice_with_locker_unlocked(Locker *locker, String *str, ssize_t index, ssize_t range)
 {
 	String *ret;
 
 	if (!str)
-		return NULL;
+		return set_errnull(EINVAL);
 
-	if (str_wrlock(str) == -1)
+	if (!(ret = str_substr_with_locker_unlocked(locker, str, index, range)))
 		return NULL;
-
-	if (!(ret = str_substr_locked_unlocked(locker, str, index, range)))
-	{
-		str_unlock(str);
-		return NULL;
-	}
 
 	if (!str_remove_range_unlocked(str, index, range))
 	{
-		str_unlock(str);
 		str_release(ret);
 		return NULL;
 	}
-
-	if (str_unlock(str) == -1)
-		return NULL;
 
 	return ret;
 }
@@ -1704,7 +2167,7 @@ String *str_splice_locked(Locker *locker, String *str, ssize_t index, ssize_t ra
 Creates a new I<String> containing the string determined by C<fmt> repeated
 C<count> times. On success, return the new string. It is the caller's
 responsibility to deallocate the new string with I<str_release()> or
-I<str_destroy()>. On error, returns C<NULL>.
+I<str_destroy()>. On error, returns C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -1715,14 +2178,14 @@ String *str_repeat(size_t count, const char *fmt, ...)
 	String *ret;
 	va_list args;
 	va_start(args, fmt);
-	ret = str_vrepeat_locked(NULL, count, fmt, args);
+	ret = str_vrepeat_with_locker(NULL, count, fmt, args);
 	va_end(args);
 	return ret;
 }
 
 /*
 
-=item C<String *str_repeat_locked(Locker *locker, size_t count, const char *fmt, ...)>
+=item C<String *str_repeat_with_locker(Locker *locker, size_t count, const char *fmt, ...)>
 
 Equivalent to I<str_repeat()> except that multiple threads accessing the new
 string will be synchronised by C<locker>.
@@ -1731,12 +2194,12 @@ string will be synchronised by C<locker>.
 
 */
 
-String *str_repeat_locked(Locker *locker, size_t count, const char *fmt, ...)
+String *str_repeat_with_locker(Locker *locker, size_t count, const char *fmt, ...)
 {
 	String *ret;
 	va_list args;
 	va_start(args, fmt);
-	ret = str_vrepeat_locked(locker, count, fmt, args);
+	ret = str_vrepeat_with_locker(locker, count, fmt, args);
 	va_end(args);
 	return ret;
 }
@@ -1754,12 +2217,12 @@ directly as for I<vprintf(3)>.
 
 String *str_vrepeat(size_t count, const char *fmt, va_list args)
 {
-	return str_vrepeat_locked(NULL, count, fmt, args);
+	return str_vrepeat_with_locker(NULL, count, fmt, args);
 }
 
 /*
 
-=item C<String *str_vrepeat_locked(Locker *locker, size_t count, const char *fmt, va_list args)>
+=item C<String *str_vrepeat_with_locker(Locker *locker, size_t count, const char *fmt, va_list args)>
 
 Equivalent to I<str_vrepeat()> except that multiple threads accessing the
 new string will be synchronised by C<locker>.
@@ -1768,15 +2231,19 @@ new string will be synchronised by C<locker>.
 
 */
 
-String *str_vrepeat_locked(Locker *locker, size_t count, const char *fmt, va_list args)
+String *str_vrepeat_with_locker(Locker *locker, size_t count, const char *fmt, va_list args)
 {
 	String *tmp, *ret;
+	ssize_t length;
 	size_t i;
 
 	if (!(tmp = str_vcreate(fmt, args)))
 		return NULL;
 
-	if (!(ret = str_create_locked_sized(locker, str_length(tmp) * count + 1, NULL)))
+	if ((length = str_length(tmp)) == -1)
+		return NULL;
+
+	if (!(ret = str_create_with_locker_sized(locker, length * count + 1, NULL)))
 	{
 		str_release(tmp);
 		return NULL;
@@ -1806,7 +2273,8 @@ was taken from I<perlop(1)>.
 
 Transliterates all occurrences of the characters in C<from> with the
 corresponding character in C<to>. On success, returns the number of
-characters replaced or deleted. On error, returns -1.
+characters replaced or deleted. On error, returns C<-1> with C<errno> set
+appropriately.
 
 A character range may be specified with a hyphen, so C<str_tr(str, "A-J",
 "0-9")> does the same replacement as C<str_tr(str, "ACEGIBDFHJ",
@@ -1833,7 +2301,7 @@ character are squashed down to a single instance of the character.
 
 If TR_DELETE is used, C<to> is always interpreted exactly as specified.
 Otherwise, if C<to> is shorter than C<from>, the final character is
-replicated till it is long enough. If C<to> is empty or C<NULL>, C<from> is
+replicated till it is long enough. If C<to> is empty or C<null>, C<from> is
 replicated. This latter is useful for counting characters in a class or for
 squashing character sequences in a class.
 
@@ -1863,14 +2331,14 @@ will transliterate any A to X.
 
 */
 
-static StrTR *tr_compile_table(StrTR *table, const char *from, const char *to, int option);
+static StringTR *tr_compile_table(StringTR *table, const char *from, const char *to, int option);
 
 int str_tr(String *str, const char *from, const char *to, int option)
 {
-	StrTR table[1];
+	StringTR table[1];
 
 	if (!str || !from)
-		return -1;
+		return set_errno(EINVAL);
 
 	table->locker = NULL;
 
@@ -1878,6 +2346,31 @@ int str_tr(String *str, const char *from, const char *to, int option)
 		return -1;
 
 	return str_tr_compiled(str, table);
+}
+
+/*
+
+=item C<int str_tr_unlocked(String *str, const char *from, const char *to, int option)>
+
+Equivalent to I<str_tr()> except that C<str> is not write locked.
+
+=cut
+
+*/
+
+int str_tr_unlocked(String *str, const char *from, const char *to, int option)
+{
+	StringTR table[1];
+
+	if (!str || !from)
+		return set_errno(EINVAL);
+
+	table->locker = NULL;
+
+	if (!tr_compile_table(table, from, to, option))
+		return -1;
+
+	return str_tr_compiled_unlocked(str, table);
 }
 
 /*
@@ -1892,14 +2385,14 @@ characters.
 
 */
 
-static StrTR *str_tr_compile_table(StrTR *table, const String *from, const String *to, int option);
+static StringTR *str_tr_compile_table(StringTR *table, const String *from, const String *to, int option);
 
 int str_tr_str(String *str, const String *from, const String *to, int option)
 {
-	StrTR table[1];
+	StringTR table[1];
 
 	if (!str || !from)
-		return -1;
+		return set_errno(EINVAL);
 
 	table->locker = NULL;
 
@@ -1907,6 +2400,36 @@ int str_tr_str(String *str, const String *from, const String *to, int option)
 		return -1;
 
 	return str_tr_compiled(str, table);
+}
+
+/*
+
+=item C<int str_tr_str_unlocked(String *str, const String *from, const String *to, int option)>
+
+Equivalent to I<str_tr_str()> except that C<str> is not write locked and
+C<from> and C<to> are not read locked. Note: If C<to> and C<from> need to
+be read locked, it is the caller's responsibility to lock and unlock them
+explicitly with I<str_rdlock()> and I<str_unlock()>.
+
+=cut
+
+*/
+
+static StringTR *str_tr_compile_table_unlocked(StringTR *table, const String *from, const String *to, int option);
+
+int str_tr_str_unlocked(String *str, const String *from, const String *to, int option)
+{
+	StringTR table[1];
+
+	if (!str || !from)
+		return set_errno(EINVAL);
+
+	table->locker = NULL;
+
+	if (!str_tr_compile_table_unlocked(table, from, to, option))
+		return -1;
+
+	return str_tr_compiled_unlocked(str, table);
 }
 
 /*
@@ -1921,10 +2444,10 @@ Equivalent to I<str_tr()> but works on an ordinary C string.
 
 int tr(char *str, const char *from, const char *to, int option)
 {
-	StrTR table[1];
+	StringTR table[1];
 
 	if (!str || !from)
-		return -1;
+		return set_errno(EINVAL);
 
 	table->locker = NULL;
 
@@ -1936,26 +2459,26 @@ int tr(char *str, const char *from, const char *to, int option)
 
 /*
 
-=item C<StrTR *tr_compile(const char *from, const char *to, int option)>
+=item C<StringTR *tr_compile(const char *from, const char *to, int option)>
 
 Compiles C<from>, C<to> and C<option> into a translation table to be passed
 to I<str_tr_compiled()> or I<tr_compiled()>. On success, returns the new
 translation table. It is the caller's responsibility to deallocate the
 translation table with I<tr_release()> or I<tr_destroy()>. On error, returns
-C<NULL>.
+C<null> with C<errno> set appropriately.
 
 =cut
 
 */
 
-StrTR *tr_compile(const char *from, const char *to, int option)
+StringTR *tr_compile(const char *from, const char *to, int option)
 {
-	return tr_compile_locked(NULL, from, to, option);
+	return tr_compile_with_locker(NULL, from, to, option);
 }
 
 /*
 
-=item C<StrTR *tr_compile_locked(Locker *locker, const char *from, const char *to, int option)>
+=item C<StringTR *tr_compile_with_locker(Locker *locker, const char *from, const char *to, int option)>
 
 Equivalent to I<tr_compile()> except that multiple threads accessing the new
 translation table will be synchronised by C<locker>.
@@ -1964,11 +2487,11 @@ translation table will be synchronised by C<locker>.
 
 */
 
-StrTR *tr_compile_locked(Locker *locker, const char *from, const char *to, int option)
+StringTR *tr_compile_with_locker(Locker *locker, const char *from, const char *to, int option)
 {
-	StrTR *ret;
+	StringTR *ret;
 
-	if (!(ret = mem_new(StrTR)))
+	if (!(ret = mem_new(StringTR))) /* XXX decouple */
 		return NULL;
 
 	ret->locker = locker;
@@ -1978,7 +2501,7 @@ StrTR *tr_compile_locked(Locker *locker, const char *from, const char *to, int o
 
 /*
 
-=item C<StrTR *str_tr_compile(const String *from, const String *to, int option)>
+=item C<StringTR *str_tr_compile(const String *from, const String *to, int option)>
 
 Equivalent to I<tr_compile()> except that C<from> and C<to> are I<String>
 objects. This is needed when C<from> or C<to> need to contain C<nul>
@@ -1988,14 +2511,30 @@ characters.
 
 */
 
-StrTR *str_tr_compile(const String *from, const String *to, int option)
+StringTR *str_tr_compile(const String *from, const String *to, int option)
 {
-	return str_tr_compile_locked(NULL, from, to, option);
+	return str_tr_compile_with_locker(NULL, from, to, option);
 }
 
 /*
 
-=item C<StrTR *str_tr_compile_locked(Locker *locker, const String *from, const String *to, int option)>
+=item C<StringTR *str_tr_compile_unlocked(const String *from, const String *to, int option)>
+
+Equivalent to I<str_tr_compile()> except that C<from> and C<to> are not read
+locked.
+
+=cut
+
+*/
+
+StringTR *str_tr_compile_unlocked(const String *from, const String *to, int option)
+{
+	return str_tr_compile_with_locker_unlocked(NULL, from, to, option);
+}
+
+/*
+
+=item C<StringTR *str_tr_compile_with_locker(Locker *locker, const String *from, const String *to, int option)>
 
 Equivalent to I<str_tr_compile()> except that multiple threads accessing the
 new translation table will be synchronised by C<locker>.
@@ -2004,11 +2543,11 @@ new translation table will be synchronised by C<locker>.
 
 */
 
-StrTR *str_tr_compile_locked(Locker *locker, const String *from, const String *to, int option)
+StringTR *str_tr_compile_with_locker(Locker *locker, const String *from, const String *to, int option)
 {
-	StrTR *ret;
+	StringTR *ret;
 
-	if (!(ret = mem_new(StrTR)))
+	if (!(ret = mem_new(StringTR))) /* XXX decouple */
 		return NULL;
 
 	ret->locker = locker;
@@ -2018,7 +2557,32 @@ StrTR *str_tr_compile_locked(Locker *locker, const String *from, const String *t
 
 /*
 
-=item C<void tr_release(StrTR *tr)>
+=item C<StringTR *str_tr_compile_with_locker_unlocked(Locker *locker, const String *from, const String *to, int option)>
+
+Equivalent to I<str_tr_compile_with_locker()> except that C<from> and C<to>
+are not read locked. Note: If C<to> and C<from> need to be read locked, it
+is the caller's responsibility to lock and unlock them explicitly with
+I<str_rdlock()> and I<str_unlock()>.
+
+=cut
+
+*/
+
+StringTR *str_tr_compile_with_locker_unlocked(Locker *locker, const String *from, const String *to, int option)
+{
+	StringTR *ret;
+
+	if (!(ret = mem_new(StringTR))) /* XXX decouple */
+		return NULL;
+
+	ret->locker = locker;
+
+	return str_tr_compile_table_unlocked(ret, from, to, option);
+}
+
+/*
+
+=item C<void tr_release(StringTR *tr)>
 
 Releases (deallocates) C<tr>.
 
@@ -2026,7 +2590,7 @@ Releases (deallocates) C<tr>.
 
 */
 
-void tr_release(StrTR *tr)
+void tr_release(StringTR *tr)
 {
 	Locker *locker;
 
@@ -2034,7 +2598,7 @@ void tr_release(StrTR *tr)
 		return;
 
 	locker = tr->locker;
-	if (locker_wrlock(locker) == -1)
+	if (locker_wrlock(locker))
 		return;
 
 	mem_release(tr);
@@ -2043,17 +2607,17 @@ void tr_release(StrTR *tr)
 
 /*
 
-=item C<void *tr_destroy(StrTR **tr)>
+=item C<void *tr_destroy(StringTR **tr)>
 
-Destroys (deallocates and sets to C<NULL>) C<tr>. Returns C<NULL>. B<Note:>
+Destroys (deallocates and sets to C<null>) C<*tr>. Returns C<null>. B<Note:>
 translation tables shared by multiple threads must not be destroyed until
-after the threads have finished with it.
+after all threads have finished with it.
 
 =cut
 
 */
 
-void *tr_destroy(StrTR **tr)
+void *tr_destroy(StringTR **tr)
 {
 	if (tr && *tr)
 	{
@@ -2066,7 +2630,7 @@ void *tr_destroy(StrTR **tr)
 
 /*
 
-C<static StrTR *do_tr_compile_table(StrTR *table, const char *from, ssize_t fromlen, const char *to, ssize_t tolen, int option)>
+C<static StringTR *do_tr_compile_table(StringTR *table, const char *from, ssize_t fromlen, const char *to, ssize_t tolen, int option)>
 
 Compiles C<from>, C<to> and C<option> into the translation table, C<table>,
 to be passed to I<str_tr_compiled()> or I<tr_compiled()>. If C<fromlen> is
@@ -2074,20 +2638,21 @@ C<-1>, then C<from> is interpreted as a C<nul>-terminated C string.
 Otherwise, C<from> is an arbitrary string of length C<fromlen>. If C<tolen>
 is C<-1>, then C<to> is interpreted as a C<nul>-terminated C string.
 Otherwise, C<to> is an arbitrary string of length C<tolen>. On success,
-returns C<table>. On error, returns C<NULL>.
+returns C<table>. On error, returns C<null> with C<errno> set appropriately.
 
 */
 
-static StrTR *do_tr_compile_table(StrTR *table, const char *from, ssize_t fromlen, const char *to, ssize_t tolen, int option)
+static StringTR *do_tr_compile_table(StringTR *table, const char *from, ssize_t fromlen, const char *to, ssize_t tolen, int option)
 {
 	const char *f, *t;
 	char *xf, *xt;
 	char xfrom[CHARSET], xto[CHARSET];
 	short tbl[CHARSET];
 	int i, j, k;
+	int err;
 
 	if (!table || !from)
-		return NULL;
+		return set_errnull(EINVAL);
 
 	for (i = 0; i < CHARSET; ++i)
 		tbl[i] = TRCODE_NOMAP;
@@ -2101,15 +2666,15 @@ static StrTR *do_tr_compile_table(StrTR *table, const char *from, ssize_t fromle
 		if (f[1] == '-' && f[2])
 			j = f[2], f += 2;
 
-		if (j < i)
-			return NULL;
+		if ((unsigned char)j < (unsigned char)i)
+			return set_errnull(EINVAL);
 
-		for (k = i; k <= j; ++k)
+		for (k = (unsigned char)i; k <= (unsigned char)j; ++k)
 			*xf++ = tbl[k] = k;
 	}
 
 	if (xf - xfrom == CHARSET)
-		return NULL;
+		return set_errnull(EINVAL);
 
 	if (option & TR_COMPLEMENT)
 	{
@@ -2135,15 +2700,15 @@ static StrTR *do_tr_compile_table(StrTR *table, const char *from, ssize_t fromle
 		if (t[1] == '-' && t[2])
 			j = t[2], t += 2;
 
-		if (j < i)
-			return NULL;
+		if ((unsigned char)j < (unsigned char)i)
+			return set_errnull(EINVAL);
 
-		for (k = i; k <= j; ++k)
+		for (k = (unsigned char)i; k <= (unsigned char)j; ++k)
 			*xt++ = k;
 	}
 
 	if (xt - xto == CHARSET)
-		return NULL;
+		return set_errnull(EINVAL);
 
 	if (!(option & TR_DELETE))
 	{
@@ -2159,8 +2724,8 @@ static StrTR *do_tr_compile_table(StrTR *table, const char *from, ssize_t fromle
 
 	/* Build the translation table */
 
-	if (locker_wrlock(table->locker) == -1)
-		return NULL;
+	if ((err = locker_wrlock(table->locker)))
+		return set_errnull(err);
 
 	table->squash = option & TR_SQUASH;
 	for (i = 0; i < CHARSET; ++i)
@@ -2174,30 +2739,30 @@ static StrTR *do_tr_compile_table(StrTR *table, const char *from, ssize_t fromle
 			table->table[fc] = (xto + j < xt) ? tc : TRCODE_DELETE;
 	}
 
-	if (locker_unlock(table->locker) == -1)
-		return NULL;
+	if ((err = locker_unlock(table->locker)))
+		return set_errnull(err);
 
 	return table;
 }
 
 /*
 
-C<StrTR *tr_compile_table(StrTR *table, const char *from, const char *to, int option)>
+C<StringTR *tr_compile_table(StringTR *table, const char *from, const char *to, int option)>
 
 Equivalent to I<tr_compile()> except that C<from>, C<to> and C<option> are
 compiled into the translation table pointed to by C<table>. On success,
-returns C<table>. On error, returns C<NULL>.
+returns C<table>. On error, returns C<null> with C<errno> set appropriately.
 
 */
 
-static StrTR *tr_compile_table(StrTR *table, const char *from, const char *to, int option)
+static StringTR *tr_compile_table(StringTR *table, const char *from, const char *to, int option)
 {
 	return do_tr_compile_table(table, from, -1, to, -1, option);
 }
 
 /*
 
-C<StrTR *str_tr_compile_table(StrTR *table, const String *from, const String *to, int option)>
+C<StringTR *str_tr_compile_table(StringTR *table, const String *from, const String *to, int option)>
 
 Equivalent to I<tr_compile_table()> except that C<from> and C<to> are
 I<String> objects. This is needed when C<from> or C<to> need to contain
@@ -2205,55 +2770,77 @@ C<nul> characters.
 
 */
 
-static StrTR *str_tr_compile_table(StrTR *table, const String *from, const String *to, int option)
+static StringTR *str_tr_compile_table(StringTR *table, const String *from, const String *to, int option)
 {
-	StrTR *ret;
+	StringTR *ret;
+	int err;
 
-	if (str_rdlock(from) == -1)
-		return NULL;
+	if ((err = str_rdlock(from)))
+		return set_errnull(err);
 
-	if (str_rdlock(to) == -1)
+	if ((err = str_rdlock(to)))
 	{
 		str_unlock(from);
-		return NULL;
+		return set_errnull(err);
 	}
 
-	ret = do_tr_compile_table(table, from->str, str_length_unlocked(from), to->str, str_length_unlocked(to), option);
+	ret = str_tr_compile_table_unlocked(table, from, to, option);
 
-	str_unlock(from);
-	str_unlock(to);
+	if ((err = str_unlock(from)))
+	{
+		str_unlock(to);
+		return set_errnull(err);
+	}
+
+	if ((err = str_unlock(to)))
+		return set_errnull(err);
 
 	return ret;
 }
 
 /*
 
-C<static int do_tr_compiled(unsigned char *str, size_t *length, StrTR *table)>
+C<StringTR *str_tr_compile_table_unlocked(StringTR *table, const String *from, const String *to, int option)>
+
+Equivalent to I<str_tr_compile_table()> except that C<from> and C<to> are not
+read locked.
+
+*/
+
+static StringTR *str_tr_compile_table_unlocked(StringTR *table, const String *from, const String *to, int option)
+{
+	return do_tr_compile_table(table, from->str, str_length_unlocked(from), to->str, str_length_unlocked(to), option);
+}
+
+/*
+
+C<static int do_tr_compiled(unsigned char *str, size_t *length, StringTR *table)>
 
 Performs the character translation specified by C<table> (as created by
-I<tr_compile()> or equivalent) on C<str>. If C<length> is C<NULL>, C<str> is
+I<tr_compile()> or equivalent) on C<str>. If C<length> is C<null>, C<str> is
 interpreted as a C<nul>-terminated C string. Otherwise, C<str> is
 interpreted as an arbitrary string of length C<*length>. The integer that
 C<length> points to is decremented by the number of bytes deleted by the
 translation. On success, returns the number of characters replaced or
-deleted. On error, returns -1.
+deleted. On error, returns C<-1> with C<errno> set appropriately.
 
 =cut
 
 */
 
-static int do_tr_compiled(unsigned char *str, size_t *length, StrTR *table)
+static int do_tr_compiled(unsigned char *str, size_t *length, StringTR *table)
 {
 	int ret = 0;
 	int deleted = 0;
 	unsigned char *r, *s;
 	short t;
+	int err;
 
 	if (!str || !table)
-		return -1;
+		return set_errno(EINVAL);
 
-	if (locker_rdlock(table->locker) == -1)
-		return -1;
+	if ((err = locker_rdlock(table->locker)))
+		return set_errno(err);
 
 	for (r = s = str; (length) ? s - str < *length - 1 : *s; ++s)
 	{
@@ -2281,8 +2868,8 @@ static int do_tr_compiled(unsigned char *str, size_t *length, StrTR *table)
 		}
 	}
 
-	if (locker_unlock(table->locker) == -1)
-		return -1;
+	if ((err = locker_unlock(table->locker)))
+		return set_errno(err);
 
 	*r = '\0';
 	if (length && deleted)
@@ -2293,43 +2880,70 @@ static int do_tr_compiled(unsigned char *str, size_t *length, StrTR *table)
 
 /*
 
-=item C<int str_tr_compiled(String *str, StrTR *table)>
+=item C<int str_tr_compiled(String *str, StringTR *table)>
 
 Performs the character translation specified by C<table> (as created by
 I<tr_compile()> or equivalent) on C<str>. Use this whenever the same
 translation will be performed multiple times. On success, returns the number
-of characters replaced or deleted. On error, returns -1.
+of characters replaced or deleted. On error, returns C<-1> with C<errno> set
+appropriately.
 
 =cut
 
 */
 
-int str_tr_compiled(String *str, StrTR *table)
+int str_tr_compiled(String *str, StringTR *table)
 {
 	int ret;
+	int err;
 
 	if (!str || !table)
-		return -1;
+		return set_errno(EINVAL);
 
-	if (locker_rdlock(table->locker) == -1)
-		return -1;
+	if ((err = locker_rdlock(table->locker)))
+		return set_errno(err);
 
-	if (str_wrlock(str) == -1)
+	if ((err = str_wrlock(str)))
 	{
 		locker_unlock(table->locker);
-		return -1;
+		return set_errno(err);
 	}
 
-	ret = do_tr_compiled((unsigned char *)str->str, &str->length, table);
-	str_unlock(str);
-	locker_unlock(table->locker);
+	ret = str_tr_compiled_unlocked(str, table);
+
+	if ((err = str_unlock(str)))
+	{
+		locker_unlock(table->locker);
+		return set_errno(err);
+	}
+
+	if ((err = locker_unlock(table->locker)))
+		return set_errno(err);
 
 	return ret;
 }
 
 /*
 
-=item C<int tr_compiled(char *str, StrTR *table)>
+=item C<int str_tr_compiled_unlocked(String *str, StringTR *table)>
+
+Equivalent to I<str_tr_compiled()> except that C<str> is not write locked.
+
+=cut
+
+*/
+
+int str_tr_compiled_unlocked(String *str, StringTR *table)
+{
+	if (!str || !table)
+		return set_errno(EINVAL);
+
+	return do_tr_compiled((unsigned char *)str->str, &str->length, table);
+}
+
+/*
+
+=item C<int tr_compiled(char *str, StringTR *table)>
 
 Equivalent to I<str_tr_compiled()> but works on an ordinary C string.
 
@@ -2337,23 +2951,26 @@ Equivalent to I<str_tr_compiled()> but works on an ordinary C string.
 
 */
 
-int tr_compiled(char *str, StrTR *table)
+int tr_compiled(char *str, StringTR *table)
 {
 	int ret;
+	int err;
 
 	if (!str || !table)
-		return -1;
+		return set_errno(EINVAL);
 
-	if (locker_rdlock(table->locker) == -1)
-		return -1;
+	if ((err = locker_rdlock(table->locker)))
+		return set_errno(err);
 
 	ret = do_tr_compiled((unsigned char *)str, NULL, table);
-	locker_unlock(table->locker);
+
+	if ((err = locker_unlock(table->locker)))
+		return set_errno(err);
 
 	return ret;
 }
 
-#ifndef REGEX_MISSING
+#ifdef HAVE_REGEX_H
 
 /*
 
@@ -2366,10 +2983,11 @@ along with C<REG_EXTENDED>. C<eflags> is passed to I<regexec(3)>. On
 success, returns a I<List> of (at most 33) I<String>s containing the
 matching substring followed by the matching substrings of any parenthesised
 subexpressions. It is the caller's responsibility to deallocate the list
-with C<list_release()> or C<list_destroy()>. On error (including no match),
-returns C<NULL>. Only use this function when the regular expression will be
-used only once. Otherwise, use I<regexpr_compile()> or I<regcomp(3)> and
-I<str_regexpr_compiled()> or I<regexpr_compiled()> or I<regexec(3)>.
+with I<list_release()> or I<list_destroy()>. On error (including no match),
+returns C<null> with C<errno> set appropriately. Only use this function when
+the regular expression will be used only once. Otherwise, use
+I<regexpr_compile()> or I<regcomp(3)> and I<str_regexpr_compiled()> or
+I<regexpr_compiled()> or I<regexec(3)>.
 
 Note: If you require perl pattern matching, you could use Philip Hazel's
 I<PCRE> package, C<ftp://ftp.cus.cam.ac.uk/pub/software/programs/pcre/> or
@@ -2381,12 +2999,27 @@ link against the perl library itself.
 
 List *str_regexpr(const char *pattern, const String *text, int cflags, int eflags)
 {
-	return str_regexpr_locked(NULL, pattern, text, cflags, eflags);
+	return str_regexpr_with_locker(NULL, pattern, text, cflags, eflags);
 }
 
 /*
 
-=item C<List *str_regexpr_locked(Locker *locker, const char *pattern, const String *text, int cflags, int eflags)>
+=item C<List *str_regexpr_unlocked(const char *pattern, const String *text, int cflags, int eflags)>
+
+Equivalent to I<str_regexpr_()> except that C<text> is not read locked.
+
+=cut
+
+*/
+
+List *str_regexpr_unlocked(const char *pattern, const String *text, int cflags, int eflags)
+{
+	return str_regexpr_with_locker_unlocked(NULL, pattern, text, cflags, eflags);
+}
+
+/*
+
+=item C<List *str_regexpr_with_locker(Locker *locker, const char *pattern, const String *text, int cflags, int eflags)>
 
 Equivalent to I<str_regexpr()> except that multiple threads accessing the new
 list will be synchronised by C<locker>.
@@ -2395,25 +3028,45 @@ list will be synchronised by C<locker>.
 
 */
 
-List *str_regexpr_locked(Locker *locker, const char *pattern, const String *text, int cflags, int eflags)
+List *str_regexpr_with_locker(Locker *locker, const char *pattern, const String *text, int cflags, int eflags)
 {
 	List *ret;
+	int err;
 
 	if (!pattern || !text)
-		return NULL;
+		return set_errnull(EINVAL);
 
-	if (str_rdlock(text) == -1)
-		return NULL;
+	if ((err = str_rdlock(text)))
+		return set_errnull(err);
 
-	ret = regexpr_locked(locker, pattern, text->str, cflags, eflags);
+	ret = str_regexpr_with_locker_unlocked(locker, pattern, text, cflags, eflags);
 
-	if (str_unlock(text) == -1)
+	if ((err = str_unlock(text)))
 	{
 		list_release(ret);
-		return NULL;
+		return set_errnull(err);
 	}
 
 	return ret;
+}
+
+/*
+
+=item C<List *str_regexpr_with_locker_unlocked(Locker *locker, const char *pattern, const String *text, int cflags, int eflags)>
+
+Equivalent to I<str_regexpr_with_locker()> except that C<text> is not read
+locked.
+
+=cut
+
+*/
+
+List *str_regexpr_with_locker_unlocked(Locker *locker, const char *pattern, const String *text, int cflags, int eflags)
+{
+	if (!pattern || !text)
+		return set_errnull(EINVAL);
+
+	return regexpr_with_locker(locker, pattern, text->str, cflags, eflags);
 }
 
 /*
@@ -2428,12 +3081,12 @@ Equivalent to I<str_regexpr()> but works on an ordinary C string.
 
 List *regexpr(const char *pattern, const char *text, int cflags, int eflags)
 {
-	return regexpr_locked(NULL, pattern, text, cflags, eflags);
+	return regexpr_with_locker(NULL, pattern, text, cflags, eflags);
 }
 
 /*
 
-=item C<List *regexpr_locked(Locker *locker, const char *pattern, const char *text, int cflags, int eflags)>
+=item C<List *regexpr_with_locker(Locker *locker, const char *pattern, const char *text, int cflags, int eflags)>
 
 Equivalent to I<regexpr()> except that multiple threads accessing the new list
 will be synchronised by C<locker>.
@@ -2442,18 +3095,19 @@ will be synchronised by C<locker>.
 
 */
 
-List *regexpr_locked(Locker *locker, const char *pattern, const char *text, int cflags, int eflags)
+List *regexpr_with_locker(Locker *locker, const char *pattern, const char *text, int cflags, int eflags)
 {
 	regex_t compiled[1];
 	List *ret;
+	int err;
 
 	if (!pattern || !text)
-		return NULL;
+		return set_errnull(EINVAL);
 
-	if (regexpr_compile(compiled, pattern, cflags))
-		return NULL;
+	if ((err = regexpr_compile(compiled, pattern, cflags)))
+		return set_errnull(err);
 
-	ret = regexpr_compiled_locked(locker, compiled, text, eflags);
+	ret = regexpr_compiled_with_locker(locker, compiled, text, eflags);
 	regfree(compiled);
 
 	return ret;
@@ -2467,7 +3121,8 @@ Compiles a POSIX 1003.2 compliant regular expression. C<compiled> is the
 location in which to compile the expression. C<pattern> is the regular
 expression. C<cflags> is passed to I<regcomp(3)> along with C<REG_EXTENDED>.
 Call this, followed by I<re_compiled()> when the regular expression will be
-used multiple times.
+used multiple times. On success, returns C<0>. On error, returns an error
+code.
 
 =cut
 
@@ -2499,16 +3154,17 @@ void regexpr_release(regex_t *compiled)
 
 /*
 
-=item C<List *str_regexpr_compiled(const regex_t *compiled, String char *text, int eflags)>
+=item C<List *str_regexpr_compiled(const regex_t *compiled, const String *text, int eflags)>
 
 I<regexpr_compiled()> is an interface to the POSIX 1003.2 regular expression
 function, I<regexec(3)>. C<compiled> is the compiled regular expression
-prepared by I<regexpr_compile()> or I<regcomp(3)>. C<text> is the string to be
-searched for a match. C<eflags> is passed to I<regexec(3)>. On success, returns
-a I<List> of (at most 33) I<String>s containing the matching substring followed
-by the matching substrings of any parenthesised subexpressions. It is the
-caller's responsibility to deallocate the list with C<list_release()> or
-C<list_destroy()>. On error (including no match), returns C<NULL>.
+prepared by I<regexpr_compile()> or I<regcomp(3)>. C<text> is the string to
+be searched for a match. C<eflags> is passed to I<regexec(3)>. On success,
+returns a I<List> of (at most 33) I<String>s containing the matching
+substring followed by the matching substrings of any parenthesised
+subexpressions. It is the caller's responsibility to deallocate the list
+with I<list_release()> or I<list_destroy()>. On error (including no match),
+returns C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -2516,12 +3172,27 @@ C<list_destroy()>. On error (including no match), returns C<NULL>.
 
 List *str_regexpr_compiled(const regex_t *compiled, const String *text, int eflags)
 {
-	return str_regexpr_compiled_locked(NULL, compiled, text, eflags);
+	return str_regexpr_compiled_with_locker(NULL, compiled, text, eflags);
 }
 
 /*
 
-=item C<List *str_regexpr_compiled_locked(Locker *locker, const regex_t *compiled, const String *text, int eflags)>
+=item C<List *str_regexpr_compiled_unlocked(const regex_t *compiled, const String *text, int eflags)>
+
+Equivalent to I<str_regexpr_compiled()> except that C<text> is not write locked.
+
+=cut
+
+*/
+
+List *str_regexpr_compiled_unlocked(const regex_t *compiled, const String *text, int eflags)
+{
+	return str_regexpr_compiled_with_locker_unlocked(NULL, compiled, text, eflags);
+}
+
+/*
+
+=item C<List *str_regexpr_compiled_with_locker(Locker *locker, const regex_t *compiled, const String *text, int eflags)>
 
 Equivalent to I<str_regexpr_compiled()> except that multiple threads accessing
 the new list will be synchronised by C<locker>.
@@ -2530,25 +3201,45 @@ the new list will be synchronised by C<locker>.
 
 */
 
-List *str_regexpr_compiled_locked(Locker *locker, const regex_t *compiled, const String *text, int eflags)
+List *str_regexpr_compiled_with_locker(Locker *locker, const regex_t *compiled, const String *text, int eflags)
 {
 	List *ret;
+	int err;
 
 	if (!compiled || !text)
-		return NULL;
+		return set_errnull(EINVAL);
 
-	if (str_rdlock(text) == -1)
-		return NULL;
+	if ((err = str_rdlock(text)))
+		return set_errnull(err);
 
-	ret = regexpr_compiled_locked(locker, compiled, text->str, eflags);
+	ret = str_regexpr_compiled_with_locker_unlocked(locker, compiled, text, eflags);
 
-	if (str_unlock(text) == -1)
+	if ((err = str_unlock(text)))
 	{
 		list_release(ret);
-		return NULL;
+		return set_errnull(err);
 	}
 
 	return ret;
+}
+
+/*
+
+=item C<List *str_regexpr_compiled_with_locker_unlocked(Locker *locker, const regex_t *compiled, const String *text, int eflags)>
+
+Equivalent to I<str_regexpr_compiled_with_locker()> except that C<text> is not read
+locked.
+
+=cut
+
+*/
+
+List *str_regexpr_compiled_with_locker_unlocked(Locker *locker, const regex_t *compiled, const String *text, int eflags)
+{
+	if (!compiled || !text)
+		return set_errnull(EINVAL);
+
+	return regexpr_compiled_with_locker(locker, compiled, text->str, eflags);
 }
 
 /*
@@ -2563,12 +3254,12 @@ Equivalent to I<str_regexpr_compiled()> but works on an ordinary C string.
 
 List *regexpr_compiled(const regex_t *compiled, const char *text, int eflags)
 {
-	return regexpr_compiled_locked(NULL, compiled, text, eflags);
+	return regexpr_compiled_with_locker(NULL, compiled, text, eflags);
 }
 
 /*
 
-=item C<List *regexpr_compiled_locked(Locker *locker, const regex_t *compiled, const char *text, int eflags)>
+=item C<List *regexpr_compiled_with_locker(Locker *locker, const regex_t *compiled, const char *text, int eflags)>
 
 Equivalent to I<regexpr_compiled()> except that multiple threads accessing the
 new list will be synchronised by C<locker>.
@@ -2577,24 +3268,25 @@ new list will be synchronised by C<locker>.
 
 */
 
-List *regexpr_compiled_locked(Locker *locker, const regex_t *compiled, const char *text, int eflags)
+List *regexpr_compiled_with_locker(Locker *locker, const regex_t *compiled, const char *text, int eflags)
 {
 	regmatch_t match[33];
 	List *ret;
 	int i;
+	int err;
 
 	if (!compiled || !text)
-		return NULL;
+		return set_errnull(EINVAL);
 
-	if (regexec(compiled, text, 33, match, eflags))
-		return NULL;
+	if ((err = regexec(compiled, text, 33, match, eflags)))
+		return set_errnull(err);
 
-	if (!(ret = list_create_locked(locker, (list_release_t *)str_release)))
+	if (!(ret = list_create_with_locker(locker, (list_release_t *)str_release)))
 		return NULL;
 
 	for (i = 0; i < 33 && match[i].rm_so != -1; ++i)
 	{
-		String *m = substr(text, match[i].rm_so, match[i].rm_eo - match[i].rm_so);
+		String *m = substr(text, (ssize_t)match[i].rm_so, (ssize_t)(match[i].rm_eo - match[i].rm_so));
 
 		if (!m)
 		{
@@ -2627,8 +3319,7 @@ C<replacement> contains C<"$#"> or C<"${##}"> (where C<"#"> is a decimal
 digit), the substring that matches the corresponding subexpression is
 interpolated in its place. Up to 32 subexpressions are supported. If
 C<replacement> contains C<"$$">, then C<"$"> is interpolated in its place.
-C<eplacement> also understands the following I<perl(1)> quote escape
-sequences:
+The following I<perl(1)> quote escape sequences are also understood:
 
     \l  lowercase next character
     \u  uppercase next character
@@ -2642,10 +3333,10 @@ an C<\l> appearing between a C<\U> and an C<\E> does lowercase the next
 character and a C<\E> sequence without a matching C<\L>, C<\U> or C<\Q> is
 an error. Also note that only 32 levels of nesting are supported.
 
-On success, returns C<text>. On error (including no match), returns C<NULL>.
-Only use this function when the regular expression will be used only once.
-Otherwise, use I<regexpr_compile()> or I<regcomp(3)> and
-I<str_regsub_compiled()>.
+On success, returns C<text>. On error (including no match), returns C<null>
+with C<errno> set appropriately. Only use this function when the regular
+expression will be used only once. Otherwise, use I<regexpr_compile()> or
+I<regcomp(3)> and I<str_regsub_compiled()>.
 
 =cut
 
@@ -2655,12 +3346,13 @@ String *str_regsub(const char *pattern, const char *replacement, String *text, i
 {
 	regex_t compiled[1];
 	String *ret;
+	int err;
 
 	if (!pattern || !replacement || !text)
-		return NULL;
+		return set_errnull(EINVAL);
 
-	if (regexpr_compile(compiled, pattern, cflags))
-		return NULL;
+	if ((err = regexpr_compile(compiled, pattern, cflags)))
+		return set_errnull(err);
 
 	ret = str_regsub_compiled(compiled, replacement, text, eflags, all);
 	regfree(compiled);
@@ -2670,9 +3362,37 @@ String *str_regsub(const char *pattern, const char *replacement, String *text, i
 
 /*
 
+=item C<String *str_regsub_unlocked(const char *pattern, const char *replacement, String *text, int cflags, int eflags, int all)>
+
+Equivalent to I<str_regsub()> except that C<text> is not write locked.
+
+=cut
+
+*/
+
+String *str_regsub_unlocked(const char *pattern, const char *replacement, String *text, int cflags, int eflags, int all)
+{
+	regex_t compiled[1];
+	String *ret;
+	int err;
+
+	if (!pattern || !replacement || !text)
+		return set_errnull(EINVAL);
+
+	if ((err = regexpr_compile(compiled, pattern, cflags)))
+		return set_errnull(err);
+
+	ret = str_regsub_compiled_unlocked(compiled, replacement, text, eflags, all);
+	regfree(compiled);
+
+	return ret;
+}
+
+/*
+
 =item C<String *str_regsub_compiled(const regex_t *compiled, const char *replacement, String *text, int eflags, int all)>
 
-Equivalent to I<str_regsub()> but works on an already compiled C<regex_t>,
+Equivalent to I<str_regsub()> but works on an already compiled I<regex_t>,
 C<compiled>.
 
 =cut
@@ -2680,6 +3400,35 @@ C<compiled>.
 */
 
 String *str_regsub_compiled(const regex_t *compiled, const char *replacement, String *text, int eflags, int all)
+{
+	String *ret;
+	int err;
+
+	if (!compiled || !replacement || !text)
+		return set_errnull(EINVAL);
+
+	if ((err = str_wrlock(text)))
+		return set_errnull(err);
+
+	ret = str_regsub_compiled_unlocked(compiled, replacement, text, eflags, all);
+
+	if ((err = str_unlock(text)))
+		return set_errnull(err);
+
+	return ret;
+}
+
+/*
+
+=item C<String *str_regsub_compiled_unlocked(const regex_t *compiled, const char *replacement, String *text, int eflags, int all)>
+
+Equivalent to I<str_regsub_compiled()> except that C<text> is not write locked.
+
+=cut
+
+*/
+
+String *str_regsub_compiled_unlocked(const regex_t *compiled, const char *replacement, String *text, int eflags, int all)
 {
 #define MAX_MATCHES 33
 #define MAX_STATES 33
@@ -2701,20 +3450,12 @@ String *str_regsub_compiled(const regex_t *compiled, const char *replacement, St
 	int i, s;
 
 	if (!compiled || !replacement || !text)
-		return NULL;
-
-	if (str_wrlock(text) == -1)
-		return NULL;
+		return set_errnull(EINVAL);
 
 	for (start = 0, matches = 0; start <= text->length - 1; ++matches)
 	{
 		if (regexec(compiled, text->str + start, MAX_MATCHES, match, eflags))
-		{
-			if (str_unlock(text) == -1)
-				return NULL;
-
 			return (matches) ? text : NULL;
-		}
 
 		/*
 		** Interpolate any $$, $# and ${##} in replacement
@@ -2722,10 +3463,7 @@ String *str_regsub_compiled(const regex_t *compiled, const char *replacement, St
 		*/
 
 		if (!(rep = str_create("%s", replacement)))
-		{
-			str_unlock(text);
 			return NULL;
-		}
 
 		for (i = 0; i < rep->length - 1; ++i)
 		{
@@ -2736,7 +3474,6 @@ String *str_regsub_compiled(const regex_t *compiled, const char *replacement, St
 					if (!str_remove(rep, i))
 					{
 						str_release(rep);
-						str_unlock(text);
 						return NULL;
 					}
 				}
@@ -2753,8 +3490,7 @@ String *str_regsub_compiled(const regex_t *compiled, const char *replacement, St
 						if (rep->str[j] != '}')
 						{
 							str_release(rep);
-							str_unlock(text);
-							return NULL;
+							return set_errnull(EINVAL);
 						}
 					}
 					else if (is_digit(rep->str[i + 1]))
@@ -2764,21 +3500,18 @@ String *str_regsub_compiled(const regex_t *compiled, const char *replacement, St
 					else
 					{
 						str_release(rep);
-						str_unlock(text);
-						return NULL;
+						return set_errnull(EINVAL);
 					}
 
 					if (ref < 0 || ref >= MAX_MATCHES || match[ref].rm_so == -1)
 					{
 						str_release(rep);
-						str_unlock(text);
-						return NULL;
+						return set_errnull(EINVAL);
 					}
 
-					if (!str_replace(rep, i, j + 1 - i, "%.*s", match[ref].rm_eo - match[ref].rm_so, text->str + match[ref].rm_so))
+					if (!str_replace(rep, i, j + 1 - i, "%.*s", (int)(match[ref].rm_eo - match[ref].rm_so), text->str + match[ref].rm_so))
 					{
 						str_release(rep);
-						str_unlock(text);
 						return NULL;
 					}
 
@@ -2789,7 +3522,7 @@ String *str_regsub_compiled(const regex_t *compiled, const char *replacement, St
 
 		/* Perform \l \L \u \U \Q \E transformations on replacement */
 
-#define FAIL { str_release(rep); str_unlock(text); return NULL; }
+#define FAIL { str_release(rep); return set_errnull(EINVAL); }
 #define PUSH_STATE(state) { if (s >= MAX_STATES - 1) FAIL states[s + 1] = states[s] | (state); ++s; }
 #define POP_STATE { if (s == 0) FAIL --s; }
 #define REMOVE_CODE { if (!str_remove_range(rep, i, 2)) FAIL --i; }
@@ -2829,10 +3562,9 @@ String *str_regsub_compiled(const regex_t *compiled, const char *replacement, St
 
 		/* Replace matching substring in text with rep */
 
-		if (!str_replace_str_unlocked(text, start + match[0].rm_so, match[0].rm_eo - match[0].rm_so, rep))
+		if (!str_replace_str_unlocked(text, start + match[0].rm_so, (ssize_t)(match[0].rm_eo - match[0].rm_so), rep))
 		{
 			str_release(rep);
-			str_unlock(text);
 			return NULL;
 		}
 
@@ -2851,9 +3583,6 @@ String *str_regsub_compiled(const regex_t *compiled, const char *replacement, St
 			break;
 	}
 
-	if (str_unlock(text) == -1)
-		return null;
-
 	return text;
 }
 
@@ -2861,7 +3590,7 @@ String *str_regsub_compiled(const regex_t *compiled, const char *replacement, St
 
 /*
 
-=item C<List *str_fmt(const String *str, size_t line_width, StrAlignment alignment)>
+=item C<List *str_fmt(const String *str, size_t line_width, StringAlignment alignment)>
 
 Formats C<str> into a I<List> of I<String> objects with length no greater
 than C<line_width> (unless there are individual words longer than
@@ -2869,21 +3598,21 @@ C<line_width>) with the alignment specified by C<alignment>:
 
 =over 4
 
-=item C<ALIGN_LEFT> (C<`<'>)
+=item C<ALIGN_LEFT> (C<'<'>)
 
 The lines will be left justified (with one space between words).
 
-=item C<ALIGN_RIGHT> (`>')
+=item C<ALIGN_RIGHT> ('>')
 
 The lines will be right justified (with one space between words).
 
-=item C<ALIGN_CENTRE> or C<ALIGN_CENTER> (C<`|'>)
+=item C<ALIGN_CENTRE> or C<ALIGN_CENTER> (C<'|'>)
 
-C<str> will be split into lines at each newline character (C<`\n'>). The
+C<str> will be split into lines at each newline character (C<'\n'>). The
 lines will then be centred (with one space between words) padded with spaces
 to the left.
 
-=item C<ALIGN_FULL> (C<`='>)
+=item C<ALIGN_FULL> (C<'='>)
 
 The lines will be fully justified (possibly with multiple spaces between
 words).
@@ -2891,27 +3620,43 @@ words).
 =back
 
 On success, returns a new I<List> of I<String> objects. It is the caller's
-responsibility to deallocate the list with C<list_release()> or
-C<list_destroy()>. On error, returns C<NULL>. Note that C<str> is interpreted
-as a C<nul>-terminated string.
+responsibility to deallocate the list with I<list_release()> or
+I<list_destroy()>. On error, returns C<null> with C<errno> set
+appropriately. Note that C<str> is interpreted as a C<nul>-terminated
+string.
 
 B<Note:> I<str_fmt()> provides straightforward formatting completely lacking
-in any aesthetic merit. If you need awesome paragraph formatting, pipe text
-through I<par(1)> instead (available from
+in any aesthetic sensibilities. If you need awesome paragraph formatting,
+pipe text through I<par(1)> instead (available from
 L<http://www.cs.berkeley.edu/~amc/Par/|http://www.cs.berkeley.edu/~amc/Par/>).
 
 =cut
 
 */
 
-List *str_fmt(const String *str, size_t line_width, StrAlignment alignment)
+List *str_fmt(const String *str, size_t line_width, StringAlignment alignment)
 {
-	return str_fmt_locked(NULL, str, line_width, alignment);
+	return str_fmt_with_locker(NULL, str, line_width, alignment);
 }
 
 /*
 
-=item C<List *str_fmt_locked(Locker *locker, const String *str, size_t line_width, StrAlignment alignment)>
+=item C<List *str_fmt_unlocked(const String *str, size_t line_width, StringAlignment alignment)>
+
+Equivalent to I<str_fmt()> except that C<str> is not read locked.
+
+=cut
+
+*/
+
+List *str_fmt_unlocked(const String *str, size_t line_width, StringAlignment alignment)
+{
+	return str_fmt_with_locker_unlocked(NULL, str, line_width, alignment);
+}
+
+/*
+
+=item C<List *str_fmt_with_locker(Locker *locker, const String *str, size_t line_width, StringAlignment alignment)>
 
 Equivalent to I<str_fmt()> except that multiple threads accessing the new
 list will be synchronised by C<locker>.
@@ -2920,22 +3665,23 @@ list will be synchronised by C<locker>.
 
 */
 
-List *str_fmt_locked(Locker *locker, const String *str, size_t line_width, StrAlignment alignment)
+List *str_fmt_with_locker(Locker *locker, const String *str, size_t line_width, StringAlignment alignment)
 {
 	List *ret;
+	int err;
 
 	if (!str)
-		return NULL;
+		return set_errnull(EINVAL);
 
-	if (str_rdlock(str) == -1)
-		return NULL;
+	if ((err = str_rdlock(str)))
+		return set_errnull(err);
 
-	ret = fmt_locked(locker, str->str, line_width, alignment);
+	ret = str_fmt_with_locker_unlocked(locker, str, line_width, alignment);
 
-	if (str_unlock(str) == -1)
+	if ((err = str_unlock(str)))
 	{
 		list_release(ret);
-		return NULL;
+		return set_errnull(err);
 	}
 
 	return ret;
@@ -2943,7 +3689,25 @@ List *str_fmt_locked(Locker *locker, const String *str, size_t line_width, StrAl
 
 /*
 
-=item C<List *fmt(const char *str, size_t line_width, StrAlignment alignment)>
+=item C<List *str_fmt_with_locker_unlocked(Locker *locker, const String *str, size_t line_width, StringAlignment alignment)>
+
+Equivalent to I<str_fmt_with_locker()> except that C<str> is not read locked.
+
+=cut
+
+*/
+
+List *str_fmt_with_locker_unlocked(Locker *locker, const String *str, size_t line_width, StringAlignment alignment)
+{
+	if (!str)
+		return set_errnull(EINVAL);
+
+	return fmt_with_locker(locker, str->str, line_width, alignment);
+}
+
+/*
+
+=item C<List *fmt(const char *str, size_t line_width, StringAlignment alignment)>
 
 Equivalent to I<str_fmt()> but works on an ordinary C string.
 
@@ -2951,14 +3715,14 @@ Equivalent to I<str_fmt()> but works on an ordinary C string.
 
 */
 
-List *fmt(const char *str, size_t line_width, StrAlignment alignment)
+List *fmt(const char *str, size_t line_width, StringAlignment alignment)
 {
-	return fmt_locked(NULL, str, line_width, alignment);
+	return fmt_with_locker(NULL, str, line_width, alignment);
 }
 
 /*
 
-=item C<List *fmt(const char *str, size_t line_width, StrAlignment alignment)>
+=item C<List *fmt_with_locker(Locker *locker, const char *str, size_t line_width, StringAlignment alignment)>
 
 Equivalent to I<fmt()> except that multiple threads accessing the new list
 will be synchronised by C<locker>.
@@ -2967,15 +3731,15 @@ will be synchronised by C<locker>.
 
 */
 
-List *fmt_locked(Locker *locker, const char *str, size_t line_width, StrAlignment alignment)
+List *fmt_with_locker(Locker *locker, const char *str, size_t line_width, StringAlignment alignment)
 {
 	List *para;
 	String *line = NULL;
 	const char *s, *r;
-	size_t len;
+	ssize_t len;
 
 	if (!str)
-		return NULL;
+		return set_errnull(EINVAL);
 
 	switch (alignment)
 	{
@@ -2983,7 +3747,7 @@ List *fmt_locked(Locker *locker, const char *str, size_t line_width, StrAlignmen
 		case ALIGN_RIGHT:
 		case ALIGN_FULL:
 		{
-			if (!(para = list_create_locked(locker, (list_release_t *)str_release)))
+			if (!(para = list_create_with_locker(locker, (list_release_t *)str_release)))
 				return NULL;
 
 			for (s = str; *s; ++s)
@@ -2996,7 +3760,8 @@ List *fmt_locked(Locker *locker, const char *str, size_t line_width, StrAlignmen
 
 				if (r > s)
 				{
-					len = str_length(line);
+					if ((len = str_length(line)) == -1)
+						++len;
 
 					if (len + (len != 0) + (r - s) > line_width)
 					{
@@ -3032,7 +3797,7 @@ List *fmt_locked(Locker *locker, const char *str, size_t line_width, StrAlignmen
 				}
 			}
 
-			if (str_length(line) && !list_append(para, line))
+			if (str_length(line) > 0 && !list_append(para, line))
 			{
 				str_release(line);
 				list_release(para);
@@ -3041,7 +3806,7 @@ List *fmt_locked(Locker *locker, const char *str, size_t line_width, StrAlignmen
 
 			if (alignment == ALIGN_RIGHT)
 			{
-				while (list_has_next(para))
+				while (list_has_next(para) == 1)
 				{
 					line = (String *)list_next(para);
 					len = str_length(line);
@@ -3058,9 +3823,16 @@ List *fmt_locked(Locker *locker, const char *str, size_t line_width, StrAlignmen
 			}
 			else if (alignment == ALIGN_FULL)
 			{
+				ssize_t lines;
 				int i;
 
-				for (i = 0; i < (int)list_length(para) - 1; ++i)
+				if ((lines = list_length(para)) == -1)
+				{
+					list_release(para);
+					return NULL;
+				}
+
+				for (i = 0; i < lines - 1; ++i)
 				{
 					size_t extra;
 					size_t gaps;
@@ -3103,10 +3875,10 @@ List *fmt_locked(Locker *locker, const char *str, size_t line_width, StrAlignmen
 
 		case ALIGN_CENTRE:
 		{
-			if (!(para = split_locked(locker, str, "\n")))
+			if (!(para = split_with_locker(locker, str, "\n")))
 				return NULL;
 
-			while (list_has_next(para))
+			while (list_has_next(para) == 1)
 			{
 				size_t extra;
 				line = (String *)list_next(para);
@@ -3115,7 +3887,9 @@ List *fmt_locked(Locker *locker, const char *str, size_t line_width, StrAlignmen
 
 				if (len >= line_width)
 					continue;
+
 				extra = (line_width - len) / 2;
+
 				if (extra && !str_prepend(line, "%*s", extra, ""))
 				{
 					list_release(para);
@@ -3128,7 +3902,7 @@ List *fmt_locked(Locker *locker, const char *str, size_t line_width, StrAlignmen
 
 		default:
 		{
-			return NULL;
+			return set_errnull(EINVAL);
 		}
 	}
 
@@ -3137,29 +3911,28 @@ List *fmt_locked(Locker *locker, const char *str, size_t line_width, StrAlignmen
 
 /*
 
-C<List *do_split_locked(Locker *locker, const char *str, ssize_t length, const char *delim)>
+C<List *do_split_with_locker(Locker *locker, const char *str, ssize_t length, const char *delim)>
 
 Splits C<str> into tokens separated by sequences of characters occurring in
 C<delim>. If C<length> is C<-1>, C<str> is interpreted as a
 C<nul>-terminated C string. Otherwise, C<str> is interpreted as an arbitrary
 string of length C<length>. On success, returns a new I<List> of I<String>
 objects. It is the caller's responsibility to deallocate the list with
-C<list_release()> or C<list_destroy()>. If C<locker> is non-C<NULL>,
+I<list_release()> or I<list_destroy()>. If C<locker> is non-C<null>,
 multiple threads accessing the new list will be synchronised by C<locker>.
-On error, returns C<NULL>.
+On error, returns C<null> with C<errno> set appropriately.
 
 */
 
-static List *do_split_locked(Locker *locker, const char *str, ssize_t length, const char *delim)
+static List *do_split_with_locker(Locker *locker, const char *str, ssize_t length, const char *delim)
 {
 	List *ret;
 	const char *s, *r;
 
 	if (!str || !delim)
-		return NULL;
+		return set_errnull(EINVAL);
 
-	ret = list_create_locked(locker, (list_release_t *)str_release);
-	if (!ret)
+	if (!(ret = list_create_with_locker(locker, (list_release_t *)str_release)))
 		return NULL;
 
 	for (s = str; (length == -1) ? *s : s - str < length; ++s)
@@ -3207,8 +3980,8 @@ static List *do_split_locked(Locker *locker, const char *str, ssize_t length, co
 
 Splits C<str> into tokens separated by sequences of characters occurring
 in C<delim>. On success, returns a new I<List> of I<String> objects. It is
-the caller's responsibility to deallocate the list with C<list_release()> or
-C<list_destroy()>. On error, returns C<NULL>.
+the caller's responsibility to deallocate the list with I<list_release()> or
+I<list_destroy()>. On error, returns C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -3216,12 +3989,27 @@ C<list_destroy()>. On error, returns C<NULL>.
 
 List *str_split(const String *str, const char *delim)
 {
-	return str_split_locked(NULL, str, delim);
+	return str_split_with_locker(NULL, str, delim);
 }
 
 /*
 
-=item C<List *str_split_locked(Locker *locker, const String *str, const char *delim)>
+=item C<List *str_split_unlocked(const String *str, const char *delim)>
+
+Equivalent to I<str_split()> except that C<str> is not read locked.
+
+=cut
+
+*/
+
+List *str_split_unlocked(const String *str, const char *delim)
+{
+	return str_split_with_locker_unlocked(NULL, str, delim);
+}
+
+/*
+
+=item C<List *str_split_with_locker(Locker *locker, const String *str, const char *delim)>
 
 Equivalent to I<str_split()> except that multiple threads accessing the new
 list will be synchronised by C<locker>.
@@ -3230,25 +4018,45 @@ list will be synchronised by C<locker>.
 
 */
 
-List *str_split_locked(Locker *locker, const String *str, const char *delim)
+List *str_split_with_locker(Locker *locker, const String *str, const char *delim)
 {
 	List *ret;
+	int err;
 
 	if (!str || !delim)
-		return NULL;
+		return set_errnull(EINVAL);
 
-	if (str_rdlock(str) == -1)
-		return NULL;
+	if ((err = str_rdlock(str)))
+		return set_errnull(err);
 
-	ret = do_split_locked(locker, str->str, str->length - 1, delim);
+	ret = str_split_with_locker_unlocked(locker, str, delim);
 
-	if (str_unlock(str) == -1)
+	if ((err = str_unlock(str)))
 	{
 		list_release(ret);
-		return NULL;
+		return set_errnull(err);
 	}
 
 	return ret;
+}
+
+/*
+
+=item C<List *str_split_with_locker_unlocked(Locker *locker, const String *str, const char *delim)>
+
+Equivalent to I<str_split_with_locker()> except that C<str> is not read
+locked.
+
+=cut
+
+*/
+
+List *str_split_with_locker_unlocked(Locker *locker, const String *str, const char *delim)
+{
+	if (!str || !delim)
+		return set_errnull(EINVAL);
+
+	return do_split_with_locker(locker, str->str, str->length - 1, delim);
 }
 
 /*
@@ -3263,12 +4071,12 @@ Equivalent to I<str_split()> but works on an ordinary C string.
 
 List *split(const char *str, const char *delim)
 {
-	return split_locked(NULL, str, delim);
+	return split_with_locker(NULL, str, delim);
 }
 
 /*
 
-=item C<List *split_locked(Locker *locker, const char *str, const char *delim)>
+=item C<List *split_with_locker(Locker *locker, const char *str, const char *delim)>
 
 Equivalent to I<split()> except that multiple threads accessing the new list
 will be synchronised by C<locker>.
@@ -3277,26 +4085,27 @@ will be synchronised by C<locker>.
 
 */
 
-List *split_locked(Locker *locker, const char *str, const char *delim)
+List *split_with_locker(Locker *locker, const char *str, const char *delim)
 {
 	if (!str || !delim)
-		return NULL;
+		return set_errnull(EINVAL);
 
-	return do_split_locked(locker, str, -1, delim);
+	return do_split_with_locker(locker, str, -1, delim);
 }
 
-#ifndef REGEX_MISSING
+#ifdef HAVE_REGEX_H
 
 /*
 
 =item C<List *str_regexpr_split(const String *str, const char *delim, int cflags, int eflags)>
 
-Splits C<str> into tokens separated by occurrences of the regular expression,
-C<delim>. C<str> is interpreted as a C<nul>-terminated C string. C<cflags> is
-passed to I<regcomp(3)> and C<eflags> is passed to C<regexec(3)>. On success,
-returns a new I<List> of I<String> objects. It is the caller's responsibility
-to deallocate the list with C<list_release()> or C<list_destroy()>. On error,
-returns C<NULL>.
+Splits C<str> into tokens separated by occurrences of the regular
+expression, C<delim>. C<str> is interpreted as a C<nul>-terminated C string.
+C<cflags> is passed to I<regcomp(3)> aling with C<REG_EXTENDED> and
+C<eflags> is passed to I<regexec(3)>. On success, returns a new I<List> of
+I<String> objects. It is the caller's responsibility to deallocate the list
+with I<list_release()> or I<list_destroy()>. On error, returns C<null> with
+C<errno> set appropriately.
 
 =cut
 
@@ -3304,12 +4113,27 @@ returns C<NULL>.
 
 List *str_regexpr_split(const String *str, const char *delim, int cflags, int eflags)
 {
-	return str_regexpr_split_locked(NULL, str, delim, cflags, eflags);
+	return str_regexpr_split_with_locker(NULL, str, delim, cflags, eflags);
 }
 
 /*
 
-=item C<List *str_regexpr_split_locked(Locker *locker, const String *str, const char *delim, int cflags, int eflags)>
+=item C<List *str_regexpr_split_unlocked(const String *str, const char *delim, int cflags, int eflags)>
+
+Equivalent to I<str_regexpr_split()> except that C<str> is not read locked.
+
+=cut
+
+*/
+
+List *str_regexpr_split_unlocked(const String *str, const char *delim, int cflags, int eflags)
+{
+	return str_regexpr_split_with_locker_unlocked(NULL, str, delim, cflags, eflags);
+}
+
+/*
+
+=item C<List *str_regexpr_split_with_locker(Locker *locker, const String *str, const char *delim, int cflags, int eflags)>
 
 Equivalent to I<str_regexpr_split()> except that multiple threads accessing
 the new list will be synchronised by C<locker>.
@@ -3318,25 +4142,45 @@ the new list will be synchronised by C<locker>.
 
 */
 
-List *str_regexpr_split_locked(Locker *locker, const String *str, const char *delim, int cflags, int eflags)
+List *str_regexpr_split_with_locker(Locker *locker, const String *str, const char *delim, int cflags, int eflags)
 {
 	List *ret;
+	int err;
 
 	if (!str || !delim)
-		return NULL;
+		return set_errnull(EINVAL);
 
-	if (str_rdlock(str) == -1)
-		return NULL;
+	if ((err = str_rdlock(str)))
+		return set_errnull(err);
 
-	ret = regexpr_split_locked(locker, str->str, delim, cflags, eflags);
+	ret = str_regexpr_split_with_locker_unlocked(locker, str, delim, cflags, eflags);
 
-	if (str_unlock(str) == -1)
+	if ((err = str_unlock(str)))
 	{
 		list_release(ret);
-		return NULL;
+		return set_errnull(err);
 	}
 
 	return ret;
+}
+
+/*
+
+=item C<List *str_regexpr_split_with_locker_unlocked(Locker *locker, const String *str, const char *delim, int cflags, int eflags)>
+
+Equivalent to I<str_regexpr_split_with_locker()> except that C<str> is not
+read locked.
+
+=cut
+
+*/
+
+List *str_regexpr_split_with_locker_unlocked(Locker *locker, const String *str, const char *delim, int cflags, int eflags)
+{
+	if (!str || !delim)
+		return set_errnull(EINVAL);
+
+	return regexpr_split_with_locker(locker, str->str, delim, cflags, eflags);
 }
 
 /*
@@ -3351,12 +4195,12 @@ Equivalent to I<str_regexpr_split()> but works on an ordinary C string.
 
 List *regexpr_split(const char *str, const char *delim, int cflags, int eflags)
 {
-	return regexpr_split_locked(NULL, str, delim, cflags, eflags);
+	return regexpr_split_with_locker(NULL, str, delim, cflags, eflags);
 }
 
 /*
 
-=item C<List *regexpr_split_locked(Locker *locker, const char *str, const char *delim, int cflags, int eflags)>
+=item C<List *regexpr_split_with_locker(Locker *locker, const char *str, const char *delim, int cflags, int eflags)>
 
 Equivalent to I<regexpr_split()> except that multiple threads accessing the
 new list will be synchronised by C<locker>.
@@ -3365,21 +4209,22 @@ new list will be synchronised by C<locker>.
 
 */
 
-List *regexpr_split_locked(Locker *locker, const char *str, const char *delim, int cflags, int eflags)
+List *regexpr_split_with_locker(Locker *locker, const char *str, const char *delim, int cflags, int eflags)
 {
 	List *ret;
 	String *token;
 	regex_t compiled[1];
 	regmatch_t match[1];
 	int start, matches;
+	int err;
 
 	if (!str || !delim)
-		return NULL;
+		return set_errnull(EINVAL);
 
-	if (regexpr_compile(compiled, delim, cflags))
-		return NULL;
+	if ((err = regexpr_compile(compiled, delim, cflags)))
+		return set_errnull(err);
 
-	if (!(ret = list_create_locked(locker, (list_release_t *)str_release)))
+	if (!(ret = list_create_with_locker(locker, (list_release_t *)str_release)))
 		return NULL;
 
 	for (start = 0, matches = 0; str[start]; ++matches)
@@ -3399,7 +4244,7 @@ List *regexpr_split_locked(Locker *locker, const char *str, const char *delim, i
 
 		if (match[0].rm_so)
 		{
-			if (!(token = substr(str, start, match[0].rm_so)))
+			if (!(token = substr(str, start, (ssize_t)match[0].rm_so)))
 			{
 				list_release(ret);
 				return NULL;
@@ -3446,7 +4291,7 @@ List *regexpr_split_locked(Locker *locker, const char *str, const char *delim, i
 Joins the I<String> objects in C<list> with C<delim> inserted between each
 one. On success, returns the resulting I<String>. It is the caller's
 responsibility to deallocate the string with I<str_release()> or
-I<str_destroy()>. On error, returns NULL.
+I<str_destroy()>. On error, returns C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -3454,12 +4299,27 @@ I<str_destroy()>. On error, returns NULL.
 
 String *str_join(const List *list, const char *delim)
 {
-	return str_join_locked(NULL, list, delim);
+	return str_join_with_locker(NULL, list, delim);
 }
 
 /*
 
-=item C<String *str_join_locked(Locker *locker, const List *list, const char *delim)>
+=item C<String *str_join_unlocked(const List *list, const char *delim)>
+
+Equivalent to I<str_join()> except that C<list> is not read locked.
+
+=cut
+
+*/
+
+String *str_join_unlocked(const List *list, const char *delim)
+{
+	return str_join_with_locker_unlocked(NULL, list, delim);
+}
+
+/*
+
+=item C<String *str_join_with_locker(Locker *locker, const List *list, const char *delim)>
 
 Equivalent to I<str_join()> except that multiple threads accessing the new
 string will be synchronised by C<locker>.
@@ -3468,7 +4328,36 @@ string will be synchronised by C<locker>.
 
 */
 
-String *str_join_locked(Locker *locker, const List *list, const char *delim)
+String *str_join_with_locker(Locker *locker, const List *list, const char *delim)
+{
+	String *ret;
+	int err;
+
+	if (!list)
+		return set_errnull(EINVAL);
+
+	if ((err = list_rdlock(list)))
+		return set_errnull(err);
+
+	ret = str_join_with_locker_unlocked(locker, list, delim);
+
+	if ((err = list_unlock(list)))
+		return set_errnull(err);
+
+	return ret;
+}
+
+/*
+
+=item C<String *str_join_with_locker_unlocked(Locker *locker, const List *list, const char *delim)>
+
+Equivalent to I<str_join_with_locker()> except that C<list> is not read locked.
+
+=cut
+
+*/
+
+String *str_join_with_locker_unlocked(Locker *locker, const List *list, const char *delim)
 {
 	String *ret;
 	String *del;
@@ -3476,9 +4365,9 @@ String *str_join_locked(Locker *locker, const List *list, const char *delim)
 	int i;
 
 	if (!list)
-		return NULL;
+		return set_errnull(EINVAL);
 
-	if (!(ret = str_create_locked(locker, NULL)))
+	if (!(ret = str_create_with_locker(locker, NULL)))
 		return NULL;
 
 	if (!(del = str_create(delim ? "%s" : NULL, delim)))
@@ -3487,14 +4376,14 @@ String *str_join_locked(Locker *locker, const List *list, const char *delim)
 		return NULL;
 	}
 
-	if (!(lister = lister_create((List *)list)))
+	if (!(lister = lister_create_unlocked(list)))
 	{
 		str_release(ret);
 		str_release(del);
 		return NULL;
 	}
 
-	for (i = 0; lister_has_next(lister); ++i)
+	for (i = 0; lister_has_next(lister) == 1; ++i)
 	{
 		String *s = (String *)lister_next(lister);
 
@@ -3502,7 +4391,7 @@ String *str_join_locked(Locker *locker, const List *list, const char *delim)
 		{
 			str_release(ret);
 			str_release(del);
-			lister_release(lister);
+			lister_release_unlocked(lister);
 			return NULL;
 		}
 
@@ -3510,13 +4399,13 @@ String *str_join_locked(Locker *locker, const List *list, const char *delim)
 		{
 			str_release(ret);
 			str_release(del);
-			lister_release(lister);
+			lister_release_unlocked(lister);
 			return NULL;
 		}
 	}
 
 	str_release(del);
-	lister_release(lister);
+	lister_release_unlocked(lister);
 
 	return ret;
 }
@@ -3533,12 +4422,12 @@ Equivalent to I<str_join()> but works on a list of ordinary C strings.
 
 String *join(const List *list, const char *delim)
 {
-	return join_locked(NULL, list, delim);
+	return join_with_locker(NULL, list, delim);
 }
 
 /*
 
-=item C<String *join_locked(Locker *locker, const List *list, const char *delim)>
+=item C<String *join_with_locker(Locker *locker, const List *list, const char *delim)>
 
 Equivalent to I<join()> except that multiple threads accessing the new
 string will be synchronised by C<locker>.
@@ -3547,7 +4436,7 @@ string will be synchronised by C<locker>.
 
 */
 
-String *join_locked(Locker *locker, const List *list, const char *delim)
+String *join_with_locker(Locker *locker, const List *list, const char *delim)
 {
 	String *ret;
 	String *del;
@@ -3555,9 +4444,9 @@ String *join_locked(Locker *locker, const List *list, const char *delim)
 	int i;
 
 	if (!list)
-		return NULL;
+		return set_errnull(EINVAL);
 
-	if (!(ret = str_create_locked(locker, NULL)))
+	if (!(ret = str_create_with_locker(locker, NULL)))
 		return NULL;
 
 	if (!(del = str_create(delim ? "%s" : NULL, delim)))
@@ -3573,7 +4462,7 @@ String *join_locked(Locker *locker, const List *list, const char *delim)
 		return NULL;
 	}
 
-	for (i = 0; lister_has_next(lister); ++i)
+	for (i = 0; lister_has_next(lister) == 1; ++i)
 	{
 		char *s = (char *)lister_next(lister);
 
@@ -3602,10 +4491,109 @@ String *join_locked(Locker *locker, const List *list, const char *delim)
 
 /*
 
+=item C<int str_soundex(const String *str)>
+
+Returns the soundex code of C<str> as an integer. On error, returns C<-1>
+with C<errno> set appropriately.
+
+=cut
+
+*/
+
+int str_soundex(const String *str)
+{
+	int ret;
+	int err;
+
+	if (!str)
+		return set_errno(EINVAL);
+
+	if ((err = str_rdlock(str)))
+		return set_errno(err);
+
+	ret = str_soundex_unlocked(str);
+
+	if ((err = str_unlock(str)))
+		return set_errno(err);
+
+	return ret;
+}
+
+/*
+
+=item C<int str_soundex_unlocked(const String *str)>
+
+Equivalent to I<str_soundex()> except that C<str> is not read locked.
+
+=cut
+
+*/
+
+int str_soundex_unlocked(const String *str)
+{
+	if (!str)
+		return set_errno(EINVAL);
+
+	return soundex(str->str);
+}
+
+/*
+
+=item C<int soundex(const char *str)>
+
+Equivalent to I<str_soundex()> but works on an ordinary C string.
+
+=cut
+
+*/
+
+int soundex(const char *str)
+{
+	const char * const soundex_table = "\000123\00012\000\00022455\00012623\0001\0002\0002";
+	union { char c[4]; int i; } soundex;
+	int last, small;
+
+	if (!str)
+		return set_errno(EINVAL);
+
+	soundex.i = 0;
+
+	for (last = -1, small = 0; *str && small < 4; ++str)
+	{
+		if (is_alpha(*str))
+		{
+			int code = to_upper(*str);
+
+			if (small == 0)
+			{
+				soundex.c[small++] = code;
+				last = soundex_table[code - 'A'];
+			}
+			else
+			{
+				if ((code = soundex_table[code - 'A']) != last)
+				{
+					if (code != 0)
+						soundex.c[small++] = code;
+
+					last = code;
+				}
+			}
+		}
+	}
+
+	while (small < 4)
+		soundex.c[small++] = '0';
+
+	return ntohl(soundex.i);
+}
+
+/*
+
 =item C<String *str_trim(String *str)>
 
-Trims leading and trailing spaces from C<str>. On success, returns C<str>.
-On error, returns C<NULL>.
+Trims leading and trailing whitespace from C<str>. On success, returns
+C<str>. On error, returns C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -3613,19 +4601,39 @@ On error, returns C<NULL>.
 
 String *str_trim(String *str)
 {
+	String *ret;
+	int err;
+
+	if (!str)
+		return set_errnull(EINVAL);
+
+	if ((err = str_wrlock(str)))
+		return set_errnull(err);
+
+	ret = str_trim_unlocked(str);
+
+	if ((err = str_unlock(str)))
+		return set_errnull(err);
+
+	return ret;
+}
+
+/*
+
+=item C<String *str_trim_unlocked(String *str)>
+
+Equivalent to I<str_trim()> except that C<str> is not write locked.
+
+=cut
+
+*/
+
+String *str_trim_unlocked(String *str)
+{
 	char *s;
 
 	if (!str)
-		return NULL;
-
-	if (str_wrlock(str) == -1)
-		return NULL;
-
-	if (!str->str)
-	{
-		str_unlock(str);
-		return NULL;
-	}
+		return set_errnull(EINVAL);
 
 	for (s = str->str; is_space(*s); ++s)
 	{}
@@ -3633,10 +4641,7 @@ String *str_trim(String *str)
 	if (s > str->str)
 	{
 		if (!str_remove_range_unlocked(str, 0, s - str->str))
-		{
-			str_unlock(str);
 			return NULL;
-		}
 	}
 
 	for (s = str->str + str->length - 1; s > str->str && is_space(s[-1]); --s)
@@ -3645,14 +4650,8 @@ String *str_trim(String *str)
 	if (is_space(*s))
 	{
 		if (!str_remove_range_unlocked(str, s - str->str, str->length - 1 - (s - str->str)))
-		{
-			str_unlock(str);
 			return NULL;
-		}
 	}
-
-	if (str_unlock(str) == -1)
-		return NULL;
 
 	return str;
 }
@@ -3673,7 +4672,7 @@ char *trim(char *str)
 	size_t len;
 
 	if (!str)
-		return NULL;
+		return set_errnull(EINVAL);
 
 	for (s = str; is_space(*s); ++s)
 	{}
@@ -3693,8 +4692,8 @@ char *trim(char *str)
 
 =item C<String *str_trim_left(String *str)>
 
-Trims leading spaces from C<str>. On success, returns C<str>. On error,
-returns C<NULL>.
+Trims leading whitespace from C<str>. On success, returns C<str>. On error,
+returns C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -3702,34 +4701,46 @@ returns C<NULL>.
 
 String *str_trim_left(String *str)
 {
+	String *ret;
+	int err;
+
+	if (!str)
+		return set_errnull(EINVAL);
+
+	if ((err = str_wrlock(str)))
+		return set_errnull(err);
+
+	ret = str_trim_left_unlocked(str);
+
+	if ((err = str_unlock(str)))
+		return set_errnull(err);
+
+	return ret;
+}
+
+/*
+
+=item C<String *str_trim_left_unlocked(String *str)>
+
+Equivalent to I<str_trim_left()> except that C<str> is not write locked.
+
+=cut
+
+*/
+
+String *str_trim_left_unlocked(String *str)
+{
 	char *s;
 
 	if (!str)
-		return NULL;
-
-	if (str_wrlock(str) == -1)
-		return NULL;
-
-	if (!str->str)
-	{
-		str_unlock(str);
-		return NULL;
-	}
+		return set_errnull(EINVAL);
 
 	for (s = str->str; is_space(*s); ++s)
 	{}
 
 	if (s > str->str)
-	{
 		if (!str_remove_range_unlocked(str, 0, s - str->str))
-		{
-			str_unlock(str);
 			return NULL;
-		}
-	}
-
-	if (str_unlock(str) == -1)
-		return NULL;
 
 	return str;
 }
@@ -3750,7 +4761,7 @@ char *trim_left(char *str)
 	size_t len;
 
 	if (!str)
-		return NULL;
+		return set_errnull(EINVAL);
 
 	for (s = str; is_space(*s); ++s)
 	{}
@@ -3765,10 +4776,10 @@ char *trim_left(char *str)
 
 /*
 
-=item C<String *trim_right(String *str)>
+=item C<String *str_trim_right(String *str)>
 
-Trims trailing spaces from C<str>. On success, returns C<str>. On error,
-returns C<NULL>.
+Trims trailing whitespace from C<str>. On success, returns C<str>. On error,
+returns C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -3776,34 +4787,46 @@ returns C<NULL>.
 
 String *str_trim_right(String *str)
 {
+	String *ret;
+	int err;
+
+	if (!str)
+		return set_errnull(EINVAL);
+
+	if ((err = str_wrlock(str)))
+		return set_errnull(err);
+
+	ret = str_trim_right_unlocked(str);
+
+	if ((err = str_unlock(str)))
+		return set_errnull(err);
+
+	return ret;
+}
+
+/*
+
+=item C<String *str_trim_right_unlocked(String *str)>
+
+Equivalent to I<str_trim_right()> except that C<str> is not write locked.
+
+=cut
+
+*/
+
+String *str_trim_right_unlocked(String *str)
+{
 	char *s;
 
 	if (!str)
-		return NULL;
-
-	if (str_wrlock(str) == -1)
-		return NULL;
-
-	if (!str->str)
-	{
-		str_unlock(str);
-		return NULL;
-	}
+		return set_errnull(EINVAL);
 
 	for (s = str->str + str->length - 1; s > str->str && is_space(s[-1]); --s)
 	{}
 
 	if (is_space(*s))
-	{
 		if (!str_remove_range_unlocked(str, s - str->str, str->length - 1 - (s - str->str)))
-		{
-			str_unlock(str);
 			return NULL;
-		}
-	}
-
-	if (str_unlock(str) == -1)
-		return NULL;
 
 	return str;
 }
@@ -3824,7 +4847,7 @@ char *trim_right(char *str)
 	size_t len;
 
 	if (!str)
-		return NULL;
+		return set_errnull(EINVAL);
 
 	len = strlen(str);
 
@@ -3838,9 +4861,9 @@ char *trim_right(char *str)
 
 =item C<String *str_squeeze(String *str)>
 
-Trims leading and trailing spaces from C<str> and replaces all other
+Trims leading and trailing whitespace from C<str> and replaces all other
 sequences of whitespace with a single space. On success, returns C<str>. On
-error, returns C<NULL>.
+error, returns C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -3848,15 +4871,41 @@ error, returns C<NULL>.
 
 String *str_squeeze(String *str)
 {
+	String *ret;
+	int err;
+
+	if (!str)
+		return set_errnull(EINVAL);
+
+	if ((err = str_wrlock(str)))
+		return set_errnull(err);
+
+	ret = str_squeeze_unlocked(str);
+
+	if ((err = str_unlock(str)))
+		return set_errnull(err);
+
+	return ret;
+}
+
+/*
+
+=item C<String *str_squeeze_unlocked(String *str)>
+
+Equivalent to I<str_squeeze()> except that C<str> is not write locked.
+
+=cut
+
+*/
+
+String *str_squeeze_unlocked(String *str)
+{
 	char *s, *r;
 	int started = 0;
 	int was_space = 0;
 
 	if (!str)
-		return NULL;
-
-	if (str_wrlock(str) == -1)
-		return NULL;
+		return set_errnull(EINVAL);
 
 	for (r = s = str->str; s - str->str < str->length - 1; ++s)
 	{
@@ -3872,16 +4921,8 @@ String *str_squeeze(String *str)
 	}
 
 	if (r - str->str < str->length)
-	{
 		if (!str_remove_range_unlocked(str, r - str->str, str->length - 1 - (r - str->str)))
-		{
-			str_unlock(str);
 			return NULL;
-		}
-	}
-
-	if (str_unlock(str) == -1)
-		return NULL;
 
 	return str;
 }
@@ -3903,7 +4944,7 @@ char *squeeze(char *str)
 	int was_space = 0;
 
 	if (!str)
-		return NULL;
+		return set_errnull(EINVAL);
 
 	for (r = s = str; *s; ++s)
 	{
@@ -3927,10 +4968,11 @@ char *squeeze(char *str)
 
 =item C<String *str_quote(const String *str, const char *quotable, char quote_char)>
 
-Creates a new string containing C<str> with every occurrence of any
+Creates a new I<String> containing C<str> with every occurrence of any
 character in C<quotable> preceeded by C<quote_char>. On success, returns the
 new string. It is the caller's responsibility to deallocate the new string
-with I<str_release()> or I<str_destroy()>. On error, returns C<NULL>.
+with I<str_release()> or I<str_destroy()>. On error, returns C<null> with
+C<errno> set appropriately.
 
 =cut
 
@@ -3938,12 +4980,27 @@ with I<str_release()> or I<str_destroy()>. On error, returns C<NULL>.
 
 String *str_quote(const String *str, const char *quotable, char quote_char)
 {
-	return str_quote_locked(NULL, str, quotable, quote_char);
+	return str_quote_with_locker(NULL, str, quotable, quote_char);
 }
 
 /*
 
-=item C<String *str_quote_locked(Locker *locker, const String *str, const char *quotable, char quote_char)>
+=item C<String *str_quote_unlocked(const String *str, const char *quotable, char quote_char)>
+
+Equivalent to I<str_quote()> except that C<str> is not read locked.
+
+=cut
+
+*/
+
+String *str_quote_unlocked(const String *str, const char *quotable, char quote_char)
+{
+	return str_quote_with_locker_unlocked(NULL, str, quotable, quote_char);
+}
+
+/*
+
+=item C<String *str_quote_with_locker(Locker *locker, const String *str, const char *quotable, char quote_char)>
 
 Equivalent to I<str_quote()> except that multiple threads accessing the new
 string will be synchronised by C<locker>.
@@ -3952,24 +5009,64 @@ string will be synchronised by C<locker>.
 
 */
 
-String *str_quote_locked(Locker *locker, const String *str, const char *quotable, char quote_char)
+String *str_quote_with_locker(Locker *locker, const String *str, const char *quotable, char quote_char)
 {
 	String *ret;
 	size_t i;
 
 	if (!str || !quotable)
-		return NULL;
+		return set_errnull(EINVAL);
 
-	if (!(ret = str_copy_locked(locker, str)))
+	if (!(ret = str_copy_with_locker(locker, str)))
 		return NULL;
 
 	for (i = 0; i < ret->length - 1; ++i)
+	{
 		if (ret->str[i] && strchr(quotable, ret->str[i]))
+		{
 			if (!str_insert(ret, i++, "%c", quote_char))
 			{
 				str_release(ret);
 				return NULL;
 			}
+		}
+	}
+
+	return ret;
+}
+
+/*
+
+=item C<String *str_quote_with_locker_unlocked(Locker *locker, const String *str, const char *quotable, char quote_char)>
+
+Equivalent to I<str_quote_with_locker()> except that C<str> is not read locked.
+
+=cut
+
+*/
+
+String *str_quote_with_locker_unlocked(Locker *locker, const String *str, const char *quotable, char quote_char)
+{
+	String *ret;
+	size_t i;
+
+	if (!str || !quotable)
+		return set_errnull(EINVAL);
+
+	if (!(ret = str_copy_with_locker_unlocked(locker, str)))
+		return NULL;
+
+	for (i = 0; i < ret->length - 1; ++i)
+	{
+		if (ret->str[i] && strchr(quotable, ret->str[i]))
+		{
+			if (!str_insert(ret, i++, "%c", quote_char))
+			{
+				str_release(ret);
+				return NULL;
+			}
+		}
+	}
 
 	return ret;
 }
@@ -3986,12 +5083,12 @@ Equivalent to I<str_quote()> but works on an ordinary C string.
 
 String *quote(const char *str, const char *quotable, char quote_char)
 {
-	return quote_locked(NULL, str, quotable, quote_char);
+	return quote_with_locker(NULL, str, quotable, quote_char);
 }
 
 /*
 
-=item C<String *quote_locked(Locker *locker, const char *str, const char *quotable, char quote_char)>
+=item C<String *quote_with_locker(Locker *locker, const char *str, const char *quotable, char quote_char)>
 
 Equivalent to I<quote()> except that multiple threads accessing the new string
 will be synchronised by C<locker>.
@@ -4000,24 +5097,28 @@ will be synchronised by C<locker>.
 
 */
 
-String *quote_locked(Locker *locker, const char *str, const char *quotable, char quote_char)
+String *quote_with_locker(Locker *locker, const char *str, const char *quotable, char quote_char)
 {
 	String *ret;
 	size_t i;
 
 	if (!str || !quotable)
-		return NULL;
+		return set_errnull(EINVAL);
 
-	if (!(ret = str_create_locked(locker, "%s", str)))
+	if (!(ret = str_create_with_locker(locker, "%s", str)))
 		return NULL;
 
 	for (i = 0; i < ret->length - 1; ++i)
+	{
 		if (strchr(quotable, ret->str[i]))
+		{
 			if (!str_insert(ret, i++, "%c", quote_char))
 			{
 				str_release(ret);
 				return NULL;
 			}
+		}
+	}
 
 	return ret;
 }
@@ -4030,7 +5131,7 @@ Creates a new string containing C<str> with every occurrence of
 C<quote_char> that is followed by any character in C<quotable> removed. On
 success, returns the new I<String>. It is the caller's responsibility to
 deallocate the new string with I<str_release()> or I<str_destroy()>. On
-error, returns C<NULL>.
+error, returns C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -4038,12 +5139,27 @@ error, returns C<NULL>.
 
 String *str_unquote(const String *str, const char *quotable, char quote_char)
 {
-	return str_unquote_locked(NULL, str, quotable, quote_char);
+	return str_unquote_with_locker(NULL, str, quotable, quote_char);
 }
 
 /*
 
-=item C<String *str_unquote_locked(Locker *locker, const String *str, const char *quotable, char quote_char)>
+=item C<String *str_unquote_unlocked(const String *str, const char *quotable, char quote_char)>
+
+Equivalent to I<str_unquote()> except that C<str> is not read locked.
+
+=cut
+
+*/
+
+String *str_unquote_unlocked(const String *str, const char *quotable, char quote_char)
+{
+	return str_unquote_with_locker_unlocked(NULL, str, quotable, quote_char);
+}
+
+/*
+
+=item C<String *str_unquote_with_locker(Locker *locker, const String *str, const char *quotable, char quote_char)>
 
 Equivalent to I<str_unquote()> except that multiple threads accessing the new
 string will be synchronised by C<locker>.
@@ -4052,24 +5168,65 @@ string will be synchronised by C<locker>.
 
 */
 
-String *str_unquote_locked(Locker *locker, const String *str, const char *quotable, char quote_char)
+String *str_unquote_with_locker(Locker *locker, const String *str, const char *quotable, char quote_char)
 {
 	String *ret;
 	int i;
 
 	if (!str || !quotable)
-		return NULL;
+		return set_errnull(EINVAL);
 
-	if (!(ret = str_copy_locked(locker, str)))
+	if (!(ret = str_copy_with_locker(locker, str)))
 		return NULL;
 
 	for (i = 0; i < (int)ret->length - 2; ++i)
+	{
 		if (ret->str[i] == quote_char && ret->str[i + 1] && strchr(quotable, ret->str[i + 1]))
+		{
 			if (!str_remove(ret, i))
 			{
 				str_release(ret);
 				return NULL;
 			}
+		}
+	}
+
+	return ret;
+}
+
+/*
+
+=item C<String *str_unquote_with_locker_unlocked(Locker *locker, const String *str, const char *quotable, char quote_char)>
+
+Equivalent to I<str_unquote_with_locker()> except that C<str> is not read
+locked.
+
+=cut
+
+*/
+
+String *str_unquote_with_locker_unlocked(Locker *locker, const String *str, const char *quotable, char quote_char)
+{
+	String *ret;
+	int i;
+
+	if (!str || !quotable)
+		return set_errnull(EINVAL);
+
+	if (!(ret = str_copy_with_locker_unlocked(locker, str)))
+		return NULL;
+
+	for (i = 0; i < (int)ret->length - 2; ++i)
+	{
+		if (ret->str[i] == quote_char && ret->str[i + 1] && strchr(quotable, ret->str[i + 1]))
+		{
+			if (!str_remove(ret, i))
+			{
+				str_release(ret);
+				return NULL;
+			}
+		}
+	}
 
 	return ret;
 }
@@ -4086,12 +5243,12 @@ Equivalent to I<str_unquote()> but works on an ordinary C string.
 
 String *unquote(const char *str, const char *quotable, char quote_char)
 {
-	return unquote_locked(NULL, str, quotable, quote_char);
+	return unquote_with_locker(NULL, str, quotable, quote_char);
 }
 
 /*
 
-=item C<String *unquote_locked(Locker *locker, const char *str, const char *quotable, char quote_char)>
+=item C<String *unquote_with_locker(Locker *locker, const char *str, const char *quotable, char quote_char)>
 
 Equivalent to I<unquote()> except that multiple threads accessing the new
 string will be synchronised by C<locker>.
@@ -4100,37 +5257,41 @@ string will be synchronised by C<locker>.
 
 */
 
-String *unquote_locked(Locker *locker, const char *str, const char *quotable, char quote_char)
+String *unquote_with_locker(Locker *locker, const char *str, const char *quotable, char quote_char)
 {
 	String *ret;
 	int i;
 
 	if (!str || !quotable)
-		return NULL;
+		return set_errnull(EINVAL);
 
-	if (!(ret = str_create_locked(locker, "%s", str)))
+	if (!(ret = str_create_with_locker(locker, "%s", str)))
 		return NULL;
 
 	for (i = 0; i < (int)ret->length - 2; ++i)
+	{
 		if (ret->str[i] == quote_char && strchr(quotable, ret->str[i + 1]))
+		{
 			if (!str_remove(ret, i))
 			{
 				str_release(ret);
 				return NULL;
 			}
+		}
+	}
 
 	return ret;
 }
 
 /*
 
-C<static String *do_encode_locked(Locker *locker, const char *str, ssize_t length, const char *uncoded, const char *coded, char quote_char, int printable)>
+C<static String *do_encode_with_locker(Locker *locker, const char *str, ssize_t length, const char *uncoded, const char *coded, char quote_char, int printable)>
 
 Performs encoding as described in I<str_encode()>.
 
 */
 
-static String *do_encode_locked(Locker *locker, const char *str, size_t length, const char *uncoded, const char *coded, char quote_char, int printable)
+static String *do_encode_with_locker(Locker *locker, const char *str, size_t length, const char *uncoded, const char *coded, char quote_char, int printable)
 {
 	static const char hex[] = "0123456789abcdef";
 	String *encoded;
@@ -4138,16 +5299,16 @@ static String *do_encode_locked(Locker *locker, const char *str, size_t length, 
 	const char *s;
 
 	if (!str || !uncoded || !coded)
-		return NULL;
+		return set_errnull(EINVAL);
 
-	if (!(encoded = str_create_locked_sized(locker, length * 4 + 1, "")))
+	if (!(encoded = str_create_with_locker_sized(locker, length * 4 + 1, "")))
 		return NULL;
 
 	for (s = str; s - str < length; ++s)
 	{
-		if (*s && (target = strchr(uncoded, *s)))
+		if (*s && (target = strchr(uncoded, (unsigned char)*s)))
 		{
-			if (!str_append(encoded, "%c%c", quote_char, coded[target - uncoded]))
+			if (!str_append(encoded, "%c%c", (unsigned char)quote_char, coded[target - uncoded]))
 			{
 				str_release(encoded);
 				return NULL;
@@ -4155,7 +5316,7 @@ static String *do_encode_locked(Locker *locker, const char *str, size_t length, 
 		}
 		else if (printable && !is_print(*s))
 		{
-			if (!str_append(encoded, "%cx%c%c", quote_char, hex[(unsigned char)*s >> 4], hex[(unsigned char)*s & 0x0f]))
+			if (!str_append(encoded, "%cx%c%c", (unsigned char)quote_char, hex[(unsigned char)*s >> 4], hex[(unsigned char)*s & 0x0f]))
 			{
 				str_release(encoded);
 				return NULL;
@@ -4163,7 +5324,7 @@ static String *do_encode_locked(Locker *locker, const char *str, size_t length, 
 		}
 		else
 		{
-			if (!str_append(encoded, "%c", *s))
+			if (!str_append(encoded, "%c", (unsigned char)*s))
 			{
 				str_release(encoded);
 				return NULL;
@@ -4176,13 +5337,13 @@ static String *do_encode_locked(Locker *locker, const char *str, size_t length, 
 
 /*
 
-C<static String *do_decode_locked(Locker *locker, const char *str, ssize_t length, const char *uncoded, const char *coded, char quote_char, int printable)>
+C<static String *do_decode_with_locker(Locker *locker, const char *str, ssize_t length, const char *uncoded, const char *coded, char quote_char, int printable)>
 
 Performs decoding as described in I<str_decode()>.
 
 */
 
-static String *do_decode_locked(Locker *locker, const char *str, size_t length, const char *uncoded, const char *coded, char quote_char, int printable)
+static String *do_decode_with_locker(Locker *locker, const char *str, size_t length, const char *uncoded, const char *coded, char quote_char, int printable)
 {
 	String *decoded;
 	const char *start;
@@ -4190,9 +5351,9 @@ static String *do_decode_locked(Locker *locker, const char *str, size_t length, 
 	char *target;
 
 	if (!str || !uncoded || !coded)
-		return NULL;
+		return set_errnull(EINVAL);
 
-	if (!(decoded = str_create_locked_sized(locker, length + 1, "")))
+	if (!(decoded = str_create_with_locker_sized(locker, length + 1, "")))
 		return NULL;
 
 	for (start = str; start - str < length; start = slosh + 1)
@@ -4291,12 +5452,13 @@ static String *do_decode_locked(Locker *locker, const char *str, size_t length, 
 
 =item C<String *str_encode(const String *str, const char *uncoded, const char *coded, char quote_char, int printable)>
 
-Returns a copy of C<str> with every occurrance in C<str> of characters in
+Returns a copy of C<str> with every occurrence in C<str> of characters in
 C<uncoded> replaced with C<quote_char> followed by the corresponding (by
 position) character in C<coded>. If C<printable> is non-zero, other
 non-printable characters are replaced with their ASCII codes in hexadecimal.
 It is the caller's responsibility to deallocate the new string with
-I<str_release()> or I<str_destroy()>. On error, returns C<NULL>.
+I<str_release()> or I<str_destroy()>. On error, returns C<null> with
+C<errno> set appropriately.
 
 Example:
 
@@ -4312,12 +5474,27 @@ Example:
 
 String *str_encode(const String *str, const char *uncoded, const char *coded, char quote_char, int printable)
 {
-	return str_encode_locked(NULL, str, uncoded, coded, quote_char, printable);
+	return str_encode_with_locker(NULL, str, uncoded, coded, quote_char, printable);
 }
 
 /*
 
-=item C<String *str_encode_locked(Locker *locker, const String *str, const char *uncoded, const char *coded, char quote_char, int printable)>
+=item C<String *str_encode_unlocked(const String *str, const char *uncoded, const char *coded, char quote_char, int printable)>
+
+Equivalent to I<str_encode()> except that C<str> is not read locked.
+
+=cut
+
+*/
+
+String *str_encode_unlocked(const String *str, const char *uncoded, const char *coded, char quote_char, int printable)
+{
+	return str_encode_with_locker_unlocked(NULL, str, uncoded, coded, quote_char, printable);
+}
+
+/*
+
+=item C<String *str_encode_with_locker(Locker *locker, const String *str, const char *uncoded, const char *coded, char quote_char, int printable)>
 
 Equivalent to I<str_encode()> except that multiple threads accessing the new
 string will be synchronised by C<locker>.
@@ -4326,22 +5503,23 @@ string will be synchronised by C<locker>.
 
 */
 
-String *str_encode_locked(Locker *locker, const String *str, const char *uncoded, const char *coded, char quote_char, int printable)
+String *str_encode_with_locker(Locker *locker, const String *str, const char *uncoded, const char *coded, char quote_char, int printable)
 {
 	String *ret;
+	int err;
 
 	if (!str || !uncoded || !coded)
-		return NULL;
+		return set_errnull(EINVAL);
 
-	if (str_rdlock(str) == -1)
-		return NULL;
+	if ((err = str_rdlock(str)))
+		return set_errnull(err);
 
-	ret = do_encode_locked(locker, str->str, str->length - 1, uncoded, coded, quote_char, printable);
+	ret = str_encode_with_locker_unlocked(locker, str, uncoded, coded, quote_char, printable);
 
-	if (str_unlock(str) == -1)
+	if ((err = str_unlock(str)))
 	{
 		str_release(ret);
-		return NULL;
+		return set_errnull(err);
 	}
 
 	return ret;
@@ -4349,15 +5527,35 @@ String *str_encode_locked(Locker *locker, const String *str, const char *uncoded
 
 /*
 
+=item C<String *str_encode_with_locker_unlocked(Locker *locker, const String *str, const char *uncoded, const char *coded, char quote_char, int printable)>
+
+Equivalent to I<str_encode_with_locker()> except that C<str> is not read
+locked.
+
+=cut
+
+*/
+
+String *str_encode_with_locker_unlocked(Locker *locker, const String *str, const char *uncoded, const char *coded, char quote_char, int printable)
+{
+	if (!str || !uncoded || !coded)
+		return set_errnull(EINVAL);
+
+	return do_encode_with_locker(locker, str->str, str->length - 1, uncoded, coded, quote_char, printable);
+}
+
+/*
+
 =item C<String *str_decode(const String *str, const char *uncoded, const char *coded, char quote_char, int printable)>
 
-Returns a copy of C<str> with every occurrance in C<str> of C<quote_char>
+Returns a copy of C<str> with every occurrence in C<str> of C<quote_char>
 followed by a character in C<coded> replaced with the corresponding (by
 position) character in C<uncoded>. If C<printable> is non-zero, every
-occurrance in C<str> of an ASCII code in octal or hexadecimal (i.e. "\ooo"
+occurrence in C<str> of an ASCII code in octal or hexadecimal (i.e. "\ooo"
 or "\xhh") is replaced with the corresponding ASCII character. It is the
 caller's responsibility to deallocate the new string with I<str_release()>
-or I<str_destroy()>. On error, returns C<NULL>.
+or I<str_destroy()>. On error, returns C<null> with C<errno> set
+appropriately.
 
 =cut
 
@@ -4365,12 +5563,27 @@ or I<str_destroy()>. On error, returns C<NULL>.
 
 String *str_decode(const String *str, const char *uncoded, const char *coded, char quote_char, int printable)
 {
-	return str_decode_locked(NULL, str, uncoded, coded, quote_char, printable);
+	return str_decode_with_locker(NULL, str, uncoded, coded, quote_char, printable);
 }
 
 /*
 
-=item C<String *str_decode_locked(Locker *locker, const String *str, const char *uncoded, const char *coded, char quote_char, int printable)>
+=item C<String *str_decode_unlocked(const String *str, const char *uncoded, const char *coded, char quote_char, int printable)>
+
+Equivalent to I<str_decode()> except that C<str> is not read locked.
+
+=cut
+
+*/
+
+String *str_decode_unlocked(const String *str, const char *uncoded, const char *coded, char quote_char, int printable)
+{
+	return str_decode_with_locker_unlocked(NULL, str, uncoded, coded, quote_char, printable);
+}
+
+/*
+
+=item C<String *str_decode_with_locker(Locker *locker, const String *str, const char *uncoded, const char *coded, char quote_char, int printable)>
 
 Equivalent to I<str_decode()> except that multiple threads accessing the new
 string will be synchronised by C<locker>.
@@ -4379,25 +5592,45 @@ string will be synchronised by C<locker>.
 
 */
 
-String *str_decode_locked(Locker *locker, const String *str, const char *uncoded, const char *coded, char quote_char, int printable)
+String *str_decode_with_locker(Locker *locker, const String *str, const char *uncoded, const char *coded, char quote_char, int printable)
 {
 	String *ret;
+	int err;
 
 	if (!str || !uncoded || !coded)
-		return NULL;
+		return set_errnull(EINVAL);
 
-	if (str_rdlock(str) == -1)
-		return NULL;
+	if ((err = str_rdlock(str)))
+		return set_errnull(err);
 
-	ret = do_decode_locked(locker, str->str, str->length - 1, uncoded, coded, quote_char, printable);
+	ret = str_decode_with_locker_unlocked(locker, str, uncoded, coded, quote_char, printable);
 
-	if (str_unlock(str) == -1)
+	if ((err = str_unlock(str)))
 	{
 		str_release(ret);
-		return NULL;
+		return set_errnull(err);
 	}
 
 	return ret;
+}
+
+/*
+
+=item C<String *str_decode_with_locker_unlocked(Locker *locker, const String *str, const char *uncoded, const char *coded, char quote_char, int printable)>
+
+Equivalent to I<str_decode_with_locker()> except that C<str> is not read
+locked.
+
+=cut
+
+*/
+
+String *str_decode_with_locker_unlocked(Locker *locker, const String *str, const char *uncoded, const char *coded, char quote_char, int printable)
+{
+	if (!str || !uncoded || !coded)
+		return set_errnull(EINVAL);
+
+	return do_decode_with_locker(locker, str->str, str->length - 1, uncoded, coded, quote_char, printable);
 }
 
 /*
@@ -4412,12 +5645,12 @@ Equivalent to I<str_encode()> but works on an ordinary C string.
 
 String *encode(const char *str, const char *uncoded, const char *coded, char quote_char, int printable)
 {
-	return encode_locked(NULL, str, uncoded, coded, quote_char, printable);
+	return encode_with_locker(NULL, str, uncoded, coded, quote_char, printable);
 }
 
 /*
 
-=item C<String *encode_locked(Locker *locker, const char *str, const char *uncoded, const char *coded, char quote_char, int printable)>
+=item C<String *encode_with_locker(Locker *locker, const char *str, const char *uncoded, const char *coded, char quote_char, int printable)>
 
 Equivalent to I<encode()> except that multiple threads accessing the new string
 will be synchronised by C<locker>.
@@ -4426,12 +5659,12 @@ will be synchronised by C<locker>.
 
 */
 
-String *encode_locked(Locker *locker, const char *str, const char *uncoded, const char *coded, char quote_char, int printable)
+String *encode_with_locker(Locker *locker, const char *str, const char *uncoded, const char *coded, char quote_char, int printable)
 {
 	if (!str || !uncoded || !coded)
-		return NULL;
+		return set_errnull(EINVAL);
 
-	return do_encode_locked(locker, str, strlen(str), uncoded, coded, quote_char, printable);
+	return do_encode_with_locker(locker, str, strlen(str), uncoded, coded, quote_char, printable);
 }
 
 /*
@@ -4446,12 +5679,12 @@ Equivalent to I<str_decode()> but works on an ordinary C string.
 
 String *decode(const char *str, const char *uncoded, const char *coded, char quote_char, int printable)
 {
-	return decode_locked(NULL, str, uncoded, coded, quote_char, printable);
+	return decode_with_locker(NULL, str, uncoded, coded, quote_char, printable);
 }
 
 /*
 
-=item C<String *decode_locked(Locker *locker, const char *str, const char *uncoded, const char *coded, char quote_char, int printable)>
+=item C<String *decode_with_locker(Locker *locker, const char *str, const char *uncoded, const char *coded, char quote_char, int printable)>
 
 Equivalent to I<decode()> except that multiple threads accessing the new string
 will be synchronised by C<locker>.
@@ -4460,12 +5693,12 @@ will be synchronised by C<locker>.
 
 */
 
-String *decode_locked(Locker *locker, const char *str, const char *uncoded, const char *coded, char quote_char, int printable)
+String *decode_with_locker(Locker *locker, const char *str, const char *uncoded, const char *coded, char quote_char, int printable)
 {
 	if (!str || !uncoded || !coded)
-		return NULL;
+		return set_errnull(EINVAL);
 
-	return do_decode_locked(locker, str, strlen(str), uncoded, coded, quote_char, printable);
+	return do_decode_with_locker(locker, str, strlen(str), uncoded, coded, quote_char, printable);
 }
 
 /*
@@ -4473,7 +5706,7 @@ String *decode_locked(Locker *locker, const char *str, const char *uncoded, cons
 =item C<String *str_lc(String *str)>
 
 Converts C<str> into lower case. On success, returns C<str>. On error,
-returns C<NULL>.
+returns C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -4481,19 +5714,42 @@ returns C<NULL>.
 
 String *str_lc(String *str)
 {
+	String *ret;
+	int err;
+
+	if (!str)
+		return set_errnull(EINVAL);
+
+	if ((err = str_wrlock(str)))
+		return set_errnull(err);
+
+	ret = str_lc_unlocked(str);
+
+	if ((err = str_unlock(str)))
+		return set_errnull(err);
+
+	return ret;
+}
+
+/*
+
+=item C<String *str_lc_unlocked(String *str)>
+
+Equivalent to I<str_lc()> except that C<str> is not write locked.
+
+=cut
+
+*/
+
+String *str_lc_unlocked(String *str)
+{
 	size_t i;
 
 	if (!str)
-		return NULL;
-
-	if (str_wrlock(str) == -1)
-		return NULL;
+		return set_errnull(EINVAL);
 
 	for (i = 0; i < str->length - 1; ++i)
 		str->str[i] = to_lower(str->str[i]);
-
-	if (str_unlock(str) == -1)
-		return NULL;
 
 	return str;
 }
@@ -4503,7 +5759,7 @@ String *str_lc(String *str)
 =item C<char *lc(char *str)>
 
 Converts C<str> into lower case. On success, returns C<str>. On error, returns
-C<NULL>.
+C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -4514,7 +5770,7 @@ char *lc(char *str)
 	char *s;
 
 	if (!str)
-		return NULL;
+		return set_errnull(EINVAL);
 
 	for (s = str; *s; ++s)
 		*s = to_lower(*s);
@@ -4527,7 +5783,7 @@ char *lc(char *str)
 =item C<String *str_lcfirst(String *str)>
 
 Converts the first character in C<str> into lower case. On success, returns
-C<str>. On error, returns C<NULL>.
+C<str>. On error, returns C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -4535,17 +5791,40 @@ C<str>. On error, returns C<NULL>.
 
 String *str_lcfirst(String *str)
 {
-	if (!str)
-		return NULL;
+	String *ret;
+	int err;
 
-	if (str_wrlock(str) == -1)
-		return NULL;
+	if (!str)
+		return set_errnull(EINVAL);
+
+	if ((err = str_wrlock(str)))
+		return set_errnull(err);
+
+	ret = str_lcfirst_unlocked(str);
+
+	if ((err = str_unlock(str)))
+		return set_errnull(err);
+
+	return ret;
+}
+
+/*
+
+=item C<String *str_lcfirst_unlocked(String *str)>
+
+Equivalent to I<str_lcfirst()> except that C<str> is not write locked.
+
+=cut
+
+*/
+
+String *str_lcfirst_unlocked(String *str)
+{
+	if (!str)
+		return set_errnull(EINVAL);
 
 	if (str->length > 1)
 		*str->str = to_lower(*str->str);
-
-	if (str_unlock(str) == -1)
-		return NULL;
 
 	return str;
 }
@@ -4555,7 +5834,7 @@ String *str_lcfirst(String *str)
 =item C<char *lcfirst(char *str)>
 
 Converts the first character in C<str> into lower case. On success, returns
-C<str>. On error, returns C<NULL>.
+C<str>. On error, returns C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -4564,7 +5843,7 @@ C<str>. On error, returns C<NULL>.
 char *lcfirst(char *str)
 {
 	if (!str)
-		return NULL;
+		return set_errnull(EINVAL);
 
 	*str = to_lower(*str);
 
@@ -4576,7 +5855,7 @@ char *lcfirst(char *str)
 =item C<String *str_uc(String *str)>
 
 Converts C<str> into upper case. On success, returns C<str>. On error,
-returns C<NULL>.
+returns C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -4584,19 +5863,42 @@ returns C<NULL>.
 
 String *str_uc(String *str)
 {
+	String *ret;
+	int err;
+
+	if (!str)
+		return set_errnull(EINVAL);
+
+	if ((err = str_wrlock(str)))
+		return set_errnull(err);
+
+	ret = str_uc_unlocked(str);
+
+	if ((err = str_unlock(str)))
+		return set_errnull(err);
+
+	return ret;
+}
+
+/*
+
+=item C<String *str_uc_unlocked(String *str)>
+
+Equivalent to I<str_uc()> except that C<str> is not write locked.
+
+=cut
+
+*/
+
+String *str_uc_unlocked(String *str)
+{
 	size_t i;
 
 	if (!str)
-		return NULL;
-
-	if (str_wrlock(str) == -1)
-		return NULL;
+		return set_errnull(EINVAL);
 
 	for (i = 0; i < str->length - 1; ++i)
 		str->str[i] = to_upper(str->str[i]);
-
-	if (str_unlock(str) == -1)
-		return NULL;
 
 	return str;
 }
@@ -4606,7 +5908,7 @@ String *str_uc(String *str)
 =item C<char *uc(char *str)>
 
 Converts C<str> into upper case. On success, returns C<str>. On error, returns
-C<NULL>.
+C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -4617,7 +5919,7 @@ char *uc(char *str)
 	char *s;
 
 	if (!str)
-		return NULL;
+		return set_errnull(EINVAL);
 
 	for (s = str; *s; ++s)
 		*s = to_upper(*s);
@@ -4630,7 +5932,7 @@ char *uc(char *str)
 =item C<String *str_ucfirst(String *str)>
 
 Converts the first character in C<str> into upper case. On success, returns
-C<str>. On error, returns C<NULL>.
+C<str>. On error, returns C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -4638,17 +5940,40 @@ C<str>. On error, returns C<NULL>.
 
 String *str_ucfirst(String *str)
 {
-	if (!str)
-		return NULL;
+	String *ret;
+	int err;
 
-	if (str_wrlock(str) == -1)
-		return NULL;
+	if (!str)
+		return set_errnull(EINVAL);
+
+	if ((err = str_wrlock(str)))
+		return set_errnull(err);
+
+	ret = str_ucfirst_unlocked(str);
+
+	if ((err = str_unlock(str)))
+		return set_errnull(err);
+
+	return ret;
+}
+
+/*
+
+=item C<String *str_ucfirst_unlocked(String *str)>
+
+Equivalent to I<str_ucfirst()> except that C<str> is not write locked.
+
+=cut
+
+*/
+
+String *str_ucfirst_unlocked(String *str)
+{
+	if (!str)
+		return set_errnull(EINVAL);
 
 	if (str->length > 1)
 		*str->str = to_upper(*str->str);
-
-	if (str_unlock(str) == -1)
-		return NULL;
 
 	return str;
 }
@@ -4658,7 +5983,7 @@ String *str_ucfirst(String *str)
 =item C<char *ucfirst(char *str)>
 
 Converts the first character in C<str> into upper case. On success, returns
-C<str>. On error, returns C<NULL>.
+C<str>. On error, returns C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -4667,7 +5992,7 @@ C<str>. On error, returns C<NULL>.
 char *ucfirst(char *str)
 {
 	if (!str)
-		return NULL;
+		return set_errnull(EINVAL);
 
 	*str = to_upper(*str);
 
@@ -4679,7 +6004,7 @@ char *ucfirst(char *str)
 =item C<int str_chop(String *str)>
 
 Chops a character off the end of C<str>. On success, returns the character
-chopped. On error, returns -1.
+chopped. On error, returns C<-1> with C<errno> set appropriately.
 
 =cut
 
@@ -4688,28 +6013,45 @@ chopped. On error, returns -1.
 int str_chop(String *str)
 {
 	int ret;
+	int err;
 
 	if (!str)
-		return -1;
+		return set_errno(EINVAL);
 
-	if (str_wrlock(str) == -1)
-		return -1;
+	if ((err = str_wrlock(str)))
+		return set_errno(err);
+
+	ret = str_chop_unlocked(str);
+
+	if ((err = str_unlock(str)))
+		return set_errno(err);
+
+	return ret;
+}
+
+/*
+
+=item C<int str_chop_unlocked(String *str)>
+
+Equivalent to I<str_chop()> except that C<str> is not write locked.
+
+=cut
+
+*/
+
+int str_chop_unlocked(String *str)
+{
+	int ret;
+
+	if (!str)
+		return set_errno(EINVAL);
 
 	if (str->length == 1)
-	{
-		str_unlock(str);
-		return -1;
-	}
+		return set_errno(EINVAL);
 
 	ret = str->str[str->length - 2];
 
 	if (contract(str, str->length - 2, 1) == -1)
-	{
-		str_unlock(str);
-		return -1;
-	}
-
-	if (str_unlock(str) == -1)
 		return -1;
 
 	return ret;
@@ -4720,7 +6062,7 @@ int str_chop(String *str)
 =item C<int chop(char *str)>
 
 Chops a character off the end of C<str>. On success, returns the character
-chopped. On error, returns -1.
+chopped. On error, returns C<-1> with C<errno> set appropriately.
 
 =cut
 
@@ -4730,8 +6072,8 @@ int chop(char *str)
 {
 	int ret;
 
-	if (!str || *str == '\0')
-		return -1;
+	if (!str || !*str)
+		return set_errno(EINVAL);
 
 	while (str[1])
 		++str;
@@ -4747,7 +6089,7 @@ int chop(char *str)
 =item C<int str_chomp(String *str)>
 
 Chops a newline off the end of C<str>. On success, returns the number of
-characters chomped. On error, returns -1.
+characters chomped. On error, returns C<-1> with C<errno> set appropriately.
 
 =cut
 
@@ -4755,38 +6097,53 @@ characters chomped. On error, returns -1.
 
 int str_chomp(String *str)
 {
-	char *s;
-	size_t length;
 	int ret;
+	int err;
 
 	if (!str)
-		return -1;
+		return set_errno(EINVAL);
 
-	if (str_wrlock(str) == -1)
-		return -1;
+	if ((err = str_wrlock(str)))
+		return set_errno(err);
+
+	ret = str_chomp_unlocked(str);
+
+	if ((err = str_unlock(str)))
+		return set_errno(err);
+
+	return ret;
+}
+
+/*
+
+=item C<int str_chomp_unlocked(String *str)>
+
+Equivalent to I<str_chomp()> except that C<str> is not write locked.
+
+=cut
+
+*/
+
+int str_chomp_unlocked(String *str)
+{
+	char *s;
+	size_t length;
+
+	if (!str)
+		return set_errno(EINVAL);
 
 	if (str->length == 1)
-	{
-		if (str_unlock(str) == -1)
-			return -1;
 		return 0;
-	}
 
 	length = str->length;
 
 	for (s = str->str + str->length - 2; *s == '\n' || *s == '\r'; --s)
+	{
 		if (contract(str, str->length - 2, 1) == -1)
-		{
-			str_unlock(str);
 			return -1;
-		}
+	}
 
-	ret = length - str->length;
-
-	if (str_unlock(str) == -1)
-		return -1;
-
-	return ret;
+	return length - str->length;
 }
 
 /*
@@ -4794,7 +6151,7 @@ int str_chomp(String *str)
 =item C<int chomp(char *str)>
 
 Chops a newline off the end of C<str>. On success, returns the number of
-characters chomped. On error, returns -1.
+characters chomped. On error, returns C<-1> with C<errno> set appropriately.
 
 =cut
 
@@ -4805,7 +6162,7 @@ int chomp(char *str)
 	char *s;
 
 	if (!str)
-		return -1;
+		return set_errno(EINVAL);
 
 	if (str[0] == '\0')
 		return 0;
@@ -4825,7 +6182,7 @@ int chomp(char *str)
 
 Returns the integer specified by the binary string, C<str>. C<str> may
 either be a string of C<[0-1]> or C<"0b"> followed by a string of C<[0-1]>.
-On error, returns 0.
+On error, returns C<-1> with C<errno> set appropriately.
 
 =cut
 
@@ -4834,19 +6191,38 @@ On error, returns 0.
 int str_bin(const String *str)
 {
 	int ret;
+	int err;
 
 	if (!str)
-		return 0;
+		return set_errno(EINVAL);
 
-	if (str_rdlock(str) == -1)
-		return 0;
+	if ((err = str_rdlock(str)))
+		return set_errno(err);
 
-	ret = bin(str->str);
+	ret = str_bin_unlocked(str);
 
-	if (str_unlock(str) == -1)
-		return 0;
+	if ((err = str_unlock(str)))
+		return set_errno(err);
 
 	return ret;
+}
+
+/*
+
+=item C<int str_bin_unlocked(const String *str)>
+
+Equivalent to I<str_bin()> except that C<str> is not read locked.
+
+=cut
+
+*/
+
+int str_bin_unlocked(const String *str)
+{
+	if (!str)
+		return set_errno(EINVAL);
+
+	return bin(str->str);
 }
 
 /*
@@ -4855,7 +6231,7 @@ int str_bin(const String *str)
 
 Returns the integer specified by the binary string, C<str>. C<str> may
 either be a string of C<[0-1]> or C<"0b"> followed by a string of C<[0-1]>.
-On error, returns 0.
+On error, returns C<-1> with C<errno> set appropriately.
 
 =cut
 
@@ -4866,7 +6242,7 @@ int bin(const char *str)
 	int ret = 0;
 
 	if (!str)
-		return 0;
+		return set_errno(EINVAL);
 
 	if (str[0] == '0' && str[1] == 'b')
 		str += 2;
@@ -4879,7 +6255,7 @@ int bin(const char *str)
 		{
 			case '0': break;
 			case '1': ret |= 1; break;
-			default:  return 0;
+			default:  return set_errno(EINVAL);
 		}
 	}
 
@@ -4892,7 +6268,7 @@ int bin(const char *str)
 
 Returns the integer specified by the hexadecimal string, C<str>. C<str> may
 either be a string of C<[0-9a-fA-F]> or C<"0x"> followed by a string of
-C<[0-9a-fA-f]>. On error, returns 0.
+C<[0-9a-fA-f]>. On error, returns C<-1> with C<errno> set appropriately.
 
 =cut
 
@@ -4901,19 +6277,38 @@ C<[0-9a-fA-f]>. On error, returns 0.
 int str_hex(const String *str)
 {
 	int ret;
+	int err;
 
 	if (!str)
-		return 0;
+		return set_errno(EINVAL);
 
-	if (str_rdlock(str) == -1)
-		return 0;
+	if ((err = str_rdlock(str)))
+		return set_errno(err);
 
-	ret = hex(str->str);
+	ret = str_hex_unlocked(str);
 
-	if (str_unlock(str) == -1)
-		return 0;
+	if ((err = str_unlock(str)))
+		return set_errno(err);
 
 	return ret;
+}
+
+/*
+
+=item C<int str_hex_unlocked(const String *str)>
+
+Equivalent to I<str_hex()> except that C<str> is not read locked.
+
+=cut
+
+*/
+
+int str_hex_unlocked(const String *str)
+{
+	if (!str)
+		return set_errno(EINVAL);
+
+	return hex(str->str);
 }
 
 /*
@@ -4922,7 +6317,7 @@ int str_hex(const String *str)
 
 Returns the integer specified by the hexadecimal string, C<str>. C<str> may
 either be a string of C<[0-9a-fA-F]> or C<"0x"> followed by a string of
-C<[0-9a-fA-f]>. On error, returns 0.
+C<[0-9a-fA-f]>. On error, returns C<-1> with C<errno> set appropriately.
 
 =cut
 
@@ -4933,7 +6328,7 @@ int hex(const char *str)
 	int ret = 0;
 
 	if (!str)
-		return 0;
+		return set_errno(EINVAL);
 
 	if (str[0] == '0' && str[1] == 'x')
 		str += 2;
@@ -4955,7 +6350,7 @@ int hex(const char *str)
 				ret |= *str - 'A' + 10;
 				break;
 			default:
-				return 0;
+				return set_errno(EINVAL);
 		}
 	}
 
@@ -4969,7 +6364,8 @@ int hex(const char *str)
 Returns the integer specified by the binary, octal or hexadecimal string,
 C<str>. C<str> may either be C<"0x"> followed by a string of C<[0-9a-fA-F]>
 (hexadecimal), C<"0b"> followed by a string of C<[0-1]> (binary) or C<"0">
-followed by a a string of C<[0-7]> (octal). On error, returns 0.
+followed by a a string of C<[0-7]> (octal). On error, returns C<-1> with
+C<errno> set appropriately.
 
 =cut
 
@@ -4978,19 +6374,38 @@ followed by a a string of C<[0-7]> (octal). On error, returns 0.
 int str_oct(const String *str)
 {
 	int ret;
+	int err;
 
 	if (!str)
-		return 0;
+		return set_errno(EINVAL);
 
-	if (str_rdlock(str) == -1)
-		return 0;
+	if ((err = str_rdlock(str)))
+		return set_errno(err);
 
-	ret = oct(str->str);
+	ret = str_oct_unlocked(str);
 
-	if (str_unlock(str) == -1)
-		return 0;
+	if ((err = str_unlock(str)))
+		return set_errno(err);
 
 	return ret;
+}
+
+/*
+
+=item C<int str_oct_unlocked(const String *str)>
+
+Equivalent to I<str_oct()> except that C<str> is not read locked.
+
+=cut
+
+*/
+
+int str_oct_unlocked(const String *str)
+{
+	if (!str)
+		return set_errno(EINVAL);
+
+	return oct(str->str);
 }
 
 /*
@@ -5000,7 +6415,8 @@ int str_oct(const String *str)
 Returns the integer specified by the binary, octal or hexadecimal string,
 C<str>. C<str> may either be C<"0x"> followed by a string of C<[0-9a-fA-F]>
 (hexadecimal), C<"0b"> followed by a string of C<[0-1]> (binary) or C<"0">
-followed by a a string of C<[0-7]> (octal). On error, returns 0.
+followed by a a string of C<[0-7]> (octal). On error, returns C<-1> with
+C<errno> set appropriately.
 
 =cut
 
@@ -5011,7 +6427,7 @@ int oct(const char *str)
 	int ret = 0;
 
 	if (!str || str[0] != '0')
-		return 0;
+		return set_errno(EINVAL);
 
 	if (str[1] == 'b')
 		return bin(str);
@@ -5030,14 +6446,14 @@ int oct(const char *str)
 				ret |= *str - '0';
 				break;
 			default:
-				return 0;
+				return set_errno(EINVAL);
 		}
 	}
 
 	return ret;
 }
 
-#ifdef NEEDS_STRCASECMP
+#ifndef HAVE_STRCASECMP
 
 /*
 
@@ -5067,7 +6483,7 @@ int strcasecmp(const char *s1, const char *s2)
 
 #endif
 
-#ifdef NEEDS_STRNCASECMP
+#ifndef HAVE_STRNCASECMP
 
 /*
 
@@ -5082,21 +6498,21 @@ characters.
 
 int strncasecmp(const char *s1, const char *s2, size_t n)
 {
-	while (n-- && *s1 && *s2)
+	while (n--)
 	{
 		int c1 = to_lower(*s1++);
 		int c2 = to_lower(*s2++);
 
-		if (c1 != c2)
+		if (c1 != c2 || !c1 || !c2)
 			return c1 - c2;
 	}
 
-	return to_lower(*s1) - to_lower(*s2);
+	return 0;
 }
 
 #endif
 
-#ifdef NEEDS_STRLCPY
+#ifndef HAVE_STRLCPY
 
 /*
 
@@ -5108,6 +6524,7 @@ will be no longer than C<size - 1> bytes and will be C<nul> terminated
 always terminates the string with a C<nul> byte (so it's safer) and it
 doesn't fill the remainder of the buffer with C<nul> bytes (so it's faster).
 Returns the length of C<src> (If this is >= C<size>, truncation occurred).
+Use this rather than I<strcpy(3)> or I<strncpy(3)>.
 
 =cut
 
@@ -5137,7 +6554,7 @@ size_t strlcpy(char *dst, const char *src, size_t size)
 
 #endif
 
-#ifdef NEEDS_STRLCAT
+#ifndef HAVE_STRLCAT
 
 /*
 
@@ -5148,7 +6565,8 @@ will be no longer than C<size - 1> bytes and will be C<nul> terminated
 (unless C<size> is zero). This is similar to I<strncat()> except that the
 last argument is the size of the buffer, not the amount of space available.
 (so it's more intuitive and hence safer). Returns the sum of the lengths of
-C<src> and C<dst> (If this is >= C<size>, truncation occurred).
+C<src> and C<dst> (If this is >= C<size>, truncation occurred). Use this
+rather than I<strcat(3)> or I<strncat(3)>.
 
 =cut
 
@@ -5187,6 +6605,241 @@ size_t strlcat(char *dst, const char *src, size_t size)
 
 /*
 
+=item C<char *cstrcpy(char *dst, const char *src)>
+
+Copies the string pointed to by C<src> (including the terminating C<nul>
+character) to the array pointed to by C<dst>. The memory areas may not
+overlap. B<The array C<dst> must be large enough to store the copy -
+unless you know that this is the case, use strlcpy() instead.> This is just
+like I<strcpy(3)> except that instead of returning C<dst> (which you already
+know), this function returns the address of the terminating C<nul> character
+(C<dst + strlen(src)>).
+
+=cut
+
+*/
+
+char *cstrcpy(char *dst, const char *src)
+{
+	while ((*dst++ = *src++))
+	{}
+
+	return dst - 1;
+}
+
+/*
+
+=item C<char *cstrcat(char *dst, const char *src)>
+
+Appends the string C<src> to the string C<dst> The strings may not overlap.
+B<The string C<dst> must be large enough to store the appended copy of
+C<src> - unless you know that this is the case, use strlcat() instead.> This
+is just like I<strcat(3)> except that instead of returning C<dst> (which you
+already know), this function returns the address of the terminating C<nul>
+character (C<dst + strlen(dst) + strlen(src)>).
+
+=cut
+
+*/
+
+char *cstrcat(char *dst, const char *src)
+{
+	while (*dst)
+		++dst;
+
+	while ((*dst++ = *src++))
+	{}
+
+	return dst - 1;
+}
+
+/*
+
+=item C<char *cstrchr(const char *str, int c)>
+
+Scans the string C<str> looking for the character C<c>. Returns a pointer to
+the first occurrence of the character C<c> in the string C<str>. This is
+just like I<strchr(3)> except that instead of returning C<null> when C<c>
+does not appear in C<str>, this function returns the address of the
+terminating C<nul> character (C<str + strlen(str)>).
+
+=cut
+
+*/
+
+char *cstrchr(const char *str, int c)
+{
+	while (*str && *str != (char)c)
+		++str;
+
+	return (char *)str;
+}
+
+/*
+
+=item C<char *cstrpbrk(const char *str, const char *brk)>
+
+Scans the string C<str> looking for any of the characters in C<brk>. Returns
+a pointer to the first occurrence of any character in C<brk> in the string
+C<str>. This is just like I<strpbrk(3)> except that instead of returning
+C<null> when no match is found in C<str>, this function returns the address
+of the terminating C<nul> character (C<str + strlen(str)>).
+
+=cut
+
+*/
+
+char *cstrpbrk(const char *str, const char *brk)
+{
+	const char *b;
+
+	for (; *str; ++str)
+		for (b = brk; *b; ++b)
+			if (*str == *b)
+				return (char *)str;
+
+	return (char *)str;
+}
+
+/*
+
+=item C<char *cstrrchr(const char *str, int c)>
+
+Scans the string C<str> looking for the character C<c>. Returns a pointer to
+the last occurrence of the character C<c> in the string C<str>. This is
+just like I<strrchr(3)> except that instead of returning C<null> when C<c>
+does not appear in C<str>, this function returns the address of the
+terminating C<nul> character (C<str + strlen(str)>).
+
+=cut
+
+*/
+
+char *cstrrchr(const char *str, int c)
+{
+	char *match = NULL;
+
+	for (; *str; ++str)
+		if (*str == (char)c)
+			match = (char *)str;
+
+	return (match) ? match : (char *)str;
+}
+
+/*
+
+=item C<char *cstrstr(const char *str, const char *srch)>
+
+Scans the string C<str> looking for the string C<srch>. Returns a pointer to
+the first occurrence of the string C<srch> in the string C<str>. This is
+just like I<strstr(3)> except that instead of returning C<null> when C<srch>
+does not appear in C<str>, this function returns the address of the
+terminating C<nul> character (C<str + strlen(str)>).
+
+=cut
+
+*/
+
+char *cstrstr(const char *str, const char *srch)
+{
+	if (*srch == '\0')
+		return (char *)str;
+
+	for (; *(str = cstrchr(str, *srch)); ++str)
+	{
+		char *s = (char *)str;
+		char *r = (char *)srch;
+
+		for (;;)
+		{
+			if (*++r == '\0')
+				return (char *)s;
+			if (*++str != *r)
+				break;
+		}
+	}
+
+	return (char *)str;
+}
+
+#ifndef HAVE_ASPRINTF
+
+/*
+
+=item I<int asprintf(char **str, const char *fmt, ...)>
+
+Equivalent to I<sprintf()> except that instead of formatting C<fmt> and
+subsequent arguments into a buffer supplied by the caller, they are
+formatted into a buffer that is internally allocated and stored in C<*str>.
+On success, returns the number of bytes stored in C<*str> excluding the
+terminating C<nul> character. On error, returns C<-1> and stores C<null> in
+C<*str>.
+
+=cut
+
+*/
+
+int asprintf(char **str, const char *fmt, ...)
+{
+	int ret;
+	va_list args;
+	va_start(args, fmt);
+	ret = vasprintf(str, fmt, args);
+	va_end(args);
+
+	return ret;
+}
+
+#endif
+
+#ifndef HAVE_VASPRINTF
+
+/*
+
+=item I<int vasprintf(char **str, const char *fmt, va_list args)>
+
+Equivalent to I<asprintf()> with the variable argument list specified
+directly as for I<vprintf(3)>.
+
+=cut
+
+*/
+
+int vasprintf(char **str, const char *fmt, va_list args)
+{
+	String *tmp;
+	int len;
+
+	if (!(tmp = str_vcreate(fmt, args)))
+	{
+		*str = NULL;
+		return -1;
+	}
+
+	if (str)
+		*str = cstr(tmp);
+	len = str_length(tmp);
+	free(tmp);
+
+	return len;
+}
+
+#endif
+
+/*
+
+=back
+
+=head1 ERRORS
+
+On error, C<errno> is set either by an underlying function, or as follows:
+
+=over 4
+
+=item EINVAL
+
+When arguments to any of the functions are invalid.
+
 =back
 
 =head1 MT-Level
@@ -5211,20 +6864,27 @@ be determined by testing/benchmarking the written application. It is important
 to be able to experiment with the synchronisation strategy at this stage of
 development without pain.
 
-To facilitate this, I<String>s can be created with I<string_create_locked()>
-which takes a I<Locker> argument. The I<Locker> specifies a lock and a set of
-functions for manipulating the lock. Each I<String> can have it's own lock by
-creating a separate I<Locker> for each I<String>. Multiple I<String>s can share
-the same lock by sharing the same I<Locker>. Only the application developer can
-determine what is appropriate for each application on a string by string basis.
+To facilitate this, I<String>s can be created with
+I<string_create_with_locker()> which takes a I<Locker> argument. The
+I<Locker> specifies a lock and a set of functions for manipulating the lock.
+Each I<String> can have it's own lock by creating a separate I<Locker> for
+each I<String>. Multiple I<String>s can share the same lock by sharing the
+same I<Locker>. Only the application developer can determine what is
+appropriate for each application on a string by string basis.
 
-MT-Disciplined means that the application developer has a mechanism for
+I<MT-Disciplined> means that the application developer has a mechanism for
 specifying the synchronisation requirements to be applied to library code.
+
+MT-Safe - I<str_fgetline()>
+
+Mac OS X doesn't have I<flockfile(3)>, I<funlockfile(3)> or
+I<getc_unlocked(3)>. I<freadline()> is not MT-Safe on such platforms. You
+must guard all stdio calls with explicit synchronisation variables.
 
 =head1 BUGS
 
 Doesn't support multibyte/widechar strings, UTF8, UNICODE or ISO 10646
-but suport can probably be layered over the top of I<String>.
+but support can probably be layered over the top of I<String>.
 
 The C<delim> parameter to the I<split()> and I<join()> functions is an
 ordinary C string so it can't contain C<nul> characters.
@@ -5236,13 +6896,13 @@ The C<uncoded> and C<coded> parameters to the I<str_encode()> and
 I<str_decode()> functions are ordinary C strings so they can't contain
 C<nul> characters.
 
-Uses I<malloc(3)>. Need to decouple memory type and allocation strategy from
-this code.
+Uses I<malloc(3)>. The type of memory used and the allocation strategy need
+to be decoupled from this code.
 
 =head1 SEE ALSO
 
 L<libslack(3)|libslack(3)>,
-L<thread(3)|thread(3)>,
+L<locker(3)|locker(3)>,
 L<string(3)|string(3)>,
 L<regcomp(3)|regcomp(3)>,
 L<regexec(3)|regexec(3)>,
@@ -5253,40 +6913,51 @@ L<perlop(1)|perlop(1)>
 
 =head1 AUTHOR
 
-20010215 raf <raf@raf.org>
+20011109 raf <raf@raf.org>
 
 =cut
 
 */
 
+#endif
+
 #ifdef TEST
 
-#include <semaphore.h>
-
-void str_print(const char *str, size_t length)
+static void str_print(const char *str, size_t length)
 {
+	const char * const encoded = "\a\b\t\n\v\f\r\\";
+	const char * const decoded = "abtnvfr\\";
+	const char *code;
 	int i;
 
 	printf("\"");
 
 	for (i = 0; i < length + 1; ++i)
-		printf(is_print(str[i]) ? "%c" : "\\%03o", (unsigned char)str[i]);
+	{
+		/* printf("[%02x]", (unsigned char)str[i]); */
+		if (str[i] && (code = strchr(encoded, (unsigned char)str[i])))
+			printf("\\%c", decoded[code - encoded]);
+		else
+			printf(is_print(str[i]) ? "%c" : "\\%03o", (unsigned char)str[i]);
+	}
 
 	printf("\"");
 }
 
+#define RD 0
+#define WR 1
 String *mtstr = NULL;
 Locker *locker = NULL;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
-sem_t barrier;
-sem_t length;
+int barrier[2];
+int length[2];
 const int lim = 1000;
+pthread_mutex_t errors_lock = PTHREAD_MUTEX_INITIALIZER;
 int debug = 0;
 int errors = 0;
-pthread_mutex_t errors_lock = PTHREAD_MUTEX_INITIALIZER;
 
-int bugger()
+int mterror()
 {
 	pthread_mutex_lock(&mutex);
 	++errors;
@@ -5311,12 +6982,12 @@ void *produce(void *arg)
 			printf("p%d: str_append %d\n", id, i);
 
 		if (!str_append(mtstr, "%c", c))
-			bugger(), printf("Test%d: str_append(mtstr, '\\%o'), failed\n", test, c);
+			mterror(), printf("Test%d: str_append(mtstr, '\\%o'), failed\n", test, c);
 
-		sem_post(&length);
+		write(length[WR], "", 1);
 	}
 
-	sem_post(&barrier);
+	write(barrier[WR], "", 1);
 	return NULL;
 }
 
@@ -5325,26 +6996,27 @@ void *consume(void *arg)
 	int test = *(int *)arg >> 16;
 	int id = *(int *)arg & 0x0000ffff;
 	int i;
+	char ack;
 
 	if (debug)
 		printf("c%d: loop\n", id);
 
 	for (i = 0; i < lim; ++i)
 	{
-		while (sem_wait(&length) != 0)
+		while (read(length[RD], &ack, 1) == -1 && errno == EINTR)
 		{}
 
 		if (debug)
 			printf("c%d: str_remove\n", id);
 
 		if (!str_remove(mtstr, 0))
-			bugger(), printf("Test%d: str_remove(mtstr, 0) failed\n", test);
+			mterror(), printf("Test%d: str_remove(mtstr, 0) failed\n", test);
 	}
 
 	if (i != lim)
-		bugger(), printf("Test%d: consumer read %d items, not %d\n", test, i, lim);
+		mterror(), printf("Test%d: consumer read %d items, not %d\n", test, i, lim);
 
-	sem_post(&barrier);
+	write(barrier[WR], "", 1);
 	return NULL;
 }
 
@@ -5368,7 +7040,7 @@ void *writer(void *arg)
 			printf("w%d: loop %d/%d wrlock/cstr/set_length/recalc_length\n", id, i, lim / 10);
 
 		if (str_wrlock(mtstr) == -1)
-			bugger(), printf("Test%d: str_wrlock(mtstr) failed (%s)\n", test, strerror(errno));
+			mterror(), printf("Test%d: str_wrlock(mtstr) failed (%s)\n", test, strerror(errno));
 		else
 		{
 			char *str = cstr(mtstr);
@@ -5377,26 +7049,26 @@ void *writer(void *arg)
 			str[0] = 'a';
 
 			if (str_set_length_unlocked(mtstr, len) == -1)
-				bugger(), printf("Test%d: str_set_length_unlocked(mtstr, %d) failed\n", test, len);
+				mterror(), printf("Test%d: str_set_length_unlocked(mtstr, %d) failed\n", test, len);
 
 			if (str_recalc_length_unlocked(mtstr) == -1)
-				bugger(), printf("Test%d: str_recalc_length_unlocked(mtstr) failed\n", test);
+				mterror(), printf("Test%d: str_recalc_length_unlocked(mtstr) failed\n", test);
 
 			if (str_unlock(mtstr) == -1)
-				bugger(), printf("Test%d: str_unlock(mtstr) failed (%s)\n", test, strerror(errno));
+				mterror(), printf("Test%d: str_unlock(mtstr) failed (%s)\n", test, strerror(errno));
 		}
 
 		if (debug)
 			printf("w%d: loop %d/%d replace\n", id, i, lim / 10);
 
 		if (!str_replace(mtstr, 0, -1, "abc"))
-			bugger(), printf("Test%d: str_replace(mtstr, 0, -1, \"abc\") failed\n", test);
+			mterror(), printf("Test%d: str_replace(mtstr, 0, -1, \"abc\") failed\n", test);
 
 		if (debug)
 			printf("w%d: loop %d/%d splice\n", id, i, lim / 10);
 
 		if (!(str = str_splice(mtstr, 0, 0)))
-			bugger(), printf("Test%d: str_splice(mtstr, 0, 0) failed\n", test);
+			mterror(), printf("Test%d: str_splice(mtstr, 0, 0) failed\n", test);
 		else
 			str_destroy(&str);
 
@@ -5404,7 +7076,7 @@ void *writer(void *arg)
 			printf("w%d: loop %d/%d tr\n", id, i, lim / 10);
 
 		if (str_tr(mtstr, "a-z", "A-Z", 0) == -1)
-			bugger(), printf("Test%d: str_tr(mtstr, \"a-z\", \"A-Z\", 0) failed\n", test);
+			mterror(), printf("Test%d: str_tr(mtstr, \"a-z\", \"A-Z\", 0) failed\n", test);
 
 		if (debug)
 			printf("w%d: loop %d/%d regsub\n", id, i, lim / 10);
@@ -5415,40 +7087,40 @@ void *writer(void *arg)
 			printf("w%d: loop %d/%d trim\n", id, i, lim / 10);
 
 		if (!str_trim(mtstr))
-			bugger(), printf("Test%d: str_trim(mtstr) failed\n", test);
+			mterror(), printf("Test%d: str_trim(mtstr) failed\n", test);
 		if (!str_trim_left(mtstr))
-			bugger(), printf("Test%d: str_trim_left(mtstr) failed\n", test);
+			mterror(), printf("Test%d: str_trim_left(mtstr) failed\n", test);
 		if (!str_trim_right(mtstr))
-			bugger(), printf("Test%d: str_trim_right(mtstr) failed\n", test);
+			mterror(), printf("Test%d: str_trim_right(mtstr) failed\n", test);
 
 		if (debug)
 			printf("w%d: loop %d/%d squeeze\n", id, i, lim / 10);
 
 		if (!str_squeeze(mtstr))
-			bugger(), printf("Test%d: str_squeeze(mtstr) failed\n", test);
+			mterror(), printf("Test%d: str_squeeze(mtstr) failed\n", test);
 
 		if (debug)
 			printf("w%d: loop %d/%d lc/uc/lcfirst/ucfirst\n", id, i, lim / 10);
 
 		if (!str_lc(mtstr))
-			bugger(), printf("Test%d: str_lc(mtstr) failed\n", test);
+			mterror(), printf("Test%d: str_lc(mtstr) failed\n", test);
 		if (!str_uc(mtstr))
-			bugger(), printf("Test%d: str_uc(mtstr) failed\n", test);
+			mterror(), printf("Test%d: str_uc(mtstr) failed\n", test);
 		if (!str_lcfirst(mtstr))
-			bugger(), printf("Test%d: str_lcfirst(mtstr) failed\n", test);
+			mterror(), printf("Test%d: str_lcfirst(mtstr) failed\n", test);
 		if (!str_ucfirst(mtstr))
-			bugger(), printf("Test%d: str_ucfirst(mtstr) failed\n", test);
+			mterror(), printf("Test%d: str_ucfirst(mtstr) failed\n", test);
 
 		if (debug)
 			printf("w%d: loop %d/%d chop/chomp\n", id, i, lim / 10);
 
 		if (str_chop(mtstr) == -1)
-			bugger(), printf("Test%d: str_chop(mtstr) failed\n", test);
+			mterror(), printf("Test%d: str_chop(mtstr) failed\n", test);
 		if (str_chomp(mtstr) == -1)
-			bugger(), printf("Test%d: str_chomp(mtstr) failed\n", test);
+			mterror(), printf("Test%d: str_chomp(mtstr) failed\n", test);
 	}
 
-	sem_post(&barrier);
+	write(barrier[WR], "", 1);
 	return NULL;
 }
 
@@ -5482,7 +7154,7 @@ void *reader(void *arg)
 			printf("r%d: loop %d/%d length = %d\n", id, i, lim / 10, length);
 
 		if (str_rdlock(mtstr) == -1)
-			bugger(), printf("Test%d: str_rdlock(mtstr) failed (%s)\n", test, strerror(errno));
+			mterror(), printf("Test%d: str_rdlock(mtstr) failed (%s)\n", test, strerror(errno));
 		else
 		{
 			const char *s = cstr(mtstr);
@@ -5491,49 +7163,49 @@ void *reader(void *arg)
 				printf("r%d: loop %d/%d cstr = \"%s\"\n", id, i, lim / 10, s);
 
 			if (str_unlock(mtstr) == -1)
-				bugger(), printf("Test%d: str_unlock(mtstr) failed (%s)\n", test, strerror(errno));
+				mterror(), printf("Test%d: str_unlock(mtstr) failed (%s)\n", test, strerror(errno));
 		}
 
 		if (!(str = str_create("")))
-			bugger(), printf("Test%d: str_create() failed\n", test);
+			mterror(), printf("Test%d: str_create() failed\n", test);
 		else
 		{
 			if (!str_insert_str(str, 0, mtstr))
-				bugger(), printf("Test%d: str_insert_str(str, 0, mtstr) failed\n", test);
+				mterror(), printf("Test%d: str_insert_str(str, 0, mtstr) failed\n", test);
 
 			if (!str_replace_str(str, 0, 0, mtstr))
-				bugger(), printf("Test%d: str_replace_str(str, 0, 0, mtstr) failed\n", test);
+				mterror(), printf("Test%d: str_replace_str(str, 0, 0, mtstr) failed\n", test);
 
 			str_destroy(&str);
 		}
 
 		if (!(list = str_fmt(mtstr, 10, ALIGN_FULL)))
-			bugger(), printf("Test%d: str_fmt(mtstr, 10, ALIGN_FULL) failed\n", test);
+			mterror(), printf("Test%d: str_fmt(mtstr, 10, ALIGN_FULL) failed\n", test);
 		else
 			list_destroy(&list);
 
 		if (!(list = str_split(mtstr, "")))
-			bugger(), printf("Test%d: str_split(mtstr, \"\") failed\n", test);
+			mterror(), printf("Test%d: str_split(mtstr, \"\") failed\n", test);
 		else
 			list_destroy(&list);
 
 		if (!(list = str_regexpr("[a-z]?", mtstr, 0, 0)))
-			bugger(), printf("Test%d: str_regexpr(\"[a-z]?\", mtstr, 0, 0) failed\n", test);
+			mterror(), printf("Test%d: str_regexpr(\"[a-z]?\", mtstr, 0, 0) failed\n", test);
 		else
 			list_destroy(&list);
 
-		if (!(list = str_regexpr_split(mtstr, "", 0, 0)))
-			bugger(), printf("Test%d: str_regexpr_split(mtstr, \"\") failed\n", test);
+		if (!(list = str_regexpr_split(mtstr, "()", 0, 0)))
+			mterror(), printf("Test%d: str_regexpr_split(mtstr, \"()\") failed\n", test);
 		else
 			list_destroy(&list);
 
 		if (!(str = str_encode(mtstr, "abcdef", "abcdef", '\\', 1)))
-			bugger(), printf("Test%d: str_encode(mtstr, \"abcdef\", \"abcdef\", '\\') failed\n", test);
+			mterror(), printf("Test%d: str_encode(mtstr, \"abcdef\", \"abcdef\", '\\') failed\n", test);
 		else
 			str_destroy(&str);
 
 		if (!(str = str_decode(mtstr, "abcdef", "abcdef", '\\', 1)))
-			bugger(), printf("Test%d: str_decode(mtstr, \"abcdef\", \"abcdef\", '\\') failed\n", test);
+			mterror(), printf("Test%d: str_decode(mtstr, \"abcdef\", \"abcdef\", '\\') failed\n", test);
 		else
 			str_destroy(&str);
 
@@ -5542,51 +7214,64 @@ void *reader(void *arg)
 		str_oct(mtstr);
 	}
 
-	sem_post(&barrier);
+	write(barrier[WR], "", 1);
 	return NULL;
 }
 
 void mt_test(int test, Locker *locker)
 {
-	if (!(mtstr = str_create_locked(locker, NULL)))
-		bugger(), printf("Test%d: str_create_locked(NULL) failed\n", test);
+	if (!(mtstr = str_create_with_locker(locker, NULL)))
+		mterror(), printf("Test%d: str_create_with_locker(NULL) failed\n", test);
 	else
 	{
 		static int iid[12] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
 		pthread_attr_t attr;
 		pthread_t id;
 		int i;
+		char ack;
 
-		for (i = 0; i < 9; ++i)
+		if (pipe(length) == -1 || pipe(barrier) == -1)
+		{
+			++errors, printf("Test%d: failed to perform test: pipe() failed\n", test);
+			return;
+		}
+
+		for (i = 0; i < 12; ++i)
 		{
 			iid[i] &= 0x0000ffff;
 			iid[i] |= test << 16;
 		}
 
-		sem_init(&barrier, 0, 0);
-		sem_init(&length, 0, 0);
-		thread_attr_init(&attr);
+		pthread_attr_init(&attr);
+		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 		pthread_create(&id, &attr, produce, iid + 0);
 		pthread_create(&id, &attr, produce, iid + 1);
 		pthread_create(&id, &attr, produce, iid + 2);
 		pthread_create(&id, &attr, consume, iid + 3);
 		pthread_create(&id, &attr, consume, iid + 4);
 		pthread_create(&id, &attr, consume, iid + 5);
+		/*
 		pthread_create(&id, &attr, writer,  iid + 6);
 		pthread_create(&id, &attr, writer,  iid + 7);
 		pthread_create(&id, &attr, writer,  iid + 8);
+		*/
 		pthread_create(&id, &attr, reader,  iid + 9);
 		pthread_create(&id, &attr, reader,  iid + 10);
 		pthread_create(&id, &attr, reader,  iid + 11);
 		pthread_attr_destroy(&attr);
 
-		for (i = 0; i < 12; ++i)
-			while (sem_wait(&barrier) != 0)
+		for (i = 0; i < 9 /* 12 */; ++i)
+			while (read(barrier[RD], &ack, 1) == -1 && errno == EINTR)
 			{}
 
 		str_destroy(&mtstr);
 		if (mtstr)
-			bugger(), printf("Test%d: str_destroy(&mtstr) failed\n", test);
+			mterror(), printf("Test%d: str_destroy(&mtstr) failed\n", test);
+
+		close(length[RD]);
+		close(length[WR]);
+		close(barrier[RD]);
+		close(barrier[WR]);
 	}
 }
 
@@ -5594,14 +7279,20 @@ int main(int ac, char **av)
 {
 	const char * const testfile = "str_fgetline.test";
 	String *a, *b, *c;
-	char tst[BUFSIZ];
+	char tst[BUFSIZ], *t;
 	List *list;
-	StrTR *trtable;
+	StringTR *trtable;
 	int i, big, rc;
 	FILE *stream;
-#ifndef REGEX_MISSING
+#ifdef HAVE_REGEX_H
 	regex_t re[1];
 #endif
+
+	if (ac == 2 && !strcmp(av[1], "help"))
+	{
+		printf("usage: %s [debug]\n", *av);
+		return EXIT_SUCCESS;
+	}
 
 	printf("Testing: str\n");
 
@@ -5611,7 +7302,11 @@ int main(int ac, char **av)
 
 #define TEST_EQ(i, action, eq) \
 	if (!((rc = (action)) == (eq))) \
-		++errors, printf("Test%d: %s failed: returned %d, not %d\n", (i), (#action), rc, (eq));
+		++errors, printf("Test%d: %s failed: returned %x, not %x\n", (i), (#action), rc, (eq));
+
+#define TEST_NE(i, action, ne) \
+	if ((action) == (ne)) \
+		++errors, printf("Test%d: %s failed: returned %p\n", (i), (#action), (ne));
 
 #define TEST_STR(i, action, str, length, value) \
 	TEST_ACT(i, action) \
@@ -5629,6 +7324,10 @@ int main(int ac, char **av)
 	if (str_length(str) != (length)) \
 		++errors, printf("Test%d: %s failed: length %u (not %u)\n", (i), (#action), str_length(str), (length));
 
+#define CHECK_LEN2(i, action, str, length, length2) \
+	if (str_length(str) != (length) && str_length(str) != (length2)) \
+		++errors, printf("Test%d: %s failed: length %u (not %u or %u)\n", (i), (#action), str_length(str), (length), (length2));
+
 #define CHECK_CLEN(i, action, str, length) \
 	if (strlen(str) != (length)) \
 		++errors, printf("Test%d: %s failed: length %u (not %u)\n", (i), (#action), strlen(str), (length));
@@ -5637,9 +7336,22 @@ int main(int ac, char **av)
 	if (memcmp(cstr(str), (value), str_length(str) + 1)) \
 	{ \
 		++errors, printf("Test%d: %s failed: returned:\n", (i), (#action)); \
-		str_print(cstr(str), length); \
+		str_print(cstr(str), str_length(str)); \
 		printf("\nnot:\n"); \
 		str_print(value, length); \
+		printf("\n"); \
+	}
+
+#define CHECK_VAL2(i, action, str, length, value, length2, value2) \
+	if (memcmp(cstr(str), (value), str_length(str) + 1) && \
+		memcmp(cstr(str), (value2), str_length(str) + 1)) \
+	{ \
+		++errors, printf("Test%d: %s failed: returned:\n", (i), (#action)); \
+		str_print(cstr(str), str_length(str)); \
+		printf("\nnot:\n"); \
+		str_print(value, length); \
+		printf("\nor:\n"); \
+		str_print(value2, length2); \
 		printf("\n"); \
 	}
 
@@ -5656,6 +7368,10 @@ int main(int ac, char **av)
 #define CHECK_STR(i, action, str, length, value) \
 	CHECK_LEN(i, action, str, length) \
 	CHECK_VAL(i, action, str, length, value)
+
+#define CHECK_STR2(i, action, str, length, value, length2, value2) \
+	CHECK_LEN2(i, action, str, length, length2) \
+	CHECK_VAL2(i, action, str, length, value, length2, value2)
 
 #define CHECK_CSTR(i, action, str, length, value) \
 	CHECK_CLEN(i, action, str, length) \
@@ -5965,7 +7681,7 @@ int main(int ac, char **av)
 	str_destroy(&b);
 	str_destroy(&c);
 
-#ifndef REGEX_MISSING
+#ifdef HAVE_REGEX_H
 
 	/* Test str_regexpr */
 
@@ -6006,8 +7722,8 @@ int main(int ac, char **av)
 	TEST_REGSUB(125, "xabcabcabcx", "((((((((((((((((((((((((((((((((a))))))))))))))))))))))))))))))))", "!${32}!", 0, 0, 0, 13, "x!a!bcabcabcx")
 	TEST_REGSUB(126, "xabcabcabcx", "((((((((((((((((((((((((((((((((a))))))))))))))))))))))))))))))))", "!${32}!", 0, 0, 1, 17, "x!a!bc!a!bc!a!bcx")
 	TEST_REGSUB(127, "\\a:b:c:d:e:f:G:H:I:", "(...)(..)(..)(..)(..)(..)(..)(..)(..)", "$1\\U$2\\Q$3\\l$4\\E$5\\E$6\\L$7\\Q\\u$8\\E\\E$9\\\\l", 0, 0, 0, 24, "\\a:B:C\\:d\\:E:f:g:H\\:I:\\l")
-	TEST_REGSUB(128, "abcdef", "", "-", 0, 0, 0, 7, "-abcdef")
-	TEST_REGSUB(129, "abcdef", "", "-", 0, 0, 1, 13, "-a-b-c-d-e-f-")
+	TEST_REGSUB(128, "abcdef", "()", "-", 0, 0, 0, 7, "-abcdef")
+	TEST_REGSUB(129, "abcdef", "()", "-", 0, 0, 1, 13, "-a-b-c-d-e-f-")
 
 #endif
 
@@ -6241,7 +7957,7 @@ int main(int ac, char **av)
 	TEST_SPLIT(194, split, " aa,bb.cc;dd:", " ,.;:", "aa", "bb", "cc", "dd")
 	TEST_SPLIT(195, split, "abcd", "", "a", "b", "c", "d")
 
-#ifndef REGEX_MISSING
+#ifdef HAVE_REGEX_H
 
 	/* Test regexpr_split */
 
@@ -6275,7 +7991,7 @@ int main(int ac, char **av)
 	TEST_RE_SSPLIT(203, str_regexpr_split, " aa ,bb . cc;dd: ", "[ ,.;:]+", "aa", "bb", "cc", "dd")
 	TEST_RE_SSPLIT(204, str_regexpr_split, "aa,bb.cc;dd:", "[ ,.;:]+", "aa", "bb", "cc", "dd")
 	TEST_RE_SSPLIT(205, str_regexpr_split, " aa,bb.cc;dd:", "[ ,.;:]+", "aa", "bb", "cc", "dd")
-	TEST_RE_SSPLIT(206, str_regexpr_split, "abcd", "", "a", "b", "c", "d")
+	TEST_RE_SSPLIT(206, str_regexpr_split, "abcd", "()", "a", "b", "c", "d")
 
 	TEST_RE_SPLIT(207, regexpr_split, "a,b.c;d", "[ ,.;:]+", "a", "b", "c", "d")
 	TEST_RE_SPLIT(208, regexpr_split, " a , b . c ; d ", "[ ,.;:]+", "a", "b", "c", "d")
@@ -6287,7 +8003,7 @@ int main(int ac, char **av)
 	TEST_RE_SPLIT(214, regexpr_split, " aa ,bb . cc;dd: ", "[ ,.;:]+", "aa", "bb", "cc", "dd")
 	TEST_RE_SPLIT(215, regexpr_split, "aa,bb.cc;dd:", "[ ,.;:]+", "aa", "bb", "cc", "dd")
 	TEST_RE_SPLIT(216, regexpr_split, " aa,bb.cc;dd:", "[ ,.;:]+", "aa", "bb", "cc", "dd")
-	TEST_RE_SPLIT(217, regexpr_split, "abcd", "", "a", "b", "c", "d")
+	TEST_RE_SPLIT(217, regexpr_split, "abcd", "()", "a", "b", "c", "d")
 
 #endif
 
@@ -6331,6 +8047,21 @@ int main(int ac, char **av)
 	TEST_JOIN(243, a = join(list, ", "), a, 19, ", aaa, , ccc, eee, ")
 	list_destroy(&list);
 
+	/* Test soundex */
+
+	if (sizeof(int) < 4)
+		++errors, printf("Test244: Assumption failed: sizeof(int) < 4 bytes! - soundex() won't work\n");
+
+	TEST_EQ(245, soundex("cat"),        0x43333030) /* C300 */
+	TEST_EQ(246, soundex("dog"),        0x44323030) /* D200 */
+	TEST_EQ(247, soundex("elephant"),   0x45343135) /* E415 */
+	TEST_EQ(248, soundex("lion"),       0x4c353030) /* L500 */
+	TEST_EQ(249, soundex("wolf"),       0x57343130) /* W410 */
+	TEST_EQ(250, soundex("elliot"),     0x45343330) /* E430 */
+	TEST_EQ(251, soundex("wordsworth"), 0x57363332) /* W632 */
+	TEST_EQ(252, soundex("smith"),      0x53353330) /* S530 */
+	TEST_EQ(253, soundex("smythe"),     0x53353330) /* S530 */
+
 	/* Test trim */
 
 #define TEST_SFUNC(i, func, str, len, val) \
@@ -6344,119 +8075,119 @@ int main(int ac, char **av)
 	TEST_ACT((i), func(tst)) \
 	CHECK_CSTR((i), func(str), tst, len, val)
 
-	TEST_SFUNC(244, str_trim, "", 0, "")
-	TEST_SFUNC(245, str_trim, " ", 0, "")
-	TEST_SFUNC(246, str_trim, "  ", 0, "")
-	TEST_SFUNC(247, str_trim, " \t ", 0, "")
-	TEST_SFUNC(248, str_trim, "\r \t \n", 0, "")
-	TEST_SFUNC(249, str_trim, "abcdef", 6, "abcdef")
-	TEST_SFUNC(250, str_trim, " abcdef", 6, "abcdef")
-	TEST_SFUNC(251, str_trim, "abcdef ", 6, "abcdef")
-	TEST_SFUNC(252, str_trim, " abcdef ", 6, "abcdef")
-	TEST_SFUNC(253, str_trim, "  abcdef  ", 6, "abcdef")
-	TEST_SFUNC(254, str_trim, "  abc def  ", 7, "abc def")
-	TEST_SFUNC(255, str_trim, "abc def\v\t\f\n\r", 7, "abc def")
-	TEST_SFUNC(256, str_trim, "\v\t\f\n\rabc def", 7, "abc def")
+	TEST_SFUNC(254, str_trim, "", 0, "")
+	TEST_SFUNC(255, str_trim, " ", 0, "")
+	TEST_SFUNC(256, str_trim, "  ", 0, "")
+	TEST_SFUNC(257, str_trim, " \t ", 0, "")
+	TEST_SFUNC(258, str_trim, "\r \t \n", 0, "")
+	TEST_SFUNC(259, str_trim, "abcdef", 6, "abcdef")
+	TEST_SFUNC(260, str_trim, " abcdef", 6, "abcdef")
+	TEST_SFUNC(261, str_trim, "abcdef ", 6, "abcdef")
+	TEST_SFUNC(262, str_trim, " abcdef ", 6, "abcdef")
+	TEST_SFUNC(263, str_trim, "  abcdef  ", 6, "abcdef")
+	TEST_SFUNC(264, str_trim, "  abc def  ", 7, "abc def")
+	TEST_SFUNC(265, str_trim, "abc def\v\t\f\n\r", 7, "abc def")
+	TEST_SFUNC(266, str_trim, "\v\t\f\n\rabc def", 7, "abc def")
 
-	TEST_FUNC(257, trim, "", 0, "")
-	TEST_FUNC(258, trim, " ", 0, "")
-	TEST_FUNC(259, trim, "  ", 0, "")
-	TEST_FUNC(260, trim, " \t ", 0, "")
-	TEST_FUNC(261, trim, "\r \t \n", 0, "")
-	TEST_FUNC(262, trim, "abcdef", 6, "abcdef")
-	TEST_FUNC(263, trim, " abcdef", 6, "abcdef")
-	TEST_FUNC(264, trim, "abcdef ", 6, "abcdef")
-	TEST_FUNC(265, trim, " abcdef ", 6, "abcdef")
-	TEST_FUNC(266, trim, "  abcdef  ", 6, "abcdef")
-	TEST_FUNC(267, trim, "  abc def  ", 7, "abc def")
-	TEST_FUNC(268, trim, "abc def\v\t\f\n\r", 7, "abc def")
-	TEST_FUNC(269, trim, "\v\t\f\n\rabc def", 7, "abc def")
+	TEST_FUNC(267, trim, "", 0, "")
+	TEST_FUNC(268, trim, " ", 0, "")
+	TEST_FUNC(269, trim, "  ", 0, "")
+	TEST_FUNC(270, trim, " \t ", 0, "")
+	TEST_FUNC(271, trim, "\r \t \n", 0, "")
+	TEST_FUNC(272, trim, "abcdef", 6, "abcdef")
+	TEST_FUNC(273, trim, " abcdef", 6, "abcdef")
+	TEST_FUNC(274, trim, "abcdef ", 6, "abcdef")
+	TEST_FUNC(275, trim, " abcdef ", 6, "abcdef")
+	TEST_FUNC(276, trim, "  abcdef  ", 6, "abcdef")
+	TEST_FUNC(277, trim, "  abc def  ", 7, "abc def")
+	TEST_FUNC(278, trim, "abc def\v\t\f\n\r", 7, "abc def")
+	TEST_FUNC(279, trim, "\v\t\f\n\rabc def", 7, "abc def")
 
-	TEST_SFUNC(270, str_trim_left, "", 0, "")
-	TEST_SFUNC(271, str_trim_left, " ", 0, "")
-	TEST_SFUNC(272, str_trim_left, "  ", 0, "")
-	TEST_SFUNC(273, str_trim_left, " \t ", 0, "")
-	TEST_SFUNC(274, str_trim_left, "\r \t \n", 0, "")
-	TEST_SFUNC(275, str_trim_left, "abcdef", 6, "abcdef")
-	TEST_SFUNC(276, str_trim_left, " abcdef", 6, "abcdef")
-	TEST_SFUNC(277, str_trim_left, "abcdef ", 7, "abcdef ")
-	TEST_SFUNC(278, str_trim_left, " abcdef ", 7, "abcdef ")
-	TEST_SFUNC(279, str_trim_left, "  abcdef  ", 8, "abcdef  ")
-	TEST_SFUNC(280, str_trim_left, "  abc def  ", 9, "abc def  ")
-	TEST_SFUNC(281, str_trim_left, "abc def\v\t\f\n\r", 12, "abc def\v\t\f\n\r")
-	TEST_SFUNC(282, str_trim_left, "\v\t\f\n\rabc def", 7, "abc def")
+	TEST_SFUNC(280, str_trim_left, "", 0, "")
+	TEST_SFUNC(281, str_trim_left, " ", 0, "")
+	TEST_SFUNC(282, str_trim_left, "  ", 0, "")
+	TEST_SFUNC(283, str_trim_left, " \t ", 0, "")
+	TEST_SFUNC(284, str_trim_left, "\r \t \n", 0, "")
+	TEST_SFUNC(285, str_trim_left, "abcdef", 6, "abcdef")
+	TEST_SFUNC(286, str_trim_left, " abcdef", 6, "abcdef")
+	TEST_SFUNC(287, str_trim_left, "abcdef ", 7, "abcdef ")
+	TEST_SFUNC(288, str_trim_left, " abcdef ", 7, "abcdef ")
+	TEST_SFUNC(289, str_trim_left, "  abcdef  ", 8, "abcdef  ")
+	TEST_SFUNC(290, str_trim_left, "  abc def  ", 9, "abc def  ")
+	TEST_SFUNC(291, str_trim_left, "abc def\v\t\f\n\r", 12, "abc def\v\t\f\n\r")
+	TEST_SFUNC(292, str_trim_left, "\v\t\f\n\rabc def", 7, "abc def")
 
-	TEST_FUNC(283, trim_left, "", 0, "")
-	TEST_FUNC(284, trim_left, " ", 0, "")
-	TEST_FUNC(285, trim_left, "  ", 0, "")
-	TEST_FUNC(286, trim_left, " \t ", 0, "")
-	TEST_FUNC(287, trim_left, "\r \t \n", 0, "")
-	TEST_FUNC(288, trim_left, "abcdef", 6, "abcdef")
-	TEST_FUNC(289, trim_left, " abcdef", 6, "abcdef")
-	TEST_FUNC(290, trim_left, "abcdef ", 7, "abcdef ")
-	TEST_FUNC(291, trim_left, " abcdef ", 7, "abcdef ")
-	TEST_FUNC(292, trim_left, "  abcdef  ", 8, "abcdef  ")
-	TEST_FUNC(293, trim_left, "  abc def  ", 9, "abc def  ")
-	TEST_FUNC(294, trim_left, "abc def\v\t\f\n\r", 12, "abc def\v\t\f\n\r")
-	TEST_FUNC(295, trim_left, "\v\t\f\n\rabc def", 7, "abc def")
+	TEST_FUNC(293, trim_left, "", 0, "")
+	TEST_FUNC(294, trim_left, " ", 0, "")
+	TEST_FUNC(295, trim_left, "  ", 0, "")
+	TEST_FUNC(296, trim_left, " \t ", 0, "")
+	TEST_FUNC(297, trim_left, "\r \t \n", 0, "")
+	TEST_FUNC(298, trim_left, "abcdef", 6, "abcdef")
+	TEST_FUNC(299, trim_left, " abcdef", 6, "abcdef")
+	TEST_FUNC(300, trim_left, "abcdef ", 7, "abcdef ")
+	TEST_FUNC(301, trim_left, " abcdef ", 7, "abcdef ")
+	TEST_FUNC(302, trim_left, "  abcdef  ", 8, "abcdef  ")
+	TEST_FUNC(303, trim_left, "  abc def  ", 9, "abc def  ")
+	TEST_FUNC(304, trim_left, "abc def\v\t\f\n\r", 12, "abc def\v\t\f\n\r")
+	TEST_FUNC(305, trim_left, "\v\t\f\n\rabc def", 7, "abc def")
 
-	TEST_SFUNC(296, str_trim_right, "", 0, "")
-	TEST_SFUNC(297, str_trim_right, " ", 0, "")
-	TEST_SFUNC(298, str_trim_right, "  ", 0, "")
-	TEST_SFUNC(299, str_trim_right, " \t ", 0, "")
-	TEST_SFUNC(300, str_trim_right, "\r \t \n", 0, "")
-	TEST_SFUNC(301, str_trim_right, "abcdef", 6, "abcdef")
-	TEST_SFUNC(302, str_trim_right, " abcdef", 7, " abcdef")
-	TEST_SFUNC(303, str_trim_right, "abcdef ", 6, "abcdef")
-	TEST_SFUNC(304, str_trim_right, " abcdef ", 7, " abcdef")
-	TEST_SFUNC(305, str_trim_right, "  abcdef  ", 8, "  abcdef")
-	TEST_SFUNC(306, str_trim_right, "  abc def  ", 9, "  abc def")
-	TEST_SFUNC(307, str_trim_right, "abc def\v\t\f\n\r", 7, "abc def")
-	TEST_SFUNC(308, str_trim_right, "\v\t\f\n\rabc def", 12, "\v\t\f\n\rabc def")
+	TEST_SFUNC(306, str_trim_right, "", 0, "")
+	TEST_SFUNC(307, str_trim_right, " ", 0, "")
+	TEST_SFUNC(308, str_trim_right, "  ", 0, "")
+	TEST_SFUNC(309, str_trim_right, " \t ", 0, "")
+	TEST_SFUNC(310, str_trim_right, "\r \t \n", 0, "")
+	TEST_SFUNC(311, str_trim_right, "abcdef", 6, "abcdef")
+	TEST_SFUNC(312, str_trim_right, " abcdef", 7, " abcdef")
+	TEST_SFUNC(313, str_trim_right, "abcdef ", 6, "abcdef")
+	TEST_SFUNC(314, str_trim_right, " abcdef ", 7, " abcdef")
+	TEST_SFUNC(315, str_trim_right, "  abcdef  ", 8, "  abcdef")
+	TEST_SFUNC(316, str_trim_right, "  abc def  ", 9, "  abc def")
+	TEST_SFUNC(317, str_trim_right, "abc def\v\t\f\n\r", 7, "abc def")
+	TEST_SFUNC(318, str_trim_right, "\v\t\f\n\rabc def", 12, "\v\t\f\n\rabc def")
 
-	TEST_FUNC(309, trim_right, "", 0, "")
-	TEST_FUNC(310, trim_right, " ", 0, "")
-	TEST_FUNC(311, trim_right, "  ", 0, "")
-	TEST_FUNC(312, trim_right, " \t ", 0, "")
-	TEST_FUNC(313, trim_right, "\r \t \n", 0, "")
-	TEST_FUNC(314, trim_right, "abcdef", 6, "abcdef")
-	TEST_FUNC(315, trim_right, " abcdef", 7, " abcdef")
-	TEST_FUNC(316, trim_right, "abcdef ", 6, "abcdef")
-	TEST_FUNC(317, trim_right, " abcdef ", 7, " abcdef")
-	TEST_FUNC(318, trim_right, "  abcdef  ", 8, "  abcdef")
-	TEST_FUNC(319, trim_right, "  abc def  ", 9, "  abc def")
-	TEST_FUNC(320, trim_right, "abc def\v\t\f\n\r", 7, "abc def")
-	TEST_FUNC(321, trim_right, "\v\t\f\n\rabc def", 12, "\v\t\f\n\rabc def")
+	TEST_FUNC(319, trim_right, "", 0, "")
+	TEST_FUNC(320, trim_right, " ", 0, "")
+	TEST_FUNC(321, trim_right, "  ", 0, "")
+	TEST_FUNC(322, trim_right, " \t ", 0, "")
+	TEST_FUNC(323, trim_right, "\r \t \n", 0, "")
+	TEST_FUNC(324, trim_right, "abcdef", 6, "abcdef")
+	TEST_FUNC(325, trim_right, " abcdef", 7, " abcdef")
+	TEST_FUNC(326, trim_right, "abcdef ", 6, "abcdef")
+	TEST_FUNC(327, trim_right, " abcdef ", 7, " abcdef")
+	TEST_FUNC(328, trim_right, "  abcdef  ", 8, "  abcdef")
+	TEST_FUNC(329, trim_right, "  abc def  ", 9, "  abc def")
+	TEST_FUNC(330, trim_right, "abc def\v\t\f\n\r", 7, "abc def")
+	TEST_FUNC(331, trim_right, "\v\t\f\n\rabc def", 12, "\v\t\f\n\rabc def")
 
 	/* Test squeeze */
 
-	TEST_SFUNC(322, str_squeeze, "", 0, "")
-	TEST_SFUNC(323, str_squeeze, " ", 0, "")
-	TEST_SFUNC(324, str_squeeze, "  ", 0, "")
-	TEST_SFUNC(325, str_squeeze, " \t ", 0, "")
-	TEST_SFUNC(326, str_squeeze, "\r \t \n", 0, "")
-	TEST_SFUNC(327, str_squeeze, "abcdef", 6, "abcdef")
-	TEST_SFUNC(328, str_squeeze, " ab  cd  ef", 8, "ab cd ef")
-	TEST_SFUNC(329, str_squeeze, "ab  cd  ef ", 8, "ab cd ef")
-	TEST_SFUNC(330, str_squeeze, "   ab   cd   ef   ", 8, "ab cd ef")
-	TEST_SFUNC(331, str_squeeze, "  abcdef  ", 6, "abcdef")
-	TEST_SFUNC(332, str_squeeze, "  abc  def  ", 7, "abc def")
-	TEST_SFUNC(333, str_squeeze, "abc def\v\t\f\n\r", 7, "abc def")
-	TEST_SFUNC(334, str_squeeze, "\v\t\f\n\rabc def", 7, "abc def")
+	TEST_SFUNC(332, str_squeeze, "", 0, "")
+	TEST_SFUNC(333, str_squeeze, " ", 0, "")
+	TEST_SFUNC(334, str_squeeze, "  ", 0, "")
+	TEST_SFUNC(335, str_squeeze, " \t ", 0, "")
+	TEST_SFUNC(336, str_squeeze, "\r \t \n", 0, "")
+	TEST_SFUNC(337, str_squeeze, "abcdef", 6, "abcdef")
+	TEST_SFUNC(338, str_squeeze, " ab  cd  ef", 8, "ab cd ef")
+	TEST_SFUNC(339, str_squeeze, "ab  cd  ef ", 8, "ab cd ef")
+	TEST_SFUNC(340, str_squeeze, "   ab   cd   ef   ", 8, "ab cd ef")
+	TEST_SFUNC(341, str_squeeze, "  abcdef  ", 6, "abcdef")
+	TEST_SFUNC(342, str_squeeze, "  abc  def  ", 7, "abc def")
+	TEST_SFUNC(343, str_squeeze, "abc def\v\t\f\n\r", 7, "abc def")
+	TEST_SFUNC(344, str_squeeze, "\v\t\f\n\rabc def", 7, "abc def")
 
-	TEST_FUNC(335, squeeze, "", 0, "")
-	TEST_FUNC(336, squeeze, " ", 0, "")
-	TEST_FUNC(337, squeeze, "  ", 0, "")
-	TEST_FUNC(338, squeeze, " \t ", 0, "")
-	TEST_FUNC(339, squeeze, "\r \t \n", 0, "")
-	TEST_FUNC(340, squeeze, "abcdef", 6, "abcdef")
-	TEST_FUNC(341, squeeze, " ab  cd  ef", 8, "ab cd ef")
-	TEST_FUNC(342, squeeze, "ab  cd  ef ", 8, "ab cd ef")
-	TEST_FUNC(343, squeeze, "   ab   cd   ef   ", 8, "ab cd ef")
-	TEST_FUNC(344, squeeze, "  abcdef  ", 6, "abcdef")
-	TEST_FUNC(345, squeeze, "  abc  def  ", 7, "abc def")
-	TEST_FUNC(346, squeeze, "abc def\v\t\f\n\r", 7, "abc def")
-	TEST_FUNC(347, squeeze, "\v\t\f\n\rabc def", 7, "abc def")
+	TEST_FUNC(345, squeeze, "", 0, "")
+	TEST_FUNC(346, squeeze, " ", 0, "")
+	TEST_FUNC(347, squeeze, "  ", 0, "")
+	TEST_FUNC(348, squeeze, " \t ", 0, "")
+	TEST_FUNC(349, squeeze, "\r \t \n", 0, "")
+	TEST_FUNC(350, squeeze, "abcdef", 6, "abcdef")
+	TEST_FUNC(351, squeeze, " ab  cd  ef", 8, "ab cd ef")
+	TEST_FUNC(352, squeeze, "ab  cd  ef ", 8, "ab cd ef")
+	TEST_FUNC(353, squeeze, "   ab   cd   ef   ", 8, "ab cd ef")
+	TEST_FUNC(354, squeeze, "  abcdef  ", 6, "abcdef")
+	TEST_FUNC(355, squeeze, "  abc  def  ", 7, "abc def")
+	TEST_FUNC(356, squeeze, "abc def\v\t\f\n\r", 7, "abc def")
+	TEST_FUNC(357, squeeze, "\v\t\f\n\rabc def", 7, "abc def")
 
 	/* Test quote, unquote */
 
@@ -6478,18 +8209,18 @@ int main(int ac, char **av)
 	str_destroy(&b); \
 	str_destroy(&a);
 
-	TEST_SQUOTE(348, "", "\"", '\\', 0, "")
-	TEST_QUOTE (349, "", "\"", '\\', 0, "")
-	TEST_SQUOTE(350, "\"hello world\"", "\"", '\\', 15, "\\\"hello world\\\"")
-	TEST_QUOTE (351, "\"hello world\"", "\"", '\\', 15, "\\\"hello world\\\"")
-	TEST_QUOTE (352, "\"hello world\\\"", "\"\\", '\\', 17, "\\\"hello world\\\\\\\"")
-	TEST_SQUOTE(353, "\"hello world\\\"", "\"\\", '\\', 17, "\\\"hello world\\\\\\\"")
-	TEST_QUOTE (354, "\\\"hello\\\\world\\\"", "\"\\", '\\', 22, "\\\\\\\"hello\\\\\\\\world\\\\\\\"")
-	TEST_SQUOTE(355, "\\\"hello\\\\world\\\"", "\"\\", '\\', 22, "\\\\\\\"hello\\\\\\\\world\\\\\\\"")
-	TEST_SQUOTE(356, "\"hello\\ \\world\"", "\"\\", '\\', 19, "\\\"hello\\\\ \\\\world\\\"")
-	TEST_QUOTE (357, "\"hello\\ \\world\"", "\"\\", '\\', 19, "\\\"hello\\\\ \\\\world\\\"")
-	TEST_SQUOTE(358, "\"hello\\ \\world\"", "\"", '\\', 17, "\\\"hello\\ \\world\\\"")
-	TEST_QUOTE (359, "\"hello\\ \\world\"", "\"", '\\', 17, "\\\"hello\\ \\world\\\"")
+	TEST_SQUOTE(358, "", "\"", '\\', 0, "")
+	TEST_QUOTE (359, "", "\"", '\\', 0, "")
+	TEST_SQUOTE(360, "\"hello world\"", "\"", '\\', 15, "\\\"hello world\\\"")
+	TEST_QUOTE (361, "\"hello world\"", "\"", '\\', 15, "\\\"hello world\\\"")
+	TEST_QUOTE (362, "\"hello world\\\"", "\"\\", '\\', 17, "\\\"hello world\\\\\\\"")
+	TEST_SQUOTE(363, "\"hello world\\\"", "\"\\", '\\', 17, "\\\"hello world\\\\\\\"")
+	TEST_QUOTE (364, "\\\"hello\\\\world\\\"", "\"\\", '\\', 22, "\\\\\\\"hello\\\\\\\\world\\\\\\\"")
+	TEST_SQUOTE(365, "\\\"hello\\\\world\\\"", "\"\\", '\\', 22, "\\\\\\\"hello\\\\\\\\world\\\\\\\"")
+	TEST_SQUOTE(366, "\"hello\\ \\world\"", "\"\\", '\\', 19, "\\\"hello\\\\ \\\\world\\\"")
+	TEST_QUOTE (367, "\"hello\\ \\world\"", "\"\\", '\\', 19, "\\\"hello\\\\ \\\\world\\\"")
+	TEST_SQUOTE(368, "\"hello\\ \\world\"", "\"", '\\', 17, "\\\"hello\\ \\world\\\"")
+	TEST_QUOTE (369, "\"hello\\ \\world\"", "\"", '\\', 17, "\\\"hello\\ \\world\\\"")
 
 	/* Test encode, decode */
 
@@ -6511,77 +8242,77 @@ int main(int ac, char **av)
 	str_destroy(&b); \
 	str_destroy(&a);
 
-	TEST_SENCODE(360, "", "\a\b\t\n\v\f\r\\", "abtnvfr\\", '\\', 1, 0, "")
-	TEST_SENCODE(361, "\a\b\t\n\v\f\r\033\\", "\a\b\t\n\v\f\r\\", "abtnvfr\\", '\\', 1, 20, "\\a\\b\\t\\n\\v\\f\\r\\x1b\\\\")
-	TEST_SENCODE(362, "a\a\b\tb\n\v\f\rc\033\\d", "\a\b\t\n\v\f\r\\", "abtnvfr\\", '\\', 1, 24, "a\\a\\b\\tb\\n\\v\\f\\rc\\x1b\\\\d")
-	TEST_SENCODE(363, "", "=", "=", '\\', 0, 0, "")
-	TEST_SENCODE(364, "a=b", "=", "=", '\\', 0, 4, "a\\=b")
+	TEST_SENCODE(370, "", "\a\b\t\n\v\f\r\\", "abtnvfr\\", '\\', 1, 0, "")
+	TEST_SENCODE(371, "\a\b\t\n\v\f\r\033\\", "\a\b\t\n\v\f\r\\", "abtnvfr\\", '\\', 1, 20, "\\a\\b\\t\\n\\v\\f\\r\\x1b\\\\")
+	TEST_SENCODE(372, "a\a\b\tb\n\v\f\rc\033\\d", "\a\b\t\n\v\f\r\\", "abtnvfr\\", '\\', 1, 24, "a\\a\\b\\tb\\n\\v\\f\\rc\\x1b\\\\d")
+	TEST_SENCODE(373, "", "=", "=", '\\', 0, 0, "")
+	TEST_SENCODE(374, "a=b", "=", "=", '\\', 0, 4, "a\\=b")
 
-	TEST_ENCODE(365, "", "\a\b\t\n\v\f\r\\", "abtnvfr\\", '\\', 1, 0, "")
-	TEST_ENCODE(366, "\a\b\t\n\v\f\r\033\\", "\a\b\t\n\v\f\r\\", "abtnvfr\\", '\\', 1, 20, "\\a\\b\\t\\n\\v\\f\\r\\x1b\\\\")
-	TEST_ENCODE(367, "a\a\b\tb\n\v\f\rc\033\\d", "\a\b\t\n\v\f\r\\", "abtnvfr\\", '\\', 1, 24, "a\\a\\b\\tb\\n\\v\\f\\rc\\x1b\\\\d")
-	TEST_ENCODE(368, "", "=", "=", '\\', 0, 0, "")
-	TEST_ENCODE(369, "a=b", "=", "=", '\\', 0, 4, "a\\=b")
+	TEST_ENCODE(375, "", "\a\b\t\n\v\f\r\\", "abtnvfr\\", '\\', 1, 0, "")
+	TEST_ENCODE(376, "\a\b\t\n\v\f\r\033\\", "\a\b\t\n\v\f\r\\", "abtnvfr\\", '\\', 1, 20, "\\a\\b\\t\\n\\v\\f\\r\\x1b\\\\")
+	TEST_ENCODE(377, "a\a\b\tb\n\v\f\rc\033\\d", "\a\b\t\n\v\f\r\\", "abtnvfr\\", '\\', 1, 24, "a\\a\\b\\tb\\n\\v\\f\\rc\\x1b\\\\d")
+	TEST_ENCODE(378, "", "=", "=", '\\', 0, 0, "")
+	TEST_ENCODE(379, "a=b", "=", "=", '\\', 0, 4, "a\\=b")
 
 	/* Test lc, lcfirst */
 
-	TEST_SFUNC(370, str_lc, "", 0, "")
-	TEST_SFUNC(371, str_lc, "abc", 3, "abc")
-	TEST_SFUNC(372, str_lc, " a b c ", 7, " a b c ")
-	TEST_SFUNC(373, str_lc, "ABC", 3, "abc")
-	TEST_SFUNC(374, str_lc, " A B C ", 7, " a b c ")
-	TEST_SFUNC(375, str_lc, "0123456", 7, "0123456")
+	TEST_SFUNC(380, str_lc, "", 0, "")
+	TEST_SFUNC(381, str_lc, "abc", 3, "abc")
+	TEST_SFUNC(382, str_lc, " a b c ", 7, " a b c ")
+	TEST_SFUNC(383, str_lc, "ABC", 3, "abc")
+	TEST_SFUNC(384, str_lc, " A B C ", 7, " a b c ")
+	TEST_SFUNC(385, str_lc, "0123456", 7, "0123456")
 
-	TEST_FUNC(376, lc, "", 0, "")
-	TEST_FUNC(377, lc, "abc", 3, "abc")
-	TEST_FUNC(378, lc, " a b c ", 7, " a b c ")
-	TEST_FUNC(379, lc, "ABC", 3, "abc")
-	TEST_FUNC(380, lc, " A B C ", 7, " a b c ")
-	TEST_FUNC(381, lc, "0123456", 7, "0123456")
+	TEST_FUNC(386, lc, "", 0, "")
+	TEST_FUNC(387, lc, "abc", 3, "abc")
+	TEST_FUNC(388, lc, " a b c ", 7, " a b c ")
+	TEST_FUNC(389, lc, "ABC", 3, "abc")
+	TEST_FUNC(390, lc, " A B C ", 7, " a b c ")
+	TEST_FUNC(391, lc, "0123456", 7, "0123456")
 
-	TEST_SFUNC(382, str_lcfirst, "", 0, "")
-	TEST_SFUNC(383, str_lcfirst, "abc", 3, "abc")
-	TEST_SFUNC(384, str_lcfirst, " a b c ", 7, " a b c ")
-	TEST_SFUNC(385, str_lcfirst, "ABC", 3, "aBC")
-	TEST_SFUNC(386, str_lcfirst, " A B C ", 7, " A B C ")
-	TEST_SFUNC(387, str_lcfirst, "0123456", 7, "0123456")
+	TEST_SFUNC(392, str_lcfirst, "", 0, "")
+	TEST_SFUNC(393, str_lcfirst, "abc", 3, "abc")
+	TEST_SFUNC(394, str_lcfirst, " a b c ", 7, " a b c ")
+	TEST_SFUNC(395, str_lcfirst, "ABC", 3, "aBC")
+	TEST_SFUNC(396, str_lcfirst, " A B C ", 7, " A B C ")
+	TEST_SFUNC(397, str_lcfirst, "0123456", 7, "0123456")
 
-	TEST_FUNC(388, lcfirst, "", 0, "")
-	TEST_FUNC(389, lcfirst, "abc", 3, "abc")
-	TEST_FUNC(390, lcfirst, " a b c ", 7, " a b c ")
-	TEST_FUNC(391, lcfirst, "ABC", 3, "aBC")
-	TEST_FUNC(392, lcfirst, " A B C ", 7, " A B C ")
-	TEST_FUNC(393, lcfirst, "0123456", 7, "0123456")
+	TEST_FUNC(398, lcfirst, "", 0, "")
+	TEST_FUNC(399, lcfirst, "abc", 3, "abc")
+	TEST_FUNC(400, lcfirst, " a b c ", 7, " a b c ")
+	TEST_FUNC(401, lcfirst, "ABC", 3, "aBC")
+	TEST_FUNC(402, lcfirst, " A B C ", 7, " A B C ")
+	TEST_FUNC(403, lcfirst, "0123456", 7, "0123456")
 
 	/* Test uc, ucfirst */
 
-	TEST_SFUNC(394, str_uc, "", 0, "")
-	TEST_SFUNC(395, str_uc, "abc", 3, "ABC")
-	TEST_SFUNC(396, str_uc, " a b c ", 7, " A B C ")
-	TEST_SFUNC(397, str_uc, "ABC", 3, "ABC")
-	TEST_SFUNC(398, str_uc, " A B C ", 7, " A B C ")
-	TEST_SFUNC(399, str_uc, "0123456", 7, "0123456")
+	TEST_SFUNC(404, str_uc, "", 0, "")
+	TEST_SFUNC(405, str_uc, "abc", 3, "ABC")
+	TEST_SFUNC(406, str_uc, " a b c ", 7, " A B C ")
+	TEST_SFUNC(407, str_uc, "ABC", 3, "ABC")
+	TEST_SFUNC(408, str_uc, " A B C ", 7, " A B C ")
+	TEST_SFUNC(409, str_uc, "0123456", 7, "0123456")
 
-	TEST_FUNC(400, uc, "", 0, "")
-	TEST_FUNC(401, uc, "abc", 3, "ABC")
-	TEST_FUNC(402, uc, " a b c ", 7, " A B C ")
-	TEST_FUNC(403, uc, "ABC", 3, "ABC")
-	TEST_FUNC(404, uc, " A B C ", 7, " A B C ")
-	TEST_FUNC(405, uc, "0123456", 7, "0123456")
+	TEST_FUNC(410, uc, "", 0, "")
+	TEST_FUNC(411, uc, "abc", 3, "ABC")
+	TEST_FUNC(412, uc, " a b c ", 7, " A B C ")
+	TEST_FUNC(413, uc, "ABC", 3, "ABC")
+	TEST_FUNC(414, uc, " A B C ", 7, " A B C ")
+	TEST_FUNC(415, uc, "0123456", 7, "0123456")
 
-	TEST_SFUNC(406, str_ucfirst, "", 0, "")
-	TEST_SFUNC(407, str_ucfirst, "abc", 3, "Abc")
-	TEST_SFUNC(408, str_ucfirst, " a b c ", 7, " a b c ")
-	TEST_SFUNC(409, str_ucfirst, "ABC", 3, "ABC")
-	TEST_SFUNC(410, str_ucfirst, " A B C ", 7, " A B C ")
-	TEST_SFUNC(411, str_ucfirst, "0123456", 7, "0123456")
+	TEST_SFUNC(416, str_ucfirst, "", 0, "")
+	TEST_SFUNC(417, str_ucfirst, "abc", 3, "Abc")
+	TEST_SFUNC(418, str_ucfirst, " a b c ", 7, " a b c ")
+	TEST_SFUNC(419, str_ucfirst, "ABC", 3, "ABC")
+	TEST_SFUNC(420, str_ucfirst, " A B C ", 7, " A B C ")
+	TEST_SFUNC(421, str_ucfirst, "0123456", 7, "0123456")
 
-	TEST_FUNC(412, ucfirst, "", 0, "")
-	TEST_FUNC(413, ucfirst, "abc", 3, "Abc")
-	TEST_FUNC(414, ucfirst, " a b c ", 7, " a b c ")
-	TEST_FUNC(415, ucfirst, "ABC", 3, "ABC")
-	TEST_FUNC(416, ucfirst, " A B C ", 7, " A B C ")
-	TEST_FUNC(417, ucfirst, "0123456", 7, "0123456")
+	TEST_FUNC(422, ucfirst, "", 0, "")
+	TEST_FUNC(423, ucfirst, "abc", 3, "Abc")
+	TEST_FUNC(424, ucfirst, " a b c ", 7, " a b c ")
+	TEST_FUNC(425, ucfirst, "ABC", 3, "ABC")
+	TEST_FUNC(426, ucfirst, " A B C ", 7, " A B C ")
+	TEST_FUNC(427, ucfirst, "0123456", 7, "0123456")
 
 	/* Test chop */
 
@@ -6596,33 +8327,33 @@ int main(int ac, char **av)
 	TEST_EQ((i), func(tst), eq) \
 	CHECK_CSTR((i), func(str), tst, len, val)
 
-	TEST_SFUNC_EQ(418, str_chop, "abcdef", 'f', 5, "abcde")
-	TEST_SFUNC_EQ(419, str_chop, "abcde", 'e',4, "abcd")
-	TEST_SFUNC_EQ(420, str_chop, "abcd", 'd', 3, "abc")
-	TEST_SFUNC_EQ(421, str_chop, "abc", 'c', 2, "ab")
-	TEST_SFUNC_EQ(422, str_chop, "ab", 'b', 1, "a")
-	TEST_SFUNC_EQ(423, str_chop, "a", 'a', 0, "")
-	TEST_SFUNC_EQ(424, str_chop, "", -1, 0, "")
+	TEST_SFUNC_EQ(428, str_chop, "abcdef", 'f', 5, "abcde")
+	TEST_SFUNC_EQ(429, str_chop, "abcde", 'e',4, "abcd")
+	TEST_SFUNC_EQ(430, str_chop, "abcd", 'd', 3, "abc")
+	TEST_SFUNC_EQ(431, str_chop, "abc", 'c', 2, "ab")
+	TEST_SFUNC_EQ(432, str_chop, "ab", 'b', 1, "a")
+	TEST_SFUNC_EQ(433, str_chop, "a", 'a', 0, "")
+	TEST_SFUNC_EQ(434, str_chop, "", -1, 0, "")
 
-	TEST_FUNC_EQ(425, chop, "abcdef", 'f', 5, "abcde")
-	TEST_FUNC_EQ(426, chop, "abcde", 'e', 4, "abcd")
-	TEST_FUNC_EQ(427, chop, "abcd", 'd', 3, "abc")
-	TEST_FUNC_EQ(428, chop, "abc", 'c', 2, "ab")
-	TEST_FUNC_EQ(429, chop, "ab", 'b', 1, "a")
-	TEST_FUNC_EQ(430, chop, "a", 'a', 0, "")
-	TEST_FUNC_EQ(431, chop, "", -1, 0, "")
+	TEST_FUNC_EQ(435, chop, "abcdef", 'f', 5, "abcde")
+	TEST_FUNC_EQ(436, chop, "abcde", 'e', 4, "abcd")
+	TEST_FUNC_EQ(437, chop, "abcd", 'd', 3, "abc")
+	TEST_FUNC_EQ(438, chop, "abc", 'c', 2, "ab")
+	TEST_FUNC_EQ(439, chop, "ab", 'b', 1, "a")
+	TEST_FUNC_EQ(440, chop, "a", 'a', 0, "")
+	TEST_FUNC_EQ(441, chop, "", -1, 0, "")
 
 	/* Test chomp */
 
-	TEST_SFUNC_EQ(432, str_chomp, "abcdef", 0, 6, "abcdef")
-	TEST_SFUNC_EQ(433, str_chomp, "abcdef ", 0, 7, "abcdef ")
-	TEST_SFUNC_EQ(434, str_chomp, "abcdef \n", 1, 7, "abcdef ")
-	TEST_SFUNC_EQ(435, str_chomp, "abcdef \n\r", 2, 7, "abcdef ")
+	TEST_SFUNC_EQ(442, str_chomp, "abcdef", 0, 6, "abcdef")
+	TEST_SFUNC_EQ(443, str_chomp, "abcdef ", 0, 7, "abcdef ")
+	TEST_SFUNC_EQ(444, str_chomp, "abcdef \n", 1, 7, "abcdef ")
+	TEST_SFUNC_EQ(445, str_chomp, "abcdef \n\r", 2, 7, "abcdef ")
 
-	TEST_FUNC_EQ(436, chomp, "abcdef", 0, 6, "abcdef")
-	TEST_FUNC_EQ(437, chomp, "abcdef ", 0, 7, "abcdef ")
-	TEST_FUNC_EQ(438, chomp, "abcdef \n", 1, 7, "abcdef ")
-	TEST_FUNC_EQ(439, chomp, "abcdef \n\r", 2, 7, "abcdef ")
+	TEST_FUNC_EQ(446, chomp, "abcdef", 0, 6, "abcdef")
+	TEST_FUNC_EQ(447, chomp, "abcdef ", 0, 7, "abcdef ")
+	TEST_FUNC_EQ(448, chomp, "abcdef \n", 1, 7, "abcdef ")
+	TEST_FUNC_EQ(449, chomp, "abcdef \n\r", 2, 7, "abcdef ")
 
 	/* Test bin, hex, oct */
 
@@ -6635,33 +8366,33 @@ int main(int ac, char **av)
 	strcpy(tst, str); \
 	TEST_EQ((i), func(tst), eq)
 
-	TEST_SNUM(440, str_bin, "010", 2)
-	TEST_SNUM(441, str_oct, "010", 8)
-	TEST_SNUM(442, str_hex, "010", 16)
+	TEST_SNUM(450, str_bin, "010", 2)
+	TEST_SNUM(451, str_oct, "010", 8)
+	TEST_SNUM(452, str_hex, "010", 16)
 
-	TEST_NUM(443, bin, "010", 2)
-	TEST_NUM(444, oct, "010", 8)
-	TEST_NUM(445, hex, "010", 16)
+	TEST_NUM(453, bin, "010", 2)
+	TEST_NUM(454, oct, "010", 8)
+	TEST_NUM(455, hex, "010", 16)
 
-	TEST_SNUM(446, str_bin, "11111111111111111111111111111111", -1)
-	TEST_SNUM(447, str_oct, "037777777777", -1)
-	TEST_SNUM(448, str_hex, "ffffffff", -1)
+	TEST_SNUM(456, str_bin, "11111111111111111111111111111111", -1)
+	TEST_SNUM(457, str_oct, "037777777777", -1)
+	TEST_SNUM(458, str_hex, "ffffffff", -1)
 
-	TEST_NUM(449, bin, "11111111111111111111111111111111", -1)
-	TEST_NUM(450, oct, "037777777777", -1)
-	TEST_NUM(451, hex, "ffffffff", -1)
+	TEST_NUM(459, bin, "11111111111111111111111111111111", -1)
+	TEST_NUM(460, oct, "037777777777", -1)
+	TEST_NUM(461, hex, "ffffffff", -1)
 
-	TEST_SNUM(452, str_bin, "0b1010", 10)
-	TEST_SNUM(453, str_hex, "0xa", 10)
-	TEST_SNUM(454, str_oct, "012", 10)
-	TEST_SNUM(455, str_oct, "0b1010", 10)
-	TEST_SNUM(456, str_oct, "0xa", 10)
+	TEST_SNUM(462, str_bin, "0b1010", 10)
+	TEST_SNUM(463, str_hex, "0xa", 10)
+	TEST_SNUM(464, str_oct, "012", 10)
+	TEST_SNUM(465, str_oct, "0b1010", 10)
+	TEST_SNUM(466, str_oct, "0xa", 10)
 
-	TEST_NUM(457, bin, "0b1010", 10)
-	TEST_NUM(458, hex, "0xa", 10)
-	TEST_NUM(459, oct, "012", 10)
-	TEST_NUM(460, oct, "0b1010", 10)
-	TEST_NUM(461, oct, "0xa", 10)
+	TEST_NUM(467, bin, "0b1010", 10)
+	TEST_NUM(468, hex, "0xa", 10)
+	TEST_NUM(469, oct, "012", 10)
+	TEST_NUM(470, oct, "0b1010", 10)
+	TEST_NUM(471, oct, "0xa", 10)
 
 	/* Test cstr, str_set_length and str_recalc_length */
 
@@ -6669,75 +8400,128 @@ int main(int ac, char **av)
 	TEST_EQ((i), action, eq) \
 	CHECK_STR((i), action, str, eq, val)
 
-	TEST_ACT(462, a = str_create("0123456789"))
-	TEST_SET(463, (cstr(a)[5] = '\0', str_recalc_length(a)), a, 5, 5, "01234")
-	TEST_SET(464, (cstr(a)[5] =  '5', str_recalc_length(a)), a, 10, 10, "0123456789")
-	TEST_SET(465, (cstr(a)[5] = '\0', str_set_length(a, 8)), a, 8, 8, "01234\00067")
-	TEST_SET(466, (cstr(a)[5] =  '5', str_set_length(a, 7)), a, 7, 7, "0123456\000")
-	TEST_SET(467, (cstr(a)[5] = '\0', str_set_length(a, 6)), a, 6, 6, "01234\000")
+	TEST_ACT(472, a = str_create("0123456789"))
+	TEST_SET(473, (cstr(a)[5] = '\0', str_recalc_length(a)), a, 5, 5, "01234")
+	TEST_SET(474, (cstr(a)[5] =  '5', str_recalc_length(a)), a, 10, 10, "0123456789")
+	TEST_SET(475, (cstr(a)[5] = '\0', str_set_length(a, 8)), a, 8, 8, "01234\00067")
+	TEST_SET(476, (cstr(a)[5] =  '5', str_set_length(a, 7)), a, 7, 7, "0123456\000")
+	TEST_SET(477, (cstr(a)[5] = '\0', str_set_length(a, 6)), a, 6, 6, "01234\000")
 	str_destroy(&a);
 
 	/* Test strcasecmp() and strncasecmp() */
 
-#ifdef NEEDS_STRCASECMP
-	TEST_ACT(468, strcasecmp("Abc", "abc") == 0)
-	TEST_ACT(469, strcasecmp("AbcD", "abc") == 100)
-	TEST_ACT(470, strcasecmp("Abc", "abcD") == -100)
-	TEST_ACT(471, strcasecmp("Abce", "abcD") == 1)
-	TEST_ACT(472, strcasecmp("AbcD", "abce") == -1)
+#ifndef HAVE_STRCASECMP
+	TEST_ACT(478, strcasecmp("Abc", "abc") == 0)
+	TEST_ACT(479, strcasecmp("AbcD", "abc") == 100)
+	TEST_ACT(480, strcasecmp("Abc", "abcD") == -100)
+	TEST_ACT(481, strcasecmp("Abce", "abcD") == 1)
+	TEST_ACT(482, strcasecmp("AbcD", "abce") == -1)
 #endif
 
-#ifdef NEEDS_STRNCASECMP
-	TEST_ACT(473, strncasecmp("Abc", "abc", 2) == 0)
-	TEST_ACT(474, strncasecmp("AbC", "abc", 3) == 0)
-	TEST_ACT(475, strncasecmp("Abc", "abC", 4) == 0)
-	TEST_ACT(476, strncasecmp("AbcD", "abc", 2) == 0)
-	TEST_ACT(477, strncasecmp("Abcd", "abc", 3) == 0)
-	TEST_ACT(478, strncasecmp("AbcD", "abc", 4) == 100)
-	TEST_ACT(479, strncasecmp("Abcd", "abc", 4) == 100)
-	TEST_ACT(480, strncasecmp("Abc", "abcd", 2) == 0)
-	TEST_ACT(481, strncasecmp("Abc", "abcD", 3) == 0)
-	TEST_ACT(482, strncasecmp("Abc", "abcd", 4) == -100)
-	TEST_ACT(483, strncasecmp("Abc", "abcD", 5) == -100)
-	TEST_ACT(484, strncasecmp("Abce", "abcd", 3) == 0)
-	TEST_ACT(485, strncasecmp("Abce", "abcD", 4) == 1)
-	TEST_ACT(486, strncasecmp("AbcE", "abcd", 5) == 1)
-	TEST_ACT(487, strncasecmp("Abcd", "abce", 3) == 0)
-	TEST_ACT(488, strncasecmp("AbcD", "abce", 4) == -1)
-	TEST_ACT(489, strncasecmp("Abcd", "abcE", 5) == -1)
+#ifndef HAVE_STRNCASECMP
+	TEST_ACT(483, strncasecmp("Abc", "abc", 2) == 0)
+	TEST_ACT(484, strncasecmp("AbC", "abc", 3) == 0)
+	TEST_ACT(485, strncasecmp("Abc", "abC", 4) == 0)
+	TEST_ACT(486, strncasecmp("AbcD", "abc", 2) == 0)
+	TEST_ACT(487, strncasecmp("Abcd", "abc", 3) == 0)
+	TEST_ACT(488, strncasecmp("AbcD", "abc", 4) == 100)
+	TEST_ACT(489, strncasecmp("Abcd", "abc", 4) == 100)
+	TEST_ACT(490, strncasecmp("Abc", "abcd", 2) == 0)
+	TEST_ACT(491, strncasecmp("Abc", "abcD", 3) == 0)
+	TEST_ACT(492, strncasecmp("Abc", "abcd", 4) == -100)
+	TEST_ACT(493, strncasecmp("Abc", "abcD", 5) == -100)
+	TEST_ACT(494, strncasecmp("Abce", "abcd", 3) == 0)
+	TEST_ACT(495, strncasecmp("Abce", "abcD", 4) == 1)
+	TEST_ACT(496, strncasecmp("AbcE", "abcd", 5) == 1)
+	TEST_ACT(497, strncasecmp("Abcd", "abce", 3) == 0)
+	TEST_ACT(498, strncasecmp("AbcD", "abce", 4) == -1)
+	TEST_ACT(499, strncasecmp("Abcd", "abcE", 5) == -1)
 #endif
 
 	/* Test strlcpy() and strlcat() */
 
-#ifdef NEEDS_STRLCPY
-	memset(tst, 0xff, 4);
-	TEST_ACT(490, strlcpy(tst, "", 3) == 0)
-	TEST_ACT(491, !strcmp(tst, ""))
-	memset(tst, 0xff, 4);
-	TEST_ACT(492, strlcpy(tst, "a", 3) == 1)
-	TEST_ACT(493, !strcmp(tst, "a"))
-	memset(tst, 0xff, 4);
-	TEST_ACT(494, strlcpy(tst, "ab", 3) == 2)
-	TEST_ACT(495, !strcmp(tst, "ab"))
-	memset(tst, 0xff, 4);
-	TEST_ACT(496, strlcpy(tst, "abc", 3) == 3)
-	TEST_ACT(497, !strcmp(tst, "ab"))
-	memset(tst, 0xff, 4);
-	TEST_ACT(498, strlcpy(tst, "abcd", 3) == 4)
-	TEST_ACT(499, !strcmp(tst, "ab"))
+#define TEST_STRCPY(i, buf, len, act, val) \
+	memset((buf), 0xff, (len)); \
+	TEST_ACT((i), act) \
+	TEST_ACT((i), !strcmp((buf), (val)))
+
+#define TEST_STRCAT(i, buf, act, val) \
+	TEST_ACT((i), act) \
+	TEST_ACT((i), !strcmp((buf), (val)))
+
+#ifndef HAVE_STRLCPY
+	TEST_STRCPY(500, tst, 4, strlcpy(tst, "", 3) == 0, "")
+	TEST_STRCPY(501, tst, 4, strlcpy(tst, "a", 3) == 1, "a")
+	TEST_STRCPY(502, tst, 4, strlcpy(tst, "ab", 3) == 2, "ab")
+	TEST_STRCPY(503, tst, 4, strlcpy(tst, "abc", 3) == 3, "ab")
+	TEST_STRCPY(504, tst, 4, strlcpy(tst, "abcd", 3) == 4, "ab")
 #endif
 
-#ifdef NEEDS_STRLCAT
+#ifndef HAVE_STRLCAT
 	tst[0] = '\0';
-	TEST_ACT(500, strlcat(tst, "a", 3) == 1)
-	TEST_ACT(501, !strcmp(tst, "a"))
-	TEST_ACT(502, strlcat(tst, "b", 3) == 2)
-	TEST_ACT(503, !strcmp(tst, "ab"))
-	TEST_ACT(504, strlcat(tst, "c", 3) == 3)
-	TEST_ACT(505, !strcmp(tst, "ab"))
-	TEST_ACT(506, strlcat(tst, "d", 3) == 3)
-	TEST_ACT(507, !strcmp(tst, "ab"))
+	TEST_STRCAT(505, tst, strlcat(tst, "", 3) == 0, "")
+	TEST_STRCAT(506, tst, strlcat(tst, "a", 3) == 1, "a")
+	TEST_STRCAT(507, tst, strlcat(tst, "b", 3) == 2, "ab")
+	TEST_STRCAT(508, tst, strlcat(tst, "", 3) == 2, "ab")
+	TEST_STRCAT(509, tst, strlcat(tst, "c", 3) == 3, "ab")
+	TEST_STRCAT(510, tst, strlcat(tst, "d", 3) == 3, "ab")
 #endif
+
+	/* Test cstrcpy() */
+
+	TEST_STRCPY(511, tst, 8, cstrcpy(tst, "") == tst + 0, "")
+	TEST_STRCPY(512, tst, 8, cstrcpy(tst, "a") == tst + 1, "a")
+	TEST_STRCPY(513, tst, 8, cstrcpy(tst, "ab") == tst + 2, "ab")
+	TEST_STRCPY(514, tst, 8, cstrcpy(tst, "abc") == tst + 3, "abc")
+	TEST_STRCPY(515, tst, 8, cstrcpy(tst, "abcd") == tst + 4, "abcd")
+
+	/* Test cstrcat() */
+
+	tst[0] = '\0';
+	TEST_STRCAT(516, tst, cstrcat(tst, "") == tst + 0, "")
+	TEST_STRCAT(517, tst, cstrcat(tst, "a") == tst + 1, "a")
+	TEST_STRCAT(518, tst, cstrcat(tst, "b") == tst + 2, "ab")
+	TEST_STRCAT(519, tst, cstrcat(tst, "c") == tst + 3, "abc")
+	TEST_STRCAT(520, tst, cstrcat(tst, "d") == tst + 4, "abcd")
+	TEST_STRCAT(521, tst, cstrcat(tst, "") == tst + 4, "abcd")
+
+	/* Test cstrchr() */
+
+	TEST_ACT(522, cstrchr(t = "abcabc", 'a') == t + 0)
+	TEST_ACT(523, cstrchr(t = "abcabc", 'b') == t + 1)
+	TEST_ACT(524, cstrchr(t = "abcabc", 'c') == t + 2)
+	TEST_ACT(525, cstrchr(t = "abcabc", 'd') == t + 6)
+	TEST_ACT(526, cstrchr(t = "abcabc", 'e') == t + 6)
+	TEST_ACT(527, cstrchr(t = "abcabc", '\0') == t + 6)
+
+	/* Test cstrpbrk() */
+
+	TEST_ACT(528, cstrpbrk(t = "abcdef", "abc") == t + 0)
+	TEST_ACT(529, cstrpbrk(t = "abcdef", "bcd") == t + 1)
+	TEST_ACT(530, cstrpbrk(t = "abcdef", "cde") == t + 2)
+	TEST_ACT(531, cstrpbrk(t = "abcdef", "def") == t + 3)
+	TEST_ACT(532, cstrpbrk(t = "abcdef", "efg") == t + 4)
+	TEST_ACT(533, cstrpbrk(t = "abcdef", "fgh") == t + 5)
+	TEST_ACT(534, cstrpbrk(t = "abcdef", "ghi") == t + 6)
+	TEST_ACT(535, cstrpbrk(t = "abcdef", "\0") == t + 6)
+
+	/* Test cstrrchr() */
+
+	TEST_ACT(536, cstrrchr(t = "abcabc", 'a') == t + 3)
+	TEST_ACT(537, cstrrchr(t = "abcabc", 'b') == t + 4)
+	TEST_ACT(538, cstrrchr(t = "abcabc", 'c') == t + 5)
+	TEST_ACT(539, cstrrchr(t = "abcabc", 'd') == t + 6)
+	TEST_ACT(540, cstrrchr(t = "abcabc", 'e') == t + 6)
+	TEST_ACT(541, cstrrchr(t = "abcabc", '\0') == t + 6)
+
+	/* Test cstrstr() */
+
+	TEST_ACT(542, cstrstr(t = "abcabc", "abc") == t + 0)
+	TEST_ACT(543, cstrstr(t = "abcabc", "bca") == t + 1)
+	TEST_ACT(544, cstrstr(t = "abcabc", "cab") == t + 2)
+	TEST_ACT(545, cstrstr(t = "abcabc", "def") == t + 6)
+	TEST_ACT(546, cstrstr(t = "abcabc", "ghi") == t + 6)
+	TEST_ACT(547, cstrstr(t = "abcabc", "\0") == t + 0)
 
 	/* Test strings containing nuls and high bit characters */
 
@@ -6774,10 +8558,10 @@ int main(int ac, char **av)
 	str_destroy(&b); \
 	str_destroy(&a);
 
-#define TEST_ZENCODE(i, origlen, str, uncoded, coded, quote_char, printable, len, val) \
+#define TEST_ZENCODE(i, origlen, str, uncoded, coded, quote_char, printable, len, val, len2, val2) \
 	TEST_ACT((i), a = substr(str, 0, origlen)) \
 	TEST_ACT((i), b = str_encode(a, uncoded, coded, quote_char, printable)) \
-	CHECK_STR((i), str_encode(str, uncoded, coded, quote_char, printable), b, len, val) \
+	CHECK_STR2((i), str_encode(str, uncoded, coded, quote_char, printable), b, len, val, len2, val2) \
 	TEST_ACT((i), c = str_decode(b, uncoded, coded, quote_char, printable)) \
 	CHECK_STR((i), str_decode(encoded(str), uncoded, coded, quote_char, printable), c, origlen, str) \
 	str_destroy(&c); \
@@ -6790,218 +8574,261 @@ int main(int ac, char **av)
 	CHECK_STR((i), func(str), a, newlen, val) \
 	str_destroy(&a);
 
-	TEST_STR(508, a = str_create("%c", '\0'), a, 1, "\000")
-	TEST_ACT(509, !str_empty(a))
-	TEST_STR(510, b = str_create("abc%cdef\376", '\0'), b, 8, "abc\000def\376")
-	TEST_STR(511, c = str_copy(b), c, 8, "abc\000def\376")
-	TEST_STR(512, str_remove(b, 0), b, 7, "bc\000def\376")
-	TEST_STR(513, str_remove_range(c, 1, 2), c, 6, "a\000def\376")
-	TEST_STR(514, str_insert(a, 1, "a%c\376b", '\0'), a, 5, "\000a\000\376b")
-	TEST_STR(515, str_insert_str(a, 1, b), a, 12, "\000bc\000def\376a\000\376b")
-	TEST_STR(516, str_prepend(a, "a%c\376b", '\0'), a, 16, "a\000\376b\000bc\000def\376a\000\376b")
-	TEST_STR(517, str_prepend_str(a, b), a, 23, "bc\000def\376a\000\376b\000bc\000def\376a\000\376b")
-	TEST_STR(518, str_append(a, "%c\376", '\0'), a, 25, "bc\000def\376a\000\376b\000bc\000def\376a\000\376b\000\376")
-	TEST_STR(519, str_append_str(a, c), a, 31, "bc\000def\376a\000\376b\000bc\000def\376a\000\376b\000\376a\000def\376")
-	TEST_STR(520, str_replace(a, 3, 5, "%c\376", '\0'), a, 28, "bc\000\000\376\000\376b\000bc\000def\376a\000\376b\000\376a\000def\376")
-	TEST_STR(521, str_replace_str(a, 3, 5, c), a, 29, "bc\000a\000def\376\000bc\000def\376a\000\376b\000\376a\000def\376")
+	TEST_STR(518, a = str_create("%c", '\0'), a, 1, "\000")
+	TEST_ACT(519, !str_empty(a))
+	TEST_STR(520, b = str_create("abc%cdef\376", '\0'), b, 8, "abc\000def\376")
+	TEST_STR(521, c = str_copy(b), c, 8, "abc\000def\376")
+	TEST_STR(522, str_remove(b, 0), b, 7, "bc\000def\376")
+	TEST_STR(523, str_remove_range(c, 1, 2), c, 6, "a\000def\376")
+	TEST_STR(524, str_insert(a, 1, "a%c\376b", '\0'), a, 5, "\000a\000\376b")
+	TEST_STR(525, str_insert_str(a, 1, b), a, 12, "\000bc\000def\376a\000\376b")
+	TEST_STR(526, str_prepend(a, "a%c\376b", '\0'), a, 16, "a\000\376b\000bc\000def\376a\000\376b")
+	TEST_STR(527, str_prepend_str(a, b), a, 23, "bc\000def\376a\000\376b\000bc\000def\376a\000\376b")
+	TEST_STR(528, str_append(a, "%c\376", '\0'), a, 25, "bc\000def\376a\000\376b\000bc\000def\376a\000\376b\000\376")
+	TEST_STR(529, str_append_str(a, c), a, 31, "bc\000def\376a\000\376b\000bc\000def\376a\000\376b\000\376a\000def\376")
+	TEST_STR(530, str_replace(a, 3, 5, "%c\376", '\0'), a, 28, "bc\000\000\376\000\376b\000bc\000def\376a\000\376b\000\376a\000def\376")
+	TEST_STR(531, str_replace_str(a, 3, 5, c), a, 29, "bc\000a\000def\376\000bc\000def\376a\000\376b\000\376a\000def\376")
 	str_destroy(&c);
-	TEST_STR(522, c = str_repeat(10, "1%c1", '\0'), c, 30, "1\00011\00011\00011\00011\00011\00011\00011\00011\00011\0001")
+	TEST_STR(532, c = str_repeat(10, "1%c1", '\0'), c, 30, "1\00011\00011\00011\00011\00011\00011\00011\00011\00011\0001")
 	str_destroy(&c);
-	TEST_STR(523, c = str_substr(a, 5, 5), c, 5, "def\376\000")
+	TEST_STR(533, c = str_substr(a, 5, 5), c, 5, "def\376\000")
 	str_destroy(&c);
-	TEST_STR(524, c = substr(cstr(a), 5, 5), c, 5, "def\376\000")
+	TEST_STR(534, c = substr(cstr(a), 5, 5), c, 5, "def\376\000")
 	str_destroy(&c);
-	TEST_STR(525, c = str_splice(a, 5, 5), c, 5, "def\376\000")
-	CHECK_STR(526, str_splice(a, 5, 5), a, 24, "bc\000a\000bc\000def\376a\000\376b\000\376a\000def\376")
+	TEST_STR(535, c = str_splice(a, 5, 5), c, 5, "def\376\000")
+	CHECK_STR(536, str_splice(a, 5, 5), a, 24, "bc\000a\000bc\000def\376a\000\376b\000\376a\000def\376")
 	str_destroy(&c);
 	str_destroy(&b);
-	TEST_TR_DIRECT(527, str_tr(a, "a-z", "A-EfG-Z", 0), a, 14, 24, "BC\000A\000BC\000DEf\376A\000\376B\000\376A\000DEf\376")
-	TEST_ACT(528, b = str_create("%c", '\0'))
-	TEST_ACT(529, c = str_create("%c", '\0'))
-	TEST_TR_DIRECT(530, str_tr_str(a, b, c, 0), a, 6, 24, "BC\000A\000BC\000DEf\376A\000\376B\000\376A\000DEf\376")
+	TEST_TR_DIRECT(537, str_tr(a, "a-z", "A-EfG-Z", 0), a, 14, 24, "BC\000A\000BC\000DEf\376A\000\376B\000\376A\000DEf\376")
+	TEST_ACT(538, b = str_create("%c", '\0'))
+	TEST_ACT(539, c = str_create("%c", '\0'))
+	TEST_TR_DIRECT(540, str_tr_str(a, b, c, 0), a, 6, 24, "BC\000A\000BC\000DEf\376A\000\376B\000\376A\000DEf\376")
 	str_destroy(&c);
 	str_destroy(&b);
 	str_destroy(&a);
-	TEST_ZSPLIT(531, 9, "\000a\376\000a\376a\000\376", "a", "\000", "\376\000", "\376", "\000\376")
-	TEST_ACT(532, list = list_make((list_release_t *)str_release, str_create("%c\376", '\0'), str_create("\376%c", '\0'), str_create("%c%c", '\0', '\0'), NULL))
-	TEST_JOIN(533, a = str_join(list, "a"), a, 8, "\000\376a\376\000a\000\000")
+	TEST_ZSPLIT(541, 9, "\000a\376\000a\376a\000\376", "a", "\000", "\376\000", "\376", "\000\376")
+	TEST_ACT(542, list = list_make((list_release_t *)str_release, str_create("%c\376", '\0'), str_create("\376%c", '\0'), str_create("%c%c", '\0', '\0'), NULL))
+	TEST_JOIN(543, a = str_join(list, "a"), a, 8, "\000\376a\376\000a\000\000")
 	list_destroy(&list);
-	TEST_ZFUNC(534, str_trim, 12, "  abc\000\376def  ", 8, "abc\000\376def")
-	TEST_ZFUNC(535, str_trim_left, 12, "  abc\000\376def  ", 10, "abc\000\376def  ")
-	TEST_ZFUNC(536, str_trim_right, 12, "  abc\000\376def  ", 10, "  abc\000\376def")
-	TEST_ZFUNC(537, str_squeeze, 19, "   ab \000 cd\376   ef   ", 11, "ab \000 cd\376 ef")
-	TEST_ZQUOTE(538, 16, "\\\"hell\000\\\\w\376rld\\\"", "\"\\", '\\', 22, "\\\\\\\"hell\000\\\\\\\\w\376rld\\\\\\\"")
-	TEST_ZENCODE(539, 11, "\a\b\t\n\0\376\v\f\r\033\\", "\a\b\t\n\v\f\r\\", "abtnvfr\\", '\\', 1, 28, "\\a\\b\\t\\n\\x00\\xfe\\v\\f\\r\\x1b\\\\")
-	TEST_ZFUNC(540, str_lc, 7, "ABC\000DEF", 7, "abc\000def")
-	TEST_ZFUNC(541, str_lcfirst, 7, "ABC\000DEF", 7, "aBC\000DEF")
-	TEST_ZFUNC(542, str_uc, 7, "abc\000def", 7, "ABC\000DEF")
-	TEST_ZFUNC(543, str_ucfirst, 7, "abc\000def", 7, "Abc\000def")
-	TEST_ZFUNC(544, str_chop, 7, "abc\000def", 6, "abc\000de")
-	TEST_ZCHOMP(545, str_chomp, 7, "abc\000def", 0, 7, "abc\000def")
-	TEST_ZCHOMP(546, str_chomp, 7, "abc\000de\n", 1, 6, "abc\000de")
+	TEST_ZFUNC(544, str_trim, 12, "  abc\000\376def  ", 8, "abc\000\376def")
+	TEST_ZFUNC(545, str_trim_left, 12, "  abc\000\376def  ", 10, "abc\000\376def  ")
+	TEST_ZFUNC(546, str_trim_right, 12, "  abc\000\376def  ", 10, "  abc\000\376def")
+	TEST_ZFUNC(547, str_squeeze, 19, "   ab \000 cd\376   ef   ", 11, "ab \000 cd\376 ef")
+	TEST_ZQUOTE(548, 16, "\\\"hell\000\\\\w\376rld\\\"", "\"\\", '\\', 22, "\\\\\\\"hell\000\\\\\\\\w\376rld\\\\\\\"")
+	TEST_ZENCODE(549, 11, "\a\b\t\n\0\376\v\f\r\033\\", "\a\b\t\n\v\f\r\\", "abtnvfr\\", '\\', 1, 28, "\\a\\b\\t\\n\\x00\\xfe\\v\\f\\r\\x1b\\\\", 25, "\\a\\b\\t\\n\\x00\376\\v\\f\\r\\x1b\\\\")
+	TEST_ZFUNC(550, str_lc, 7, "ABC\000DEF", 7, "abc\000def")
+	TEST_ZFUNC(551, str_lcfirst, 7, "ABC\000DEF", 7, "aBC\000DEF")
+	TEST_ZFUNC(552, str_uc, 7, "abc\000def", 7, "ABC\000DEF")
+	TEST_ZFUNC(553, str_ucfirst, 7, "abc\000def", 7, "Abc\000def")
+	TEST_ZFUNC(554, str_chop, 7, "abc\000def", 6, "abc\000de")
+	TEST_ZCHOMP(555, str_chomp, 7, "abc\000def", 0, 7, "abc\000def")
+	TEST_ZCHOMP(556, str_chomp, 7, "abc\000de\n", 1, 6, "abc\000de")
 
 	/* Test error reporting */
 
-	TEST_ACT(547, !str_copy(NULL))
-	TEST_ACT(548, !cstr(NULL))
-	TEST_EQ (549, str_set_length(NULL, 0), -1)
-	TEST_ACT(550, a = str_create(NULL))
-	TEST_EQ (551, str_set_length(a, 33), -1)
-	TEST_EQ (552, str_set_length(a, 1), -1)
-	TEST_EQ (553, str_recalc_length(NULL), -1)
-	TEST_ACT(554, !str_remove_range(NULL, 0, 0))
-	TEST_ACT(555, !str_remove_range(a, 1, 0))
-	TEST_ACT(556, !str_remove_range(a, 0, 1))
-	TEST_ACT(557, !str_insert(NULL, 0, ""))
-	TEST_ACT(558, !str_insert(a, 1, ""))
-	TEST_ACT(559, !str_insert_str(a, 0, NULL))
-	TEST_ACT(560, !str_replace(NULL, 0, 0, ""))
-	TEST_ACT(561, !str_replace(a, 0, 1, ""))
-	TEST_ACT(562, !str_replace(a, 1, 0, ""))
-	TEST_ACT(563, !str_replace_str(NULL, 0, 0, NULL))
-	TEST_ACT(564, !str_substr(NULL, 0, 0))
-	TEST_ACT(565, !str_substr(a, 0, 1))
-	TEST_ACT(566, !str_substr(a, 1, 0))
-	TEST_ACT(567, !substr(NULL, 0, 0))
-	TEST_ACT(568, !str_splice(NULL, 0, 0))
-	TEST_ACT(569, !str_splice(a, 0, 1))
-	TEST_ACT(570, !str_splice(a, 1, 0))
-	TEST_EQ (571, str_tr(NULL, "a-z", "A-Z", 0), -1)
-	TEST_EQ (572, str_tr(a, NULL, "A-Z", 0), -1)
-	TEST_EQ (573, str_tr(a, "z-a", "A-Z", 0), -1)
-	TEST_EQ (574, str_tr(a, "a-z", "Z-A", 0), -1)
-	TEST_ACT(575, b = str_create("a-z"))
-	TEST_ACT(576, c = str_create("A-Z"))
-	TEST_EQ (577, str_tr_str(NULL, b, c, 0), -1)
-	TEST_EQ (578, str_tr_str(a, NULL, c, 0), -1)
-	str_destroy(&c);
-	TEST_ACT(579, c = str_create("Z-A"))
-	TEST_EQ (580, str_tr_str(a, b, c, 0), -1)
+	TEST_ACT(557, !str_copy(NULL))
+	TEST_ACT(558, !cstr(NULL))
+	TEST_EQ (559, str_set_length(NULL, 0), -1)
+	TEST_ACT(560, a = str_create(NULL))
+	TEST_EQ (561, str_set_length(a, 33), -1)
+	TEST_EQ (562, str_set_length(a, 1), -1)
+	TEST_EQ (563, str_recalc_length(NULL), -1)
+	TEST_ACT(564, !str_remove_range(NULL, 0, 0))
+	TEST_ACT(565, !str_remove_range(a, 1, 0))
+	TEST_ACT(566, !str_remove_range(a, 0, 1))
+	TEST_ACT(567, !str_remove_range(a, -1000, 1))
+	TEST_ACT(568, !str_remove_range(a, 1, -1000))
+	TEST_ACT(569, !str_remove_range(a, -1000, -1000))
+	TEST_ACT(570, !str_insert(NULL, 0, ""))
+	TEST_ACT(571, !str_insert(a, 1, ""))
+	TEST_ACT(572, !str_insert(a, -1000, ""))
+	TEST_ACT(573, !str_insert_str(a, 0, NULL))
+	b = str_create(NULL);
+	TEST_ACT(574, !str_insert_str(a, -1000, b))
 	str_destroy(&b);
-	TEST_ACT(581, b = str_create("z-a"))
-	TEST_EQ (582, str_tr_str(a, b, c, 0), -1)
+	TEST_ACT(575, !str_replace(NULL, 0, 0, ""))
+	TEST_ACT(576, !str_replace(a, 0, 1, ""))
+	TEST_ACT(577, !str_replace(a, 1, 0, ""))
+	TEST_ACT(578, !str_replace(a, -1000, 1, ""))
+	TEST_ACT(579, !str_replace(a, 1, -1000, ""))
+	TEST_ACT(580, !str_replace_str(NULL, 0, 0, NULL))
+	b = str_create(NULL);
+	TEST_ACT(581, !str_replace_str(a, -1000, 0, b))
+	TEST_ACT(582, !str_replace_str(a, 0, -1000, b))
+	TEST_ACT(583, !str_replace_str(a, -1000, -1000, b))
+	str_destroy(&b);
+	TEST_ACT(584, !str_substr(NULL, 0, 0))
+	TEST_ACT(585, !str_substr(a, 0, 1))
+	TEST_ACT(586, !str_substr(a, 1, 0))
+	TEST_ACT(587, !str_substr(a, -1000, 1))
+	TEST_ACT(588, !str_substr(a, 1, -1000))
+	TEST_ACT(589, !str_substr(a, -1000, -1000))
+	TEST_ACT(590, !substr(NULL, 0, 0))
+	TEST_ACT(591, !substr("abc", -1000, 1))
+	TEST_ACT(592, !substr("abc", 1, -1000))
+	TEST_ACT(593, !substr("abc", -1000, -1000))
+	TEST_ACT(594, !str_splice(NULL, 0, 0))
+	TEST_ACT(595, !str_splice(a, 0, 1))
+	TEST_ACT(596, !str_splice(a, 1, 0))
+	TEST_EQ (597, str_tr(NULL, "a-z", "A-Z", 0), -1)
+	TEST_EQ (598, str_tr(a, NULL, "A-Z", 0), -1)
+	TEST_EQ (599, str_tr(a, "z-a", "A-Z", 0), -1)
+	TEST_EQ (600, str_tr(a, "a-z", "Z-A", 0), -1)
+	TEST_ACT(601, b = str_create("a-z"))
+	TEST_ACT(602, c = str_create("A-Z"))
+	TEST_EQ (603, str_tr_str(NULL, b, c, 0), -1)
+	TEST_EQ (604, str_tr_str(a, NULL, c, 0), -1)
+	str_destroy(&c);
+	TEST_ACT(605, c = str_create("Z-A"))
+	TEST_EQ (606, str_tr_str(a, b, c, 0), -1)
+	str_destroy(&b);
+	TEST_ACT(607, b = str_create("z-a"))
+	TEST_EQ (608, str_tr_str(a, b, c, 0), -1)
 	str_destroy(&b);
 	str_destroy(&c);
-	TEST_EQ (583, tr(NULL, "a-z", "A-Z", 0), -1)
-	TEST_EQ (584, tr(tst, NULL, "A-Z", 0), -1)
-	TEST_EQ (585, tr(tst, "z-a", "A-Z", 0), -1)
-	TEST_EQ (586, tr(tst, "a-z", "Z-A", 0), -1)
-	TEST_EQ (587, tr(tst, "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz", "a-z", 0), -1)
-	TEST_EQ (588, tr(tst, "a-z", "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz", 0), -1)
-	TEST_EQ (589, str_tr_compiled(NULL, NULL), -1)
-	TEST_EQ (590, str_tr_compiled(a, NULL), -1)
-	TEST_EQ (591, tr_compiled(NULL, NULL), -1)
-	TEST_EQ (592, tr_compiled("", NULL), -1)
-#ifndef REGEX_MISSING
-	TEST_ACT(593, !str_regexpr(NULL, a, 0, 0))
-	TEST_ACT(594, !str_regexpr("", NULL, 0, 0))
-	TEST_ACT(595, !regexpr(NULL, "", 0, 0))
-	TEST_ACT(596, !regexpr("", NULL, 0, 0))
-	TEST_EQ (597, regexpr_compile(re, NULL, 0), REG_BADPAT)
-	TEST_EQ (598, regexpr_compile(NULL, "", 0), REG_BADPAT)
-	TEST_ACT(599, !regexpr_compiled(re, NULL, 0))
-	TEST_ACT(600, !regexpr_compiled(NULL, "", 0))
+	TEST_EQ (609, tr(NULL, "a-z", "A-Z", 0), -1)
+	TEST_EQ (610, tr(tst, NULL, "A-Z", 0), -1)
+	TEST_EQ (611, tr(tst, "z-a", "A-Z", 0), -1)
+	TEST_EQ (612, tr(tst, "a-z", "Z-A", 0), -1)
+	TEST_EQ (613, tr(tst, "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz", "a-z", 0), -1)
+	TEST_EQ (614, tr(tst, "a-z", "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz", 0), -1)
+	TEST_EQ (615, str_tr_compiled(NULL, NULL), -1)
+	TEST_EQ (616, str_tr_compiled(a, NULL), -1)
+	TEST_EQ (617, tr_compiled(NULL, NULL), -1)
+	TEST_EQ (618, tr_compiled("", NULL), -1)
+#ifdef HAVE_REGEX_H
+	TEST_ACT(619, !str_regexpr(NULL, a, 0, 0))
+	TEST_ACT(620, !str_regexpr("", NULL, 0, 0))
+	TEST_ACT(621, !regexpr(NULL, "", 0, 0))
+	TEST_ACT(622, !regexpr("", NULL, 0, 0))
+	TEST_EQ (623, regexpr_compile(re, NULL, 0), REG_BADPAT)
+	TEST_EQ (624, regexpr_compile(NULL, "", 0), REG_BADPAT)
+	TEST_ACT(625, !regexpr_compiled(re, NULL, 0))
+	TEST_ACT(626, !regexpr_compiled(NULL, "", 0))
 	str_destroy(&a);
-	TEST_ACT(601, a = str_create("aaa"))
-	TEST_ACT(602, !str_regsub(NULL, "", a, 0, 0, 0))
-	TEST_ACT(603, !str_regsub("", NULL, a, 0, 0, 0))
-	TEST_ACT(604, !str_regsub("", "", NULL, 0, 0, 0))
-	TEST_ACT(605, !str_regsub_compiled(NULL, "", a, 0, 0))
-	TEST_ACT(606, !str_regsub_compiled(re, NULL, a, 0, 0))
-	TEST_EQ (607, regexpr_compile(re, ".+", 0), 0)
-	TEST_ACT(608, !str_regsub_compiled(re, "$", NULL, 0, 0))
-	TEST_ACT(609, !str_regsub_compiled(re, "$a", NULL, 0, 0))
-	TEST_ACT(610, !str_regsub_compiled(re, "${0", NULL, 0, 0))
-	TEST_ACT(611, !str_regsub_compiled(re, "${", NULL, 0, 0))
-	TEST_ACT(612, !str_regsub_compiled(re, "${33}", NULL, 0, 0))
-	TEST_ACT(613, !str_regsub_compiled(re, "${-12}", NULL, 0, 0))
-	TEST_ACT(614, !str_regsub_compiled(re, "${a}", NULL, 0, 0))
-	TEST_ACT(615, !str_regsub_compiled(re, "\\L\\U\\Q\\L\\U\\Q\\L\\U\\Q\\L\\U\\Q\\L\\U\\Q\\L\\U\\Q\\L\\U\\Q\\L\\U\\Q\\L\\U\\Q\\L\\U\\Q\\L\\U\\Q$0\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E", a, 0, 0))
-	TEST_ACT(616, !str_regsub_compiled(re, "\\E", a, 0, 0))
+	TEST_ACT(627, a = str_create("aaa"))
+	TEST_ACT(628, !str_regsub(NULL, "", a, 0, 0, 0))
+	TEST_ACT(629, !str_regsub("", NULL, a, 0, 0, 0))
+	TEST_ACT(630, !str_regsub("", "", NULL, 0, 0, 0))
+	TEST_ACT(631, !str_regsub_compiled(NULL, "", a, 0, 0))
+	TEST_ACT(632, !str_regsub_compiled(re, NULL, a, 0, 0))
+	TEST_EQ (633, regexpr_compile(re, ".+", 0), 0)
+	TEST_ACT(634, !str_regsub_compiled(re, "$", NULL, 0, 0))
+	TEST_ACT(635, !str_regsub_compiled(re, "$a", NULL, 0, 0))
+	TEST_ACT(636, !str_regsub_compiled(re, "${0", NULL, 0, 0))
+	TEST_ACT(637, !str_regsub_compiled(re, "${", NULL, 0, 0))
+	TEST_ACT(638, !str_regsub_compiled(re, "${33}", NULL, 0, 0))
+	TEST_ACT(639, !str_regsub_compiled(re, "${-12}", NULL, 0, 0))
+	TEST_ACT(640, !str_regsub_compiled(re, "${a}", NULL, 0, 0))
+	TEST_ACT(641, !str_regsub_compiled(re, "\\L\\U\\Q\\L\\U\\Q\\L\\U\\Q\\L\\U\\Q\\L\\U\\Q\\L\\U\\Q\\L\\U\\Q\\L\\U\\Q\\L\\U\\Q\\L\\U\\Q\\L\\U\\Q$0\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E\\E", a, 0, 0))
+	TEST_ACT(642, !str_regsub_compiled(re, "\\E", a, 0, 0))
 	regexpr_release(re);
 #endif
 	str_destroy(&a);
-	TEST_ACT(617, a = str_create("hello"))
-	TEST_ACT(618, !str_fmt(NULL, 10, ALIGN_LEFT))
-	TEST_ACT(619, !str_fmt(a, -1, ALIGN_LEFT))
-	TEST_ACT(620, !str_fmt(a, 10, '@'))
+	TEST_ACT(643, a = str_create("hello"))
+	TEST_ACT(644, !str_fmt(NULL, 10, ALIGN_LEFT))
+	TEST_ACT(645, !str_fmt(a, -1, ALIGN_LEFT))
+	TEST_ACT(646, !str_fmt(a, 10, '@'))
 	str_destroy(&a);
-	TEST_ACT(621, !fmt(NULL, 10, ALIGN_LEFT))
-	TEST_ACT(622, !fmt("hello", -1, ALIGN_LEFT))
-	TEST_ACT(623, !fmt("hello", 10, '@'))
-	TEST_ACT(624, !str_split(NULL, ""))
-	TEST_ACT(625, !str_split(a, NULL))
-	TEST_ACT(626, !split(NULL, ""))
-	TEST_ACT(627, !split("", NULL))
-#ifndef REGEX_MISSING
-	TEST_ACT(628, !str_regexpr_split(NULL, "", 0, 0))
-	TEST_ACT(629, !str_regexpr_split(a, NULL, 0, 0))
-	TEST_ACT(630, !regexpr_split(NULL, "", 0, 0))
-	TEST_ACT(631, !regexpr_split("", NULL, 0, 0))
+	TEST_ACT(647, !fmt(NULL, 10, ALIGN_LEFT))
+	TEST_ACT(648, !fmt("hello", -1, ALIGN_LEFT))
+	TEST_ACT(649, !fmt("hello", 10, '@'))
+	TEST_ACT(650, !str_split(NULL, ""))
+	TEST_ACT(651, !str_split(a, NULL))
+	TEST_ACT(652, !split(NULL, ""))
+	TEST_ACT(653, !split("", NULL))
+#ifdef HAVE_REGEX_H
+	TEST_ACT(654, !str_regexpr_split(NULL, "", 0, 0))
+	TEST_ACT(655, !str_regexpr_split(a, NULL, 0, 0))
+	TEST_ACT(656, !regexpr_split(NULL, "", 0, 0))
+	TEST_ACT(657, !regexpr_split("", NULL, 0, 0))
 #endif
-	TEST_ACT(632, !str_join(NULL, " "))
-	TEST_ACT(633, !join(NULL, " "))
-	TEST_ACT(634, !str_trim(NULL))
-	TEST_ACT(635, !trim(NULL))
-	TEST_ACT(636, !str_trim_left(NULL))
-	TEST_ACT(637, !trim_left(NULL))
-	TEST_ACT(638, !str_trim_right(NULL))
-	TEST_ACT(639, !trim_right(NULL))
-	TEST_ACT(640, !str_squeeze(NULL))
-	TEST_ACT(641, !squeeze(NULL))
-	TEST_ACT(642, !str_quote(NULL, "", '\\'))
-	TEST_ACT(643, !str_quote(a, NULL, '\\'))
-	TEST_ACT(644, !quote(NULL, "", '\\'))
-	TEST_ACT(645, !quote("", NULL, '\\'))
-	TEST_ACT(646, !str_unquote(NULL, "", '\\'))
-	TEST_ACT(647, !str_unquote(a, NULL, '\\'))
-	TEST_ACT(648, !unquote(NULL, "", '\\'))
-	TEST_ACT(649, !unquote("", NULL, '\\'))
-	TEST_ACT(650, !str_encode(NULL, "", "", '\\', 0))
-	TEST_ACT(651, !str_encode(a, NULL, "", '\\', 0))
-	TEST_ACT(652, !str_encode(a, "", NULL, '\\', 0))
-	TEST_ACT(653, !encode(NULL, "", "", '\\', 0))
-	TEST_ACT(654, !encode("", NULL, "", '\\', 0))
-	TEST_ACT(655, !encode("", "", NULL, '\\', 0))
-	TEST_ACT(656, !str_decode(NULL, "", "", '\\', 0))
-	TEST_ACT(657, !str_decode(a, NULL, "", '\\', 0))
-	TEST_ACT(658, !str_decode(a, "", NULL, '\\', 0))
-	TEST_ACT(659, !decode(NULL, "", "", '\\', 0))
-	TEST_ACT(660, !decode("", NULL, "", '\\', 0))
-	TEST_ACT(661, !decode("", "", NULL, '\\', 0))
-	TEST_ACT(662, !str_lc(NULL))
-	TEST_ACT(663, !lc(NULL))
-	TEST_ACT(664, !str_lcfirst(NULL))
-	TEST_ACT(665, !lcfirst(NULL))
-	TEST_ACT(666, !str_uc(NULL))
-	TEST_ACT(667, !uc(NULL))
-	TEST_ACT(668, !str_ucfirst(NULL))
-	TEST_ACT(669, !ucfirst(NULL))
-	TEST_EQ (670, str_chop(NULL), -1)
-	TEST_EQ (671, str_chop(a), -1)
-	TEST_EQ (672, chop(NULL), -1)
-	TEST_EQ (673, chop(""), -1)
-	TEST_EQ (674, str_chomp(NULL), -1)
-	TEST_EQ (675, chomp(NULL), -1)
-	TEST_EQ (676, str_bin(NULL), 0)
-	TEST_ACT(677, b = str_create("123456789!"))
-	TEST_EQ (678, str_bin(b), 0)
-	TEST_EQ (679, bin(NULL), 0)
-	TEST_EQ (680, bin("123456789!"), 0)
-	TEST_EQ (681, str_hex(NULL), 0)
-	TEST_EQ (682, str_hex(b), 0)
-	TEST_EQ (683, hex(NULL), 0)
-	TEST_EQ (684, hex("123456789!"), 0)
-	TEST_EQ (685, str_oct(NULL), 0)
-	TEST_EQ (686, str_oct(b), 0)
-	TEST_EQ (687, oct(NULL), 0)
-	TEST_EQ (688, oct("123456789!"), 0)
+	TEST_ACT(658, !str_join(NULL, " "))
+	TEST_ACT(659, !join(NULL, " "))
+	TEST_EQ (660, soundex(NULL), -1)
+	TEST_ACT(661, !str_trim(NULL))
+	TEST_ACT(662, !trim(NULL))
+	TEST_ACT(663, !str_trim_left(NULL))
+	TEST_ACT(664, !trim_left(NULL))
+	TEST_ACT(665, !str_trim_right(NULL))
+	TEST_ACT(666, !trim_right(NULL))
+	TEST_ACT(667, !str_squeeze(NULL))
+	TEST_ACT(668, !squeeze(NULL))
+	TEST_ACT(669, !str_quote(NULL, "", '\\'))
+	TEST_ACT(670, !str_quote(a, NULL, '\\'))
+	TEST_ACT(671, !quote(NULL, "", '\\'))
+	TEST_ACT(672, !quote("", NULL, '\\'))
+	TEST_ACT(673, !str_unquote(NULL, "", '\\'))
+	TEST_ACT(674, !str_unquote(a, NULL, '\\'))
+	TEST_ACT(675, !unquote(NULL, "", '\\'))
+	TEST_ACT(676, !unquote("", NULL, '\\'))
+	TEST_ACT(677, !str_encode(NULL, "", "", '\\', 0))
+	TEST_ACT(678, !str_encode(a, NULL, "", '\\', 0))
+	TEST_ACT(679, !str_encode(a, "", NULL, '\\', 0))
+	TEST_ACT(680, !encode(NULL, "", "", '\\', 0))
+	TEST_ACT(681, !encode("", NULL, "", '\\', 0))
+	TEST_ACT(682, !encode("", "", NULL, '\\', 0))
+	TEST_ACT(683, !str_decode(NULL, "", "", '\\', 0))
+	TEST_ACT(684, !str_decode(a, NULL, "", '\\', 0))
+	TEST_ACT(685, !str_decode(a, "", NULL, '\\', 0))
+	TEST_ACT(686, !decode(NULL, "", "", '\\', 0))
+	TEST_ACT(687, !decode("", NULL, "", '\\', 0))
+	TEST_ACT(688, !decode("", "", NULL, '\\', 0))
+	TEST_ACT(689, !str_lc(NULL))
+	TEST_ACT(690, !lc(NULL))
+	TEST_ACT(691, !str_lcfirst(NULL))
+	TEST_ACT(692, !lcfirst(NULL))
+	TEST_ACT(693, !str_uc(NULL))
+	TEST_ACT(694, !uc(NULL))
+	TEST_ACT(695, !str_ucfirst(NULL))
+	TEST_ACT(696, !ucfirst(NULL))
+	TEST_EQ (697, str_chop(NULL), -1)
+	TEST_EQ (698, str_chop(a), -1)
+	TEST_EQ (699, chop(NULL), -1)
+	TEST_EQ (700, chop(""), -1)
+	TEST_EQ (701, str_chomp(NULL), -1)
+	TEST_EQ (702, chomp(NULL), -1)
+	TEST_EQ (703, str_bin(NULL), -1)
+	TEST_ACT(704, b = str_create("123456789!"))
+	TEST_EQ (705, str_bin(b), -1)
+	TEST_EQ (706, bin(NULL), -1)
+	TEST_EQ (707, bin("123456789!"), -1)
+	TEST_EQ (708, str_hex(NULL), -1)
+	TEST_EQ (709, str_hex(b), -1)
+	TEST_EQ (710, hex(NULL), -1)
+	TEST_EQ (711, hex("123456789!"), -1)
+	TEST_EQ (712, str_oct(NULL), -1)
+	TEST_EQ (713, str_oct(b), -1)
+	TEST_EQ (714, oct(NULL), -1)
+	TEST_EQ (715, oct("123456789!"), -1)
 	str_destroy(&b);
 	str_destroy(&a);
 
+	/* Test asprintf() and vasprintf() */
+
+#define TEST_ASPRINTF(i, act, len, res, val) \
+	(res) = NULL; \
+	rc = (act); \
+	TEST_EQ((i), (len), rc) \
+	TEST_NE((i), (res), NULL) \
+	if (res) \
+		TEST_ACT((i), !strcmp((res), (val))) \
+	free(res);
+
+#ifndef HAVE_ASPRINTF
+	TEST_ASPRINTF(716, asprintf(&t, ""), 0, t, "")
+	TEST_ASPRINTF(717, asprintf(&t, "a"), 1, t, "a")
+	TEST_ASPRINTF(718, asprintf(&t, "abc"), 3, t, "abc")
+	TEST_ASPRINTF(719, asprintf(&t, "-%d-", 0), 3, t, "-0-")
+	TEST_ASPRINTF(720, asprintf(&t, "%s", "123"), 3, t, "123")
+	TEST_ASPRINTF(721, asprintf(&t, "%.1f ", 1.5), 4, t, "1.5 ")
+	TEST_ASPRINTF(722, asprintf(&t, "%1024s", "*"),  1024, t, "                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               *")
+	TEST_ASPRINTF(723, asprintf(&t, "%-1024s", "*"), 1024, t, "*                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               ")
+#endif
+
 	/* Test MT Safety */
 
-	debug = (ac != 1);
+	debug = av[1] && !strcmp(av[1], "debug");
 
 	if (debug)
 		setbuf(stdout, NULL);
@@ -7012,10 +8839,10 @@ int main(int ac, char **av)
 		locker = locker_create_rwlock(&rwlock);
 
 	if (!locker)
-		++errors, printf("Test689: locker_create_rwlock() failed\n");
+		++errors, printf("Test724: locker_create_rwlock() failed\n");
 	else
 	{
-		mt_test(689, locker);
+		mt_test(724, locker);
 		locker_destroy(&locker);
 	}
 
@@ -7025,19 +8852,19 @@ int main(int ac, char **av)
 		locker = locker_create_mutex(&mutex);
 
 	if (!locker)
-		++errors, printf("Test690: locker_create_mutex() failed\n");
+		++errors, printf("Test725: locker_create_mutex() failed\n");
 	else
 	{
-		mt_test(690, locker);
+		mt_test(725, locker);
 		locker_destroy(&locker);
 	}
 
 	if (errors)
-		printf("%d/690 tests failed\n", errors);
+		printf("%d/725 tests failed\n", errors);
 	else
 		printf("All tests passed\n");
 
-	return 0;
+	return (errors == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 #endif

@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20010215 raf <raf@raf.org>
+* 20011109 raf <raf@raf.org>
 */
 
 /*
@@ -32,24 +32,38 @@ I<libslack(msg)> - message module
     #include <slack/msg.h>
 
     typedef struct Msg Msg;
+    typedef void msg_out_t(void *data, const void *msg, size_t msglen);
+    typedef void msg_release_t(void *data);
 
+    Msg *msg_create(int type, msg_out_t *out, void *data, msg_release_t *destroy);
+    Msg *msg_create_with_locker(Locker *locker, int type, msg_out_t *out, void *data, msg_release_t *destroy);
+    int msg_rdlock(Msg *msg);
+    int msg_wrlock(Msg *msg);
+    int msg_unlock(Msg *msg);
     void msg_release(Msg *msg);
     void *msg_destroy(Msg **msg);
     void msg_out(Msg *dst, const char *fmt, ...);
+    void msg_out_unlocked(Msg *dst, const char *fmt, ...);
     void vmsg_out(Msg *dst, const char *fmt, va_list args);
+    void vmsg_out_unlocked(Msg *dst, const char *fmt, va_list args);
     Msg *msg_create_fd(int fd);
-    Msg *msg_create_fd_locked(Locker *locker, int fd);
+    Msg *msg_create_fd_with_locker(Locker *locker, int fd);
     Msg *msg_create_stderr(void);
-    Msg *msg_create_stderr_locked(Locker *locker);
+    Msg *msg_create_stderr_with_locker(Locker *locker);
     Msg *msg_create_stdout(void);
-    Msg *msg_create_stdout_locked(Locker *locker);
+    Msg *msg_create_stdout_with_locker(Locker *locker);
     Msg *msg_create_file(const char *path);
-    Msg *msg_create_file_locked(Locker *locker, const char *path);
-    Msg *msg_create_syslog(const char *ident, int option, int facility);
-    Msg *msg_create_syslog_locked(Locker *locker, const char *ident, int option, int facility);
+    Msg *msg_create_file_with_locker(Locker *locker, const char *path);
+    Msg *msg_create_syslog(const char *ident, int option, int facility, int priority);
+    Msg *msg_create_syslog_with_locker(Locker *locker, const char *ident, int option, int facility, int priority);
+    Msg *msg_syslog_set_facility(Msg *msg, int facility);
+    Msg *msg_syslog_set_facility_unlocked(Msg *msg, int facility);
+    Msg *msg_syslog_set_priority(Msg *msg, int priority);
+    Msg *msg_syslog_set_priority_unlocked(Msg *msg, int priority);
     Msg *msg_create_plex(Msg *msg1, Msg *msg2);
-    Msg *msg_create_plex_locked(Locker *locker, Msg *msg1, Msg *msg2);
+    Msg *msg_create_plex_with_locker(Locker *locker, Msg *msg1, Msg *msg2);
     int msg_add_plex(Msg *msg, Msg *item);
+    int msg_add_plex_unlocked(Msg *msg, Msg *item);
     const char *msg_set_timestamp_format(const char *format);
     int msg_set_timestamp_format_locker(Locker *locker);
     int syslog_lookup_facility(const char *facility);
@@ -61,10 +75,10 @@ I<libslack(msg)> - message module
 =head1 DESCRIPTION
 
 This module provides general messaging functions. Message channels can be
-created that send messages to a file descriptor, a file, I<syslog> or
-multiplex messages to any combination of the above. Messages sent to files
-are timestamped using (by default) the I<strftime(3)> format: C<"%Y%m%d
-%H:%M:%S">.
+created that send messages to a file descriptor, a file, I<syslog> or a
+client defined message handler or that multiplexes messages to any
+combination of the above. Messages sent to files are timestamped using (by
+default) the I<strftime(3)> format: C<"%Y%m%d %H:%M:%S">.
 
 It also provides functions for parsing I<syslog> targets, converting between
 I<syslog> facility names and codes, and converting between I<syslog>
@@ -76,6 +90,7 @@ priority names and codes.
 
 */
 
+#include "config.h"
 #include "std.h"
 
 #include <syslog.h>
@@ -89,36 +104,38 @@ priority names and codes.
 #include "err.h"
 #include "str.h"
 
-#ifdef NEEDS_SNPRINTF
+#ifndef HAVE_SNPRINTF
 #include "snprintf.h"
 #endif
 
-typedef void msg_out_t(void *data, const void *msg, size_t msglen);
-typedef void msg_release_t(void *data);
 typedef int MsgFDData;
 typedef struct MsgFileData MsgFileData;
-typedef struct MsgSysData MsgSysData;
+typedef struct MsgSyslogData MsgSyslogData;
 typedef struct MsgPlexData MsgPlexData;
+
+#define MSG_FD 1
+#define MSG_FILE 2
+#define MSG_SYSLOG 3
+#define MSG_PLEX 4
 
 struct Msg
 {
+	int type;               /* subtype */
 	msg_out_t *out;         /* message handling function */
-	void *data;             /* sybtype specific data */
+	void *data;             /* subtype specific data */
 	msg_release_t *destroy; /* destructor function for data */
 	Locker *locker;         /* locking strategy for this structure */
 };
 
 struct MsgFileData
 {
-	char *path; /* file path */
-	int fd;     /* file descriptor (-1 when closed) */
+	int fd;       /* file descriptor (-1 if open failed) */
 };
 
-struct MsgSysData
+struct MsgSyslogData
 {
-	char *ident;  /* syslog(3) ident */
-	int option;   /* sysglog(3) option */
-	int facility; /* syslog(3) facility | priority */
+	int facility; /* syslog(3) priority */
+	int priority; /* syslog(3) priority */
 };
 
 struct MsgPlexData
@@ -127,9 +144,6 @@ struct MsgPlexData
 	size_t length; /* length of Msg list */
 	Msg **list;    /* list of Msg objects */
 };
-
-static const char *timestamp_format = "%Y%m%d %H:%M:%S";
-static Locker *timestamp_format_locker = NULL;
 
 typedef struct syslog_map_t syslog_map_t;
 
@@ -181,33 +195,128 @@ static const syslog_map_t syslog_priority_map[] =
 	{ "crit",    LOG_CRIT },
 	{ "err",     LOG_ERR },
 	{ "warning", LOG_WARNING },
+#ifdef LOG_NOTICE
+	{ "notice",  LOG_NOTICE },
+#endif
 	{ "info",    LOG_INFO },
 	{ "debug",   LOG_DEBUG },
 	{ NULL,      -1 }
 };
 
+#ifndef TEST
+
+static const char *timestamp_format = "%Y%m%d %H:%M:%S ";
+static Locker *timestamp_format_locker = NULL;
+
 /*
 
-C<Msg *msg_create(Locker *locker, msg_out_t *out, void *data, msg_release_t *destroy)>
+=item C<Msg *msg_create(int type, msg_out_t *out, void *data, msg_release_t *destroy)>
 
-Creates a I<Msg> object initialised with C<out>, C<data> and C<destroy>.
-On success, returns the new I<Msg> object. On error, returns C<NULL>.
+Creates a I<Msg> object initialised with C<type>, C<out>, C<data> and
+C<destroy>. Client defined message handlers must specify a C<type> greater
+than C<4>. It is the caller's responsibility to deallocate the new I<Msg>
+with I<msg_release()> or I<msg_destroy>. On success, returns the new I<Msg>
+object. On error, returns C<null>.
+
+=cut
 
 */
 
-static Msg *msg_create(Locker *locker, msg_out_t *out, void *data, msg_release_t *destroy)
+Msg *msg_create(int type, msg_out_t *out, void *data, msg_release_t *destroy)
+{
+	return msg_create_with_locker(NULL, type, out, data, destroy);
+}
+
+/*
+
+=item C<Msg *msg_create_with_locker(Locker *locker, int type, msg_out_t *out, void *data, msg_release_t *destroy)>
+
+Equivalent to I<msg_create()> except that multiple threads accessing the
+new I<Msg> will be synchronised by C<locker>.
+
+=cut
+
+*/
+
+Msg *msg_create_with_locker(Locker *locker, int type, msg_out_t *out, void *data, msg_release_t *destroy)
 {
 	Msg *msg;
 
 	if (!(msg = mem_new(Msg)))
 		return NULL;
 
+	msg->type = type;
 	msg->out = out;
 	msg->data = data;
 	msg->destroy = destroy;
 	msg->locker = locker;
 
 	return msg;
+}
+
+/*
+
+=item C<int msg_rdlock(Msg *msg)>
+
+Claims a read lock on C<msg> (if C<msg> was created with a I<Locker>). This
+is needed when multiple read only I<msg> module functions need to be called
+atomically. It is the caller's responsbility to call I<msg_unlock()> after
+the atomic operation. The only functions that may be called on C<msg>
+between calls to I<msg_rdlock()> and I<msg_unlock()> are any read only
+I<msg> module functions whose name ends with C<_unlocked>. On success,
+returns C<0>. On error, returns an error code.
+
+=cut
+
+*/
+
+#define msg_rdlock(msg) ((msg) ? locker_rdlock((msg)->locker) : EINVAL)
+#define msg_wrlock(msg) ((msg) ? locker_wrlock((msg)->locker) : EINVAL)
+#define msg_unlock(msg) ((msg) ? locker_unlock((msg)->locker) : EINVAL)
+
+int (msg_rdlock)(Msg *msg)
+{
+	return msg_rdlock(msg);
+}
+
+/*
+
+=item C<int msg_wrlock(Msg *msg)>
+
+Claims a write lock on C<msg>.
+
+Claims a write lock on C<msg> (if C<msg> was created with a I<Locker>). This
+is needed when multiple read/write I<msg> module functions need to be called
+atomically. It is the caller's responsbility to call I<msg_unlock()> after
+the atomic operation. The only functions that may be called on C<msg>
+between calls to I<msg_rdlock()> and I<msg_unlock()> are any I<msg> module
+functions whose name ends with C<_unlocked>. On success, returns C<0>. On
+error, returns an error code.
+
+=cut
+
+*/
+
+int (msg_wrlock)(Msg *msg)
+{
+	return msg_wrlock(msg);
+}
+
+/*
+
+=item C<int msg_unlock(Msg *msg)>
+
+Unlocks a read or write lock on C<msg> obtained with I<msg_rdlock()> or
+I<msg_wrlock()> (if C<msg> was created with a I<Locker>).  On success,
+returns C<0>. On error, returns an error code.
+
+=cut
+
+*/
+
+int (msg_unlock)(Msg *msg)
+{
+	return msg_unlock(msg);
 }
 
 /*
@@ -222,28 +331,20 @@ Releases (deallocates) C<msg> and its internal data.
 
 void msg_release(Msg *msg)
 {
-	Locker *locker;
-
 	if (!msg)
-		return;
-
-	locker = msg->locker;
-
-	if (locker_wrlock(locker) == -1)
 		return;
 
 	if (msg->destroy)
 		msg->destroy(msg->data);
 
 	mem_release(msg);
-	locker_unlock(locker);
 }
 
 /*
 
 =item C<void *msg_destroy(Msg **msg)>
 
-Destroys (deallocates and sets to C<NULL>) C<*msg>. Returns C<NULL>.
+Destroys (deallocates and sets to C<null>) C<*msg>. Returns C<null>.
 
 =cut
 
@@ -264,7 +365,7 @@ void *msg_destroy(Msg **msg)
 
 =item C<void msg_out(Msg *dst, const char *fmt, ...)>
 
-Sends a message to C<dst>. C<fmt> is a I<printf>-like format string. Any
+Sends a message to C<dst>. C<fmt> is a I<printf(3)>-like format string. Any
 remaining arguments are processed as in I<printf(3)>.
 
 B<Warning: Do not under any circumstances ever pass a non-literal string as
@@ -290,9 +391,27 @@ void msg_out(Msg *dst, const char *fmt, ...)
 
 /*
 
-=item C<void vmsg_out(Msg *dst, const char *fmt, va_list ap)>
+=item C<void msg_out_unlocked(Msg *dst, const char *fmt, ...)>
 
-Sends a message to C<dst>. C<fmt> is a I<printf>-like format string.
+Equivalent to I<msg_out()> except that C<dst> is not read locked.
+
+=cut
+
+*/
+
+void msg_out_unlocked(Msg *dst, const char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	vmsg_out_unlocked(dst, fmt, args);
+	va_end(args);
+}
+
+/*
+
+=item C<void vmsg_out(Msg *dst, const char *fmt, va_list args)>
+
+Sends a message to C<dst>. C<fmt> is a I<printf(3)>-like format string.
 C<args> is processed as in I<vprintf(3)>.
 
 =cut
@@ -301,10 +420,36 @@ C<args> is processed as in I<vprintf(3)>.
 
 void vmsg_out(Msg *dst, const char *fmt, va_list args)
 {
+	int err;
+
 	if (!dst)
 		return;
 
-	if (locker_rdlock(dst->locker) == -1)
+	if ((err = msg_rdlock(dst)))
+	{
+		set_errno(err);
+		return;
+	}
+
+	vmsg_out_unlocked(dst, fmt, args);
+
+	if ((err = msg_unlock(dst)))
+		set_errno(err);
+}
+
+/*
+
+=item C<void vmsg_out_unlocked(Msg *dst, const char *fmt, va_list args)>
+
+Equivalent to I<vmsg_out()> except that C<dst> is not read locked.
+
+=cut
+
+*/
+
+void vmsg_out_unlocked(Msg *dst, const char *fmt, va_list args)
+{
+	if (!dst)
 		return;
 
 	if (dst->out)
@@ -313,8 +458,6 @@ void vmsg_out(Msg *dst, const char *fmt, va_list args)
 		vsnprintf(msg, MSG_SIZE, fmt, args);
 		dst->out(dst->data, msg, strlen(msg));
 	}
-
-	locker_unlock(dst->locker);
 }
 
 /*
@@ -323,7 +466,7 @@ C<MsgFDData *msg_fddata_create(int fd)>
 
 Creates and initialises the internal data needed by a I<Msg> object that
 sends messages to file descriptor C<fd>. On success, returns the data. On
-error, returns C<NULL>.
+error, returns C<null>.
 
 */
 
@@ -372,8 +515,10 @@ static void msg_out_fd(void *data, const void *msg, size_t msglen)
 
 =item C<Msg *msg_create_fd(int fd)>
 
-Creates a I<Msg> object that sends messages to file descriptor C<fd>.
-On success, returns the new I<Msg> object. On error, returns C<NULL>.
+Creates a I<Msg> object that sends messages to file descriptor C<fd>. It is
+the caller's responsibility to deallocate the new I<Msg> with
+I<msg_release()> or I<msg_destroy()>. On success, returns the new I<Msg>
+object. On error, returns C<null>.
 
 =cut
 
@@ -381,23 +526,21 @@ On success, returns the new I<Msg> object. On error, returns C<NULL>.
 
 Msg *msg_create_fd(int fd)
 {
-	return msg_create_fd_locked(NULL, fd);
+	return msg_create_fd_with_locker(NULL, fd);
 }
 
 /*
 
-=item C<Msg *msg_create_fd_locked(Locker *locker, int fd)>
+=item C<Msg *msg_create_fd_with_locker(Locker *locker, int fd)>
 
-Creates a I<Msg> object that sends messages to file descriptor C<fd>.
-Multiple threads accessing this I<Msg> object will be synchronised by
-C<locker>. On success, returns the new I<Msg> object. On error, returns
-C<NULL>.
+Equivalent to I<msg_create_fd()> except that multiple threads accessing the
+new I<Msg> will be synchronised by C<locker>.
 
 =cut
 
 */
 
-Msg *msg_create_fd_locked(Locker *locker, int fd)
+Msg *msg_create_fd_with_locker(Locker *locker, int fd)
 {
 	MsgFDData *data;
 	Msg *msg;
@@ -405,7 +548,7 @@ Msg *msg_create_fd_locked(Locker *locker, int fd)
 	if (!(data = msg_fddata_create(fd)))
 		return NULL;
 
-	if (!(msg = msg_create(locker, msg_out_fd, data, (msg_release_t *)msg_fddata_release)))
+	if (!(msg = msg_create_with_locker(locker, MSG_FD, msg_out_fd, data, (msg_release_t *)msg_fddata_release)))
 	{
 		msg_fddata_release(data);
 		return NULL;
@@ -418,8 +561,10 @@ Msg *msg_create_fd_locked(Locker *locker, int fd)
 
 =item C<Msg *msg_create_stderr(void)>
 
-Creates a I<Msg> object that sends messages to standard error. On success,
-returns the new I<Msg> object. On error, returns C<NULL>.
+Creates a I<Msg> object that sends messages to standard error. It is the
+caller's responsibility to deallocate the new I<Msg> with I<msg_release()>
+or I<msg_destroy()>. On success, returns the new I<Msg> object. On error,
+returns C<null>.
 
 =cut
 
@@ -427,32 +572,33 @@ returns the new I<Msg> object. On error, returns C<NULL>.
 
 Msg *msg_create_stderr(void)
 {
-	return msg_create_fd_locked(NULL, STDERR_FILENO);
+	return msg_create_fd_with_locker(NULL, STDERR_FILENO);
 }
 
 /*
 
-=item C<Msg *msg_create_stderr_locked(Locker *locker)>
+=item C<Msg *msg_create_stderr_with_locker(Locker *locker)>
 
-Creates a I<Msg> object that sends messages to standard error. Multiple
-threads accessing this I<Msg> object will be synchronised by C<locker>. On
-success, returns the new I<Msg> object. On error, returns C<NULL>.
+Equivalent to I<msg_create_stderr()> except that multiple threads accessing
+the new I<Msg> will be synchronised by C<locker>.
 
 =cut
 
 */
 
-Msg *msg_create_stderr_locked(Locker *locker)
+Msg *msg_create_stderr_with_locker(Locker *locker)
 {
-	return msg_create_fd_locked(locker, STDERR_FILENO);
+	return msg_create_fd_with_locker(locker, STDERR_FILENO);
 }
 
 /*
 
 =item C<Msg *msg_create_stdout(void)>
 
-Creates a I<Msg> object that sends messages to standard output. On success,
-returns the new I<Msg> object. On error, returns C<NULL>.
+Creates a I<Msg> object that sends messages to standard output. It is the
+caller's responsibility to deallocate the new I<Msg> with I<msg_release()>
+or I<msg_destroy()>. On success, returns the new I<Msg> object. On error,
+returns C<null>.
 
 =cut
 
@@ -460,24 +606,23 @@ returns the new I<Msg> object. On error, returns C<NULL>.
 
 Msg *msg_create_stdout(void)
 {
-	return msg_create_fd_locked(NULL, STDOUT_FILENO);
+	return msg_create_fd_with_locker(NULL, STDOUT_FILENO);
 }
 
 /*
 
-=item C<Msg *msg_create_stdout_locked(Locker *locker)>
+=item C<Msg *msg_create_stdout_with_locker(Locker *locker)>
 
-Creates a I<Msg> object that sends messages to standard output. Multiple
-threads accessing this I<Msg> object will be synchronised by C<locker>. On
-success, returns the new I<Msg> object. On error, returns C<NULL>.
+Equivalent to I<msg_create_stdout()> except that multiple threads accessing
+the new I<Msg> will be synchronised by C<locker>.
 
 =cut
 
 */
 
-Msg *msg_create_stdout_locked(Locker *locker)
+Msg *msg_create_stdout_with_locker(Locker *locker)
 {
-	return msg_create_fd_locked(locker, STDOUT_FILENO);
+	return msg_create_fd_with_locker(locker, STDOUT_FILENO);
 }
 
 /*
@@ -487,22 +632,21 @@ C<int msg_filedata_init(MsgFileData *data, const char *path)>
 Initialises the internal data needed by a I<Msg> object that sends messages
 to the file specified by C<path>. This data consists of a copy of C<path>
 and an open file descriptor to the file. The file descriptor is opened with
-the C<O_WRONLY>, C<O_CREAT> and C<O_APPEND> flags. On success, returns 0. On
-error, returns -1.
+the C<O_WRONLY>, C<O_CREAT> and C<O_APPEND> flags. On success, returns C<0>.
+On error, returns C<-1> with C<errno> set appropriately.
 
 */
 
 static int msg_filedata_init(MsgFileData *data, const char *path)
 {
-	mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
+	mode_t mode;
 
 	if (!data || !path)
-		return -1;
+		return set_errno(EINVAL);
 
-	if (!(data->path = mem_strdup(path)))
-		return -1;
+	mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
 
-	if ((data->fd = open(data->path, O_WRONLY | O_CREAT | O_APPEND, mode)) == -1)
+	if ((data->fd = open(path, O_WRONLY | O_CREAT | O_APPEND, mode)) == -1)
 		return -1;
 
 	return 0;
@@ -514,7 +658,7 @@ C<MsgFileData *msg_filedata_create(const char *path)>
 
 Creates the internal data needed by a I<Msg> object that sends messages to
 the file specified by C<path>. On success, returns the data. On error,
-returns C<NULL>.
+returns C<null> with C<errno> set appropriately.
 
 */
 
@@ -551,7 +695,6 @@ static void msg_filedata_release(MsgFileData *data)
 	if (data->fd != -1)
 		close(data->fd);
 
-	mem_release(data->path);
 	mem_release(data);
 }
 
@@ -560,7 +703,8 @@ static void msg_filedata_release(MsgFileData *data)
 C<void msg_out_file(void *data, const void *msg, size_t msglen)>
 
 Sends a message to a file. C<data> contains the file descriptor. C<msg> is
-the message. C<msglen> is it's length.
+the message. C<msglen> is it's length. On error, sets C<errno>
+appropriately.
 
 */
 
@@ -569,19 +713,25 @@ static void msg_out_file(void *data, const void *msg, size_t msglen)
 	MsgFileData *dst = data;
 	char buf[MSG_SIZE];
 	size_t buflen;
+	int err;
 
 	time_t t = time(NULL);
 
-	if (locker_rdlock(timestamp_format_locker) == -1)
+	if ((err = locker_rdlock(timestamp_format_locker)))
+	{
+		set_errno(err);
 		return;
+	}
 
 	strftime(buf, MSG_SIZE, timestamp_format, localtime(&t));
 
-	if (locker_unlock(timestamp_format_locker) == -1)
+	if ((err = locker_unlock(timestamp_format_locker)))
+	{
+		set_errno(err);
 		return;
+	}
 
 	buflen = strlen(buf);
-	buf[buflen++] = ' ';
 	if (buflen + msglen >= MSG_SIZE)
 		msglen -= MSG_SIZE - buflen;
 	memmove(buf + buflen, msg, msglen);
@@ -595,8 +745,9 @@ static void msg_out_file(void *data, const void *msg, size_t msglen)
 =item C<Msg *msg_create_file(const char *path)>
 
 Creates a I<Msg> object that sends messages to the file specified by
-C<path>. On success, returns the new I<Msg> object. On error, returns
-C<NULL>.
+C<path>. It is the caller's responsibility to deallocate the new I<Msg> with
+I<msg_release()> or I<msg_destroy()>. On success, returns the new I<Msg>
+object. On error, returns C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -604,23 +755,21 @@ C<NULL>.
 
 Msg *msg_create_file(const char *path)
 {
-	return msg_create_file_locked(NULL, path);
+	return msg_create_file_with_locker(NULL, path);
 }
 
 /*
 
-=item C<Msg *msg_create_file_locked(Locker *locker, const char *path)>
+=item C<Msg *msg_create_file_with_locker(Locker *locker, const char *path)>
 
-Creates a I<Msg> object that sends messages to the file specified by
-C<path>. Multiple threads accessing this I<Msg> object will be synchronised
-by C<locker>. On success, returns the new I<Msg> object. On error, returns
-C<NULL>.
+Equivalent to I<msg_create_file()> except that multiple threads accessing
+the new I<Msg> will be synchronised by C<locker>.
 
 =cut
 
 */
 
-Msg *msg_create_file_locked(Locker *locker, const char *path)
+Msg *msg_create_file_with_locker(Locker *locker, const char *path)
 {
 	MsgFileData *data;
 	Msg *msg;
@@ -628,7 +777,7 @@ Msg *msg_create_file_locked(Locker *locker, const char *path)
 	if (!(data = msg_filedata_create(path)))
 		return NULL;
 
-	if (!(msg = msg_create(locker, msg_out_file, data, (msg_release_t *)msg_filedata_release)))
+	if (!(msg = msg_create_with_locker(locker, MSG_FILE, msg_out_file, data, (msg_release_t *)msg_filedata_release)))
 	{
 		msg_filedata_release(data);
 		return NULL;
@@ -639,52 +788,48 @@ Msg *msg_create_file_locked(Locker *locker, const char *path)
 
 /*
 
-C<int msg_sysdata_init(MsgSysData *data, const char *ident, int option, int facility)>
+C<int msg_sysdata_init(MsgSyslogData *data, const char *ident, int option, int facility, int priority)>
 
 Initialises the internal data needed by a I<Msg> object that sends messages
 to I<syslog>. I<openlog(3)> is called with C<ident> and C<option>.
-C<facility> is stored to be used when sending messages. On success, returns
-0. On error, returns -1.
+C<facility> and C<priority> are stored to be used when sending messages. On
+success, returns C<0>. On error, returns C<-1> with C<errno> set
+appropriately.
 
 */
 
-static int msg_sysdata_init(MsgSysData *data, const char *ident, int option, int facility)
+static int msg_sysdata_init(MsgSyslogData *data, const char *ident, int option, int facility, int priority)
 {
 	if (!data || facility == -1)
-		return -1;
+		return set_errno(EINVAL);
 
-	data->ident = NULL;
-	data->option = option;
-	data->facility = facility;
+	data->facility = facility & LOG_FACMASK;
+	data->priority = priority & LOG_PRIMASK;
 
-	if (ident && !(data->ident = mem_strdup(ident)))
-		return -1;
-
-	if (data->ident || data->option)
-		openlog(data->ident, data->option, 0);
+	openlog(ident, option, 0);
 
 	return 0;
 }
 
 /*
 
-C<MsgSysData *msg_sysdata_create(const char *ident, int option, int facility)>
+C<MsgSyslogData *msg_sysdata_create(const char *ident, int option, int facility, int priority)>
 
 Creates the internal data needed by a I<Msg> object that sends messages to
-I<syslog>. C<ident>, C<option> and C<facility> are used to initialise the
-connection to I<syslog>. On success, returns the data. On error, returns
-C<NULL>.
+I<syslog>. C<ident>, C<option>, C<facility> and C<priority> are used to
+initialise the connection to I<syslog>. On success, returns the data. On
+error, returns C<null> with C<errno> set appropriately.
 
 */
 
-static MsgSysData *msg_sysdata_create(const char *ident, int option, int facility)
+static MsgSyslogData *msg_sysdata_create(const char *ident, int option, int facility, int priority)
 {
-	MsgSysData *data;
+	MsgSyslogData *data;
 
-	if (!(data = mem_new(MsgSysData)))
+	if (!(data = mem_new(MsgSyslogData)))
 		return NULL;
 
-	if (msg_sysdata_init(data, ident, option, facility) == -1)
+	if (msg_sysdata_init(data, ident, option, facility, priority) == -1)
 	{
 		mem_release(data);
 		return NULL;
@@ -695,19 +840,18 @@ static MsgSysData *msg_sysdata_create(const char *ident, int option, int facilit
 
 /*
 
-C<void msg_sysdata_release(MsgSysData *data)>
+C<void msg_sysdata_release(MsgSyslogData *data)>
 
 Releases (deallocates) the internal data needed by a I<Msg> object that
 sends messages to I<syslog>. Calls I<closelog(3)>.
 
 */
 
-static void msg_sysdata_release(MsgSysData *data)
+static void msg_sysdata_release(MsgSyslogData *data)
 {
 	if (!data)
 		return;
 
-	mem_release(data->ident);
 	mem_release(data);
 	closelog();
 }
@@ -723,51 +867,51 @@ is the message. C<msglen> is it's length.
 
 static void msg_out_syslog(void *data, const void *msg, size_t msglen)
 {
-	MsgSysData *dst = data;
+	MsgSyslogData *dst = data;
 
 	if (msg && dst && dst->facility != -1)
-		syslog(dst->facility, "%*.*s", (int)msglen, (int)msglen, (char *)msg);
+		syslog(dst->facility | dst->priority, "%*.*s", (int)msglen, (int)msglen, (char *)msg);
 }
 
 /*
 
-=item C<Msg *msg_create_syslog(const char *ident, int option, int facility)>
+=item C<Msg *msg_create_syslog(const char *ident, int option, int facility, int priority)>
 
 Creates a I<Msg> object that sends messages to I<syslog> initialised with
-C<ident>, C<option> and C<facility>. On success, returns the new I<Msg>
-object. On error, returns C<NULL>.
+C<ident>, C<option>, C<facility> and C<priority>. It is the caller's
+responsibility to deallocate the new I<Msg> with I<msg_release()> or
+I<msg_destroy()>. On success, returns the new I<Msg> object. On error,
+returns C<null> with C<errno> set appropriately.
 
 =cut
 
 */
 
-Msg *msg_create_syslog(const char *ident, int option, int facility)
+Msg *msg_create_syslog(const char *ident, int option, int facility, int priority)
 {
-	return msg_create_syslog_locked(NULL, ident, option, facility);
+	return msg_create_syslog_with_locker(NULL, ident, option, facility, priority);
 }
 
 /*
 
-=item C<Msg *msg_create_syslog_locked(Locker *locker, const char *ident, int option, int facility)>
+=item C<Msg *msg_create_syslog_with_locker(Locker *locker, const char *ident, int option, int facility, int priority)>
 
-Creates a I<Msg> object that sends messages to I<syslog> initialised with
-C<ident>, C<option> and C<facility>. Multiple threads accessing this I<Msg>
-object will be synchronised by C<locker>. On success, returns the new I<Msg>
-object. On error, returns C<NULL>.
+Equivalent to I<msg_create_syslog()> except that multiple threads accessing
+the new I<Msg> will be synchronised by C<locker>.
 
 =cut
 
 */
 
-Msg *msg_create_syslog_locked(Locker *locker, const char *ident, int option, int facility)
+Msg *msg_create_syslog_with_locker(Locker *locker, const char *ident, int option, int facility, int priority)
 {
-	MsgSysData *data;
+	MsgSyslogData *data;
 	Msg *msg;
 
-	if (!(data = msg_sysdata_create(ident, option, facility)))
+	if (!(data = msg_sysdata_create(ident, option, facility, priority)))
 		return NULL;
 
-	if (!(msg = msg_create(locker, msg_out_syslog, data, (msg_release_t *)msg_sysdata_release)))
+	if (!(msg = msg_create_with_locker(locker, MSG_SYSLOG, msg_out_syslog, data, (msg_release_t *)msg_sysdata_release)))
 	{
 		msg_sysdata_release(data);
 		return NULL;
@@ -778,11 +922,119 @@ Msg *msg_create_syslog_locked(Locker *locker, const char *ident, int option, int
 
 /*
 
+=item C<Msg *msg_syslog_set_facility(Msg *msg, int facility)>
+
+Sets the facility field in C<msg>'s data to C<facility>. On success, returns
+C<msg>. On error, returns C<null> with C<errno> set appropriately.
+
+=cut
+
+*/
+
+Msg *msg_syslog_set_facility(Msg *msg, int facility)
+{
+	Msg *ret;
+	int err;
+
+	if (!msg)
+		return set_errnull(EINVAL);
+
+	if ((err = msg_wrlock(msg)))
+		return set_errnull(err);
+
+	ret = msg_syslog_set_facility_unlocked(msg, facility);
+
+	if ((err = msg_unlock(msg)))
+		return set_errnull(err);
+
+	return ret;
+}
+
+/*
+
+=item C<Msg *msg_syslog_set_facility_unlocked(Msg *msg, int facility)>
+
+Equivalent to I<msg_syslog_set_facility()> except that C<msg> is not write
+locked.
+
+=cut
+
+*/
+
+Msg *msg_syslog_set_facility_unlocked(Msg *msg, int facility)
+{
+	MsgSyslogData *data;
+
+	if (!msg || msg->type != MSG_SYSLOG)
+		return set_errnull(EINVAL);
+
+	data = (MsgSyslogData *)msg->data;
+	data->facility = facility;
+
+	return msg;
+}
+
+/*
+
+=item C<Msg *msg_syslog_set_priority(Msg *msg, int priority)>
+
+Sets the priority field in C<msg>'s data to C<priority>. On success, returns
+C<msg>. On error, returns C<null> with C<errno> set appropriately.
+
+=cut
+
+*/
+
+Msg *msg_syslog_set_priority(Msg *msg, int priority)
+{
+	Msg *ret;
+	int err;
+
+	if (!msg)
+		return set_errnull(EINVAL);
+
+	if ((err = msg_wrlock(msg)))
+		return set_errnull(err);
+
+	ret = msg_syslog_set_priority_unlocked(msg, priority);
+
+	if ((err = msg_unlock(msg)))
+		return set_errnull(err);
+
+	return ret;
+}
+
+/*
+
+=item C<Msg *msg_syslog_set_priority_unlocked(Msg *msg, int priority)>
+
+Equivalent to I<msg_syslog_set_priority()> except that C<msg> is not write
+locked.
+
+=cut
+
+*/
+
+Msg *msg_syslog_set_priority_unlocked(Msg *msg, int priority)
+{
+	MsgSyslogData *data;
+
+	if (!msg || msg->type != MSG_SYSLOG)
+		return set_errnull(EINVAL);
+
+	data = (MsgSyslogData *)msg->data;
+	data->priority = priority;
+
+	return msg;
+}
+
+/*
+
 C<int msg_plexdata_init(Msg *msg1, Msg *msg2)>
 
 Initialises the internal data needed by a I<Msg> object that multiplexes
-messages to several I<Msg> objects. On success, returns 0. On error, returns
--1.
+messages to several I<Msg> objects. On success, returns C<0>. On error,
+returns C<-1> with C<errno> set appropriately.
 
 */
 
@@ -803,8 +1055,8 @@ static int msg_plexdata_init(MsgPlexData *data, Msg *msg1, Msg *msg2)
 
 C<int msg_plexdata_add(MsgPlexData *data, Msg *msg)>
 
-Adds C<msg> to a list of multiplexed I<Msg> objects. On success, returns 0.
-On error, returns -1.
+Adds C<msg> to a list of multiplexed I<Msg> objects. On success, returns
+C<0>. On error, returns C<-1> with C<errno> set appropriately.
 
 */
 
@@ -814,7 +1066,6 @@ static int msg_plexdata_add(MsgPlexData *data, Msg *msg)
 	{
 		size_t new_size = data->size << 1;
 		Msg **new_list = mem_resize(&data->list, new_size);
-
 		if (!new_list)
 			return -1;
 
@@ -833,8 +1084,8 @@ C<MsgPlexData *msg_plexdata_create(Msg *msg1, Msg * msg2)>
 
 Creates the internal data needed by a I<Msg> object that multiplexes
 messages to several I<Msg> objects. Further I<Msg> objects can be added to
-the list with I<msg_plexdata_add(Msg *msg)>. On success, returns the data.
-On error, returns C<NULL>.
+the list with I<msg_plexdata_add()>. On success, returns the data. On error,
+returns C<null> with C<errno> set appropriately.
 
 */
 
@@ -907,9 +1158,10 @@ static void msg_out_plex(void *data, const void *msg, size_t msglen)
 =item C<Msg *msg_create_plex(Msg *msg1, Msg *msg2)>
 
 Creates a I<Msg> object that multiplexes messages to C<msg1> and C<msg2>.
-Further I<Msg> objects may be added to its list using I<msg_add_plex(Msg
-*msg)>. On success, returns the new I<Msg> object. On error, returns
-C<NULL>.
+Further I<Msg> objects may be added to its list using I<msg_add_plex()>. It
+is the caller's responsibility to deallocate the new I<Msg> with
+I<msg_release()> or I<msg_destroy()>. On success, returns the new I<Msg>
+object. On error, returns C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -917,24 +1169,21 @@ C<NULL>.
 
 Msg *msg_create_plex(Msg *msg1, Msg *msg2)
 {
-	return msg_create_plex_locked(NULL, msg1, msg2);
+	return msg_create_plex_with_locker(NULL, msg1, msg2);
 }
 
 /*
 
-=item C<Msg *msg_create_plex_locked(Locker *locker, Msg *msg1, Msg *msg2)>
+=item C<Msg *msg_create_plex_with_locker(Locker *locker, Msg *msg1, Msg *msg2)>
 
-Creates a I<Msg> object that multiplexes messages to C<msg1> and C<msg2>.
-Further I<Msg> objects may be added to its list using I<msg_add_plex(Msg
-*msg)>. Multiple threads accessing this I<Msg> object will be synchronised
-by C<locker>. On success, returns the new I<Msg> object. On error, returns
-C<NULL>.
+Equivalent to I<msg_create_plex()> except that multiple threads accessing
+the new I<Msg> will be synchronised by C<locker>.
 
 =cut
 
 */
 
-Msg *msg_create_plex_locked(Locker *locker, Msg *msg1, Msg *msg2)
+Msg *msg_create_plex_with_locker(Locker *locker, Msg *msg1, Msg *msg2)
 {
 	MsgPlexData *data;
 	Msg *msg;
@@ -942,7 +1191,7 @@ Msg *msg_create_plex_locked(Locker *locker, Msg *msg1, Msg *msg2)
 	if (!(data = msg_plexdata_create(msg1, msg2)))
 		return NULL;
 
-	if (!(msg = msg_create(locker, msg_out_plex, data, (msg_release_t *)msg_plexdata_release)))
+	if (!(msg = msg_create_with_locker(locker, MSG_PLEX, msg_out_plex, data, (msg_release_t *)msg_plexdata_release)))
 	{
 		msg_plexdata_release(data);
 		return NULL;
@@ -956,7 +1205,8 @@ Msg *msg_create_plex_locked(Locker *locker, Msg *msg1, Msg *msg2)
 =item C<int msg_add_plex(Msg *msg, Msg *item)>
 
 Adds C<item> to the list of I<Msg> objects multiplexed by C<msg>. On
-success, returns 0. On error, returns -1.
+success, returns C<0>. On error, returns C<-1> with C<errno> set
+appropriately.
 
 =cut
 
@@ -964,20 +1214,39 @@ success, returns 0. On error, returns -1.
 
 int msg_add_plex(Msg *msg, Msg *item)
 {
-	int rc;
+	int ret;
+	int err;
 
 	if (!msg)
 		return set_errno(EINVAL);
 
-	if (locker_wrlock(msg->locker) == -1)
-		return -1;
+	if ((err = msg_wrlock(msg)))
+		return set_errno(err);
 
-	rc = msg_plexdata_add((MsgPlexData *)msg->data, item);
+	ret = msg_add_plex_unlocked(msg, item);
 
-	if (locker_unlock(msg->locker) == -1)
-		return -1;
+	if ((err = msg_unlock(msg)))
+		return set_errno(err);
 
-	return rc;
+	return ret;
+}
+
+/*
+
+=item C<int msg_add_plex_unlocked(Msg *msg, Msg *item)>
+
+Equivalent to I<msg_add_plex()> except that C<msg> is not write locked.
+
+=cut
+
+*/
+
+int msg_add_plex_unlocked(Msg *msg, Msg *item)
+{
+	if (!msg || msg->type != MSG_PLEX)
+		return set_errno(EINVAL);
+
+	return msg_plexdata_add((MsgPlexData *)msg->data, item);
 }
 
 /*
@@ -985,8 +1254,8 @@ int msg_add_plex(Msg *msg, Msg *item)
 =item C<const char *msg_set_timestamp_format(const char *format)>
 
 Sets the I<strftime(3)> format string used when sending messages to a file.
-By default, it is C<"%Y%m%d %H:%M:%S">. On success, returns the previous
-format string. On error (i.e. C<format> is C<NULL>), returns C<NULL>.
+By default, it is C<"%Y%m%d %H:%M:%S ">. On success, returns the previous
+format string. On error, returns C<null> with C<errno> set appropriately.
 
 =cut
 
@@ -995,18 +1264,19 @@ format string. On error (i.e. C<format> is C<NULL>), returns C<NULL>.
 const char *msg_set_timestamp_format(const char *format)
 {
 	const char *save;
+	int err;
 
 	if (!format)
-		return NULL;
+		return set_errnull(EINVAL);
 
-	if (locker_wrlock(timestamp_format_locker) == -1)
-		return NULL;
+	if ((err = locker_wrlock(timestamp_format_locker)))
+		return set_errnull(err);
 
 	save = timestamp_format;
 	timestamp_format = format;
 
-	if (locker_unlock(timestamp_format_locker) == -1)
-		return NULL;
+	if ((err = locker_unlock(timestamp_format_locker)))
+		return set_errnull(err);
 
 	return save;
 }
@@ -1018,7 +1288,7 @@ const char *msg_set_timestamp_format(const char *format)
 Sets the locking strategy for changing the timestamp format used when
 sending messages to a file. This is only needed if the timestamp format will
 be modified in multiple threads. On success, returns C<0>. On error, returns
-C<-1>.
+C<-1> with C<errno> set appropriately.
 
 =cut
 
@@ -1039,7 +1309,7 @@ int msg_set_timestamp_format_locker(Locker *locker)
 C<int syslog_lookup(const syslog_map_t *map, const char *name)>
 
 Looks for C<name> (a facility or priority name) in C<map>. If found, returns
-its corresponding code. If not found, returns -1.
+its corresponding code. If not found, returns C<-1>.
 
 */
 
@@ -1059,7 +1329,7 @@ static int syslog_lookup(const syslog_map_t *map, const char *name)
 C<const char *syslog_lookup_str(const syslog_map_t *map, int spec)>
 
 Looks for C<spec> (a facility or priority code) in C<map>. If found, returns
-its corresponding name. If not found, returns C<NULL>.
+its corresponding name. If not found, returns C<null>.
 
 */
 
@@ -1078,7 +1348,7 @@ static const char *syslog_lookup_str(const syslog_map_t *map, int spec, int mask
 
 =item C<int syslog_lookup_facility(const char *facility)>
 
-Returns the code corresponding to C<facility>. If not found, returns -1.
+Returns the code corresponding to C<facility>. If not found, returns C<-1>.
 
 =cut
 
@@ -1093,7 +1363,7 @@ int syslog_lookup_facility(const char *facility)
 
 =item C<int syslog_lookup_priority(const char *priority)>
 
-Returns the code corresponding to C<priority>. If not found, returns -1.
+Returns the code corresponding to C<priority>. If not found, returns C<-1>.
 
 =cut
 
@@ -1109,7 +1379,7 @@ int syslog_lookup_priority(const char *priority)
 =item C<const char *syslog_facility_str(int spec)>
 
 Returns the name corresponding to the facility part of C<spec>.
-If not found, returns C<NULL>.
+If not found, returns C<null>.
 
 =cut
 
@@ -1125,7 +1395,7 @@ const char *syslog_facility_str(int spec)
 =item C<const char *syslog_priority_str(int spec)>
 
 Returns the name corresponding to the priority part of C<spec>.
-If not found, returns C<NULL>.
+If not found, returns C<null>.
 
 =cut
 
@@ -1141,10 +1411,10 @@ const char *syslog_priority_str(int spec)
 =item C<int syslog_parse(const char *spec, int *facility, int *priority)>
 
 Parses C<spec> as a I<facility.priority> string. If C<facility> is
-non-C<NULL>, the parsed facility is stored in the location pointed to by
-C<facility>. If C<priority> is non-C<NULL> the parsed priority is stored in
-the location pointed to by C<priority>. On success, returns 0. On error,
-returns -1.
+non-C<null>, the parsed facility is stored in the location pointed to by
+C<facility>. If C<priority> is non-C<null> the parsed priority is stored in
+the location pointed to by C<priority>. On success, returns C<0>. On error,
+returns C<-1> with C<errno> set appropriately.
 
     syslog facilities          syslog priorities
     ----------------------     -----------------------
@@ -1177,20 +1447,20 @@ int syslog_parse(const char *spec, int *facility, int *priority)
 	int f, p;
 
 	if (!spec)
-		return -1;
+		return set_errno(EINVAL);
 
 	strlcpy(fac, spec, 64);
 
 	if (!(pri = strchr(fac, '.')))
-		return -1;
+		return set_errno(EINVAL);
 
 	*pri++ = '\0';
 
 	if ((f = syslog_lookup_facility(fac)) == -1)
-		return -1;
+		return set_errno(EINVAL);
 
 	if ((p = syslog_lookup_priority(pri)) == -1)
-		return -1;
+		return set_errno(EINVAL);
 
 	if (facility)
 		*facility = f;
@@ -1206,6 +1476,18 @@ int syslog_parse(const char *spec, int *facility, int *priority)
 
 =back
 
+=head1 ERRORS
+
+On error, C<errno> is set by underlying functions or as follows:
+
+=over 4
+
+=item EINVAL
+
+An argument was C<null> or could not be parsed.
+
+=back
+
 =head1 EXAMPLE
 
     #include <syslog.h>
@@ -1214,14 +1496,16 @@ int syslog_parse(const char *spec, int *facility, int *priority)
     int main(int ac, char **av)
     {
         int facility, priority;
+
         if (syslog_parse(av[1], &facility, &priority) != -1)
             syslog(facility | priority, "syslog(%s)", av[1]);
-        return 0;
+
+        return EXIT_SUCCESS;
     }
 
 =head1 MT-Level
 
-MT-Disciplined - msg functions - man I<thread(3)> for details
+MT-Disciplined - msg functions - man I<locker(3)> for details
 
 MT-Safe - syslog functions
 
@@ -1230,16 +1514,19 @@ MT-Safe - syslog functions
 L<libslack(3)|libslack(3)>,
 L<err(3)|err(3)>,
 L<prog(3)|prog(3)>,
+L<openlog(3)|openlog(3)>,
 L<syslog(3)|syslog(3)>,
-L<thread(3)|thread(3)>
+L<locker(3)|locker(3)>
 
 =head1 AUTHOR
 
-20010215 raf <raf@raf.org>
+20011109 raf <raf@raf.org>
 
 =cut
 
 */
+
+#endif
 
 #ifdef TEST
 
@@ -1255,7 +1542,7 @@ static int verify(const char *prefix, const char *name, const char *msg)
 		return 1;
 	}
 
-	memset(buf, nul, MSG_SIZE);
+	memset(buf, 0, MSG_SIZE);
 	bytes = read(fd, buf, MSG_SIZE);
 	close(fd);
 	unlink(name);
@@ -1286,11 +1573,17 @@ int main(int ac, char **av)
 	Msg *msg_stdout = msg_create_stdout();
 	Msg *msg_stderr = msg_create_stderr();
 	Msg *msg_file = msg_create_file(msg_file_name);
-	Msg *msg_syslog = msg_create_syslog(NULL, 0, LOG_LOCAL0 | LOG_DEBUG);
+	Msg *msg_syslog = msg_create_syslog(NULL, 0, LOG_LOCAL0, LOG_DEBUG);
 	Msg *msg_plex = msg_create_plex(msg_stdout, msg_stderr);
 	int errors = 0;
 	int tests = 0;
 	int out, i, j, rc;
+
+	if (ac == 2 && !strcmp(av[1], "help"))
+	{
+		printf("usage: %s\n", *av);
+		return EXIT_SUCCESS;
+	}
 
 	printf("Testing: msg\n");
 
@@ -1347,7 +1640,7 @@ int main(int ac, char **av)
 		const char *fac = syslog_facility_str(syslog_facility_map[i].val);
 
 		++tests;
-		if (fac != syslog_facility_map[i].name)
+		if (strcmp(fac, syslog_facility_map[i].name))
 			++errors, printf("Test%d: syslog_facility_str(%d) failed: %s (not %s)\n", tests, syslog_facility_map[i].val, fac, syslog_facility_map[i].name);
 	}
 
@@ -1356,7 +1649,7 @@ int main(int ac, char **av)
 		const char *pri = syslog_priority_str(syslog_priority_map[i].val);
 
 		++tests;
-		if (pri != syslog_priority_map[i].name)
+		if (strcmp(pri, syslog_priority_map[i].name))
 			++errors, printf("Test%d: syslog_priority_str(%d) failed: %s (not %s)\n", tests, syslog_priority_map[i].val, pri, syslog_priority_map[i].name);
 	}
 
@@ -1373,7 +1666,7 @@ int main(int ac, char **av)
 	else
 		printf("All tests passed\n%s\n    %s", note, msg);
 
-	return 0;
+	return (errors == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 #endif

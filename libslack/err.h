@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20010215 raf <raf@raf.org>
+* 20011109 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_ERR_H
@@ -28,6 +28,12 @@
 #include <stdarg.h>
 
 #include <slack/hdr.h>
+
+#if __cplusplus
+#define void_cast static_cast<void>
+#else
+#define void_cast (void)
+#endif
 
 #undef debug
 #undef vdebug
@@ -40,16 +46,16 @@
 #define vdebug(args)
 #define debugsys(args)
 #define vdebugsys(args)
-#define check(cond, msg)
+#define check(cond, msg) (void_cast(0))
 #else
 #define debug(args) debugf args;
 #define vdebug(args) vdebugf args;
 #define debugsys(args) debugsysf args;
 #define vdebugsys(args) vdebugsysf args;
-#define check(test, msg) dump("Internal Error: %s: %s [\"%s\":%d]", (#test), (msg), __FILE__, __LINE__);
+#define check(cond, msg) ((cond) ? void_cast(0) : (dump("Internal Error: %s: %s [%s:%d]", (#cond), (msg), __FILE__, __LINE__)))
 #endif
 
-_start_decls
+_begin_decls
 void msg _args ((const char *fmt, ...));
 void vmsg _args ((const char *fmt, va_list args));
 void verbose _args ((size_t level, const char *fmt, ...));
@@ -62,6 +68,8 @@ void fatal _args ((const char *fmt, ...));
 void vfatal _args ((const char *fmt, va_list args));
 void dump _args ((const char *fmt, ...));
 void vdump _args ((const char *fmt, va_list args));
+void alert _args ((int priority, const char *fmt, ...));
+void valert _args ((int priority, const char *fmt, va_list args));
 void debugsysf _args ((size_t level, const char *fmt, ...));
 void vdebugsysf _args ((size_t level, const char *fmt, va_list args));
 int errorsys _args ((const char *fmt, ...));
@@ -70,8 +78,16 @@ void fatalsys _args ((const char *fmt, ...));
 void vfatalsys _args ((const char *fmt, va_list args));
 void dumpsys _args ((const char *fmt, ...));
 void vdumpsys _args ((const char *fmt, va_list args));
+void alertsys _args ((int priority, const char *fmt, ...));
+void valertsys _args ((int priority, const char *fmt, va_list args));
 int set_errno _args ((int errnum));
+void *set_errnull _args ((int errnum));
 _end_decls
+
+/* Don't look below here - optimisations only */
+
+#define set_errno(errnum) (errno = (errnum), -1)
+#define set_errnull(errnum) ((void *)((void *)(errno = (errnum)), NULL))
 
 #endif
 

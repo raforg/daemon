@@ -19,11 +19,12 @@
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
 
-# 20010215 raf <raf@raf.org>
+# 20011109 raf <raf@raf.org>
 
 CC := gcc
 # CC := cc
-TEST := /usr/bin/test
+AR := ar
+RANLIB := ranlib
 PREFIX := /usr/local
 APP_INSDIR := $(PREFIX)/bin
 LIB_INSDIR := $(PREFIX)/lib
@@ -37,10 +38,10 @@ LIB_MANDIR := $(MAN_INSDIR)/man$(LIB_MANSECT)
 APP_MANSECTNAME := User Commands
 LIB_MANSECTNAME := C Library Functions - libslack
 
-CCFLAGS += -O2
+CCFLAGS += -O3
 CCFLAGS += -Wall -pedantic
 
-# CCFLAGS += -O
+# CCFLAGS += -xO4
 
 CLEAN_FILES += tags core Makefile.bak .makefile.bak pod2html-*
 
@@ -49,11 +50,11 @@ SLACK_INCDIRS := .
 SLACK_LIBDIRS := .
 include $(SLACK_SRCDIR)/macros.mk
 
-.PHONY: all ready test man html install uninstall dist rpm deb pkg
+.PHONY: all ready test check man html install uninstall dist rpm deb pkg
 
 all: ready $(ALL_TARGETS)
 ready: $(READY_TARGETS)
-test: all $(TEST_TARGETS)
+check test: all $(TEST_TARGETS)
 man: $(MAN_TARGETS)
 html: $(HTML_TARGETS)
 install: all $(INSTALL_TARGETS)
@@ -62,6 +63,7 @@ dist: $(DIST_TARGETS)
 rpm: $(RPM_TARGETS)
 deb: $(DEB_TARGETS)
 pkg: $(PKG_TARGETS)
+obsd: $(OBSD_TARGETS)
 
 .PHONY: help help-macros depend clean clobber distclean
 
@@ -73,6 +75,7 @@ help::
 	echo " all                  -- makes $(SLACK_TARGET) (default)"; \
 	echo " ready                -- prepares the source directory for compilation"; \
 	echo " test                 -- makes and runs library unit tests"; \
+	echo " check                -- same as test"; \
 	echo " man                  -- generates all manpages"; \
 	echo " html                 -- generates all manpages in html"; \
 	echo " install              -- installs everything under $(PREFIX)"; \
@@ -86,11 +89,11 @@ help::
 	echo " rpm                  -- makes source and binary rpm packages"; \
 	echo " deb                  -- makes binary debian package"; \
 	echo " pkg                  -- makes binary solaris package"; \
+	echo " obsd                 -- makes binary openbsd package"; \
 	echo
 
 help-macros::
 	@echo "CC = $(CC)"; \
-	echo "TEST = $(TEST)"; \
 	echo "PREFIX = $(PREFIX)"; \
 	echo "APP_INSDIR = $(APP_INSDIR)"; \
 	echo "LIB_INSDIR = $(LIB_INSDIR)"; \
@@ -118,6 +121,7 @@ help-macros::
 	echo "RPM_TARGETS = $(RPM_TARGETS)"; \
 	echo "DEB_TARGETS = $(DEB_TARGETS)"; \
 	echo "PKG_TARGETS = $(PKG_TARGETS)"; \
+	echo "BSD_TARGETS = $(BSD_TARGETS)"; \
 	echo
 
 tags: $(TAG_FILES)

@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20010215 raf <raf@raf.org>
+* 20011109 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_FIO_H
@@ -28,11 +28,13 @@
 
 #include <slack/hdr.h>
 
-_start_decls
+_begin_decls
 char *fgetline _args ((char *line, size_t size, FILE *stream));
+char *fgetline_unlocked _args ((char *line, size_t size, FILE *stream));
 int read_timeout _args ((int fd, long sec, long usec));
 int write_timeout _args ((int fd, long sec, long usec));
 int rw_timeout _args ((int fd, long sec, long usec));
+int nap _args ((long sec, long usec));
 int fcntl_set_flag _args ((int fd, int flag));
 int fcntl_clear_flag _args ((int fd, int flag));
 int fcntl_lock _args ((int fd, int cmd, int type, int whence, int start, int len));
@@ -41,7 +43,7 @@ int nonblock_on _args ((int fd));
 int nonblock_off _args ((int fd));
 int fifo_exists _args ((const char *path, int prepare));
 int fifo_has_reader _args ((const char *path, int prepare));
-int fifo_open _args ((const char *path, mode_t mode, int lock));
+int fifo_open _args ((const char *path, mode_t mode, int lock, int *writefd));
 _end_decls
 
 #endif

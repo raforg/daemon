@@ -22,18 +22,24 @@
 
 # Modify the macros.mk make include files to compile on solaris
 #
-# 20010215 raf <raf@raf.org>
+# 20011109 raf <raf@raf.org>
 
 perl -pi \
 	-e 's/^# (GETOPT := getopt)$/$1/;' \
-	-e 's/^# (\S+ \+= -DNEEDS_GETOPT=1)$/$1/;' \
 	-e 's/^# (VSSCANF := vsscanf)$/$1/;' \
-	-e 's/^# (\S+ \+= -DNEEDS_VSSCANF=1)$/$1/;' \
-	-e 's/^# (\S+ \+= -DNEEDS_STRCASECMP=1)$/$1/;' \
-	-e 's/^# (\S+ \+= -DNEEDS_STRNCASECMP=1)$/$1/;' \
-	-e 's/^# (\S+ \+= -DNEEDS_STRLCPY=1)$/$1/;' \
-	-e 's/^# (\S+ \+= -DNEEDS_STRLCAT=1)$/$1/;' \
+	-e 's/^# (SNPRINTF := snprintf)$/$1/;' \
 	`find . -name macros.mk`
 
-#	-e 's/^# (SNPRINTF := snprintf)$/$1/;' \
-#	-e 's/^# (\S+ \+= -DNEEDS_SNPRINTF=1)$/$1/;' \
+perl -pi \
+	-e 's/^#define (HAVE_GETOPT_LONG) 1$/\/* #undef $1 *\//;' \
+	-e 's/^#define (HAVE_VSSCANF) 1$/\/* #undef $1 *\//;' \
+	-e 's/^#define (HAVE_STRCASECMP) 1$/\/* #undef $1 *\//;' \
+	-e 's/^#define (HAVE_STRNCASECMP) 1$/\/* #undef $1 *\//;' \
+	-e 's/^#define (HAVE_STRLCPY) 1$/\/* #undef $1 *\//;' \
+	-e 's/^#define (HAVE_STRLCAT) 1$/\/* #undef $1 *\//;' \
+	-e 's/^#define (HAVE_SNPRINTF) 1$/\/* #undef $1 *\//;' \
+	-e 's/^#define (HAVE_VSNPRINTF) 1$/\/* #undef $1 *\//;' \
+	-e 's/^#define (HAVE_ASPRINTF) 1$/\/* #undef $1 *\//;' \
+	-e 's/^#define (HAVE_VASPRINTF) 1$/\/* #undef $1 *\//;' \
+	`find . -name config.h`
+

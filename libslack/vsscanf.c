@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20010215 raf <raf@raf.org>
+* 20011109 raf <raf@raf.org>
 */
 
 /*
@@ -42,7 +42,7 @@ Note that this may not be identical in behaviour to the I<sscanf(3)> on your
 system because this was implemented from scratch for systems that lack
 I<vsscanf()>. So your I<sscanf(3)> and this I<vsscanf()> share no common
 code. Your I<sscanf(3)> may support extensions that I<vsscanf()> does not
-support. I<vsscanf()> complies with all of the relevant ANSI C requirements
+support. I<vsscanf()> complies with all of the relevant ISO C requirements
 for I<sscanf()> except:
 
 =over 4
@@ -78,8 +78,8 @@ I<gcc(1)> warns that:
 However, the ANSI C standard (Section 7.9.6.2) states that:
 
 "Finally, the conversion specifiers C<e>, C<f>, and C<g> shall be preceeded
-by C<l> if the corresponding argument is a pointer to C<double> rather than
-a pointer to C<float>, or by C<L> if it is a pointer to C<long double>."
+by C<l> if the corresponding argument is a pointer to I<double> rather than
+a pointer to C<float>, or by C<L> if it is a pointer to I<long double>."
 
 I have chosen to disregard the I<gcc(1)> warnings in favour of the standard.
 If you see the above warnings when compiling the unit tests for
@@ -92,12 +92,13 @@ L<sscanf(3)|sscanf(3)>
 
 =head1 AUTHOR
 
-20010215 raf <raf@raf.org>
+20011109 raf <raf@raf.org>
 
 =cut
 
 */
 
+#include "config.h"
 #include "std.h"
 
 #include <locale.h>
@@ -237,8 +238,8 @@ int vsscanf(const char *str, const char *fmt, va_list args)
 					if (width <= 0) width = INT_MAX;
 					if (*++f == '^') setcomp = 1, ++f;
 					end = strchr((*f == ']') ? f + 1 : f, ']');
-					if (!end) return FAIL; /* Should be cnv to match glibc-2.2 */
-					setsize = end - f;
+					if (!end) return FAIL; /* Could be cnv to match glibc-2.2 */
+					setsize = end - f;     /* But FAIL matches the C standard */
 					while (width-- && *s)
 					{
 						if (!setcomp && !memchr(f, *s, setsize)) break;
@@ -340,6 +341,12 @@ int main(int ac, char **av)
 	char str[512];
 	int rc1, rc2;
 
+	if (ac == 2 && !strcmp(av[1], "help"))
+	{
+		printf("usage: %s [show]\n", *av);
+		return EXIT_SUCCESS;
+	}
+
 	printf("Testing: vsscanf\n");
 
 	/* Test one of everything */
@@ -347,6 +354,9 @@ int main(int ac, char **av)
 	sprintf(str, " abc -12 37 101 3.4e-1 12.34 102.23 xyz %p def ghi jkl %% ",
 		p1 = (void *)0xdeadbeef
 	);
+
+	if (ac >= 2 && !strcmp(av[1], "show"))
+		printf("%s\n", str);
 
 	rc1 = sscanf(str,
 		" abc %hd %d %ld %e %le %Le xyz %p %[^abc ] %3c %s%hn %n%% %ln",
@@ -470,11 +480,11 @@ int main(int ac, char **av)
 	TEST_ERR(50, "a", "b");
 
 	if (errors)
-		printf("%d/50 tests failed\n", errors);
+		printf("%d/50 tests failed (This system's sscanf(3) is probably wrong)\n", errors);
 	else
 		printf("All tests passed\n");
 
-	return 0;
+	return (errors == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 #endif

@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20010215 raf <raf@raf.org>
+* 20011109 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_LIM_H
@@ -26,7 +26,7 @@
 
 #include <slack/hdr.h>
 
-_start_decls
+_begin_decls
 long limit_arg _args ((void));
 long limit_child _args ((void));
 long limit_tick _args ((void));

@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20010215 raf <raf@raf.org>
+* 20011109 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_PROG_H
@@ -33,7 +33,7 @@
 #define PATH_SEP '/'
 #endif
 
-#ifdef NEEDS_GETOPT
+#ifndef HAVE_GETOPT_LONG
 #include <slack/getopt.h>
 #else
 #include <getopt.h>
@@ -51,16 +51,16 @@ typedef void (*opt_action_none_t)(void);
 
 enum OptionArgument
 {
-	OPT_NONE,
-	OPT_INTEGER,
-	OPT_STRING
+    OPT_NONE,
+    OPT_INTEGER,
+    OPT_STRING
 };
 
 enum OptionAction
 {
-	OPT_NOTHING,
-	OPT_VARIABLE,
-	OPT_FUNCTION
+    OPT_NOTHING,
+    OPT_VARIABLE,
+    OPT_FUNCTION
 };
 
 typedef enum OptionArgument OptionArgument;
@@ -68,23 +68,23 @@ typedef enum OptionAction OptionAction;
 
 struct Option
 {
-	const char *name;
-	char short_name;
-	const char *argname;
-	const char *desc;
-	int has_arg;
-	OptionArgument arg_type;
-	OptionAction action;
-	void *object;
+    const char *name;
+    char short_name;
+    const char *argname;
+    const char *desc;
+    int has_arg;
+    OptionArgument arg_type;
+    OptionAction action;
+    void *object;
 };
 
 struct Options
 {
-	Options *parent;
-	Option *options;
+    Options *parent;
+    Option *options;
 };
 
-_start_decls
+_begin_decls
 void prog_init _args ((void));
 const char *prog_set_name _args ((const char *name));
 Options *prog_set_options _args ((Options *options));
@@ -100,8 +100,10 @@ const char *prog_set_legal _args ((const char *legal));
 Msg *prog_set_out _args ((Msg *out));
 Msg *prog_set_err _args ((Msg *err));
 Msg *prog_set_dbg _args ((Msg *dbg));
-ssize_t prog_set_debug_level _args ((size_t level));
-ssize_t prog_set_verbosity_level _args ((size_t level));
+Msg *prog_set_alert _args ((Msg *alert));
+ssize_t prog_set_debug_level _args ((size_t debug_level));
+ssize_t prog_set_verbosity_level _args ((size_t verbosity_level));
+int prog_set_locker _args ((Locker *locker));
 const char *prog_name _args ((void));
 const Options *prog_options _args ((void));
 const char *prog_syntax _args ((void));
@@ -116,31 +118,38 @@ const char *prog_legal _args ((void));
 Msg *prog_out _args ((void));
 Msg *prog_err _args ((void));
 Msg *prog_dbg _args ((void));
+Msg *prog_alert _args ((void));
 size_t prog_debug_level _args ((void));
 size_t prog_verbosity_level _args ((void));
 int prog_out_fd _args ((int fd));
 int prog_out_stdout _args ((void));
 int prog_out_file _args ((const char *path));
-int prog_out_syslog _args ((const char *ident, int option, int facility));
+int prog_out_syslog _args ((const char *ident, int option, int facility, int priority));
 int prog_out_none _args ((void));
 int prog_err_fd _args ((int fd));
 int prog_err_stderr _args ((void));
 int prog_err_file _args ((const char *path));
-int prog_err_syslog _args ((const char *ident, int option, int facility));
+int prog_err_syslog _args ((const char *ident, int option, int facility, int priority));
 int prog_err_none _args ((void));
 int prog_dbg_fd _args ((int fd));
 int prog_dbg_stdout _args ((void));
 int prog_dbg_stderr _args ((void));
 int prog_dbg_file _args ((const char *path));
-int prog_dbg_syslog _args ((const char *id, int option, int facility));
+int prog_dbg_syslog _args ((const char *id, int option, int facility, int priority));
 int prog_dbg_none _args ((void));
+int prog_alert_fd _args ((int fd));
+int prog_alert_stdout _args ((void));
+int prog_alert_stderr _args ((void));
+int prog_alert_file _args ((const char *path));
+int prog_alert_syslog _args ((const char *id, int option, int facility, int priority));
+int prog_alert_none _args ((void));
 int prog_opt_process _args ((int ac, char **av));
 void prog_usage_msg _args ((const char *fmt, ...));
-void prog_help_msg_message _args ((void));
-void prog_version_message _args ((void));
+void prog_help_msg _args ((void));
+void prog_version_msg _args ((void));
 const char *prog_basename _args ((const char *path));
 extern Options prog_options_table[1];
-int opt_process _args ((int argc, char **argv, Options *options));
+int opt_process _args ((int argc, char **argv, Options *options, char *msgbuf, size_t bufsize));
 char *opt_usage _args ((char *buf, size_t size, Options *options));
 _end_decls
 

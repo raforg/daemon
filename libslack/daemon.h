@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20010215 raf <raf@raf.org>
+* 20011109 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_DAEMON_H
@@ -46,13 +46,22 @@
 #define PATH_SEP '/'
 #endif
 
+#ifndef PATH_SEP_STR
+#define PATH_SEP_STR "/"
+#endif
+
+#ifndef PATH_LIST_SEP
+#define PATH_LIST_SEP ':'
+#endif
+
 typedef void daemon_config_parser_t(void *obj, const char *path, char *line, size_t lineno);
 
-_start_decls
+_begin_decls
 int daemon_started_by_init _args ((void));
 int daemon_started_by_inetd _args ((void));
 int daemon_prevent_core _args ((void));
 int daemon_revoke_privileges _args ((void));
+int daemon_become_user _args ((uid_t uid, gid_t gid, char *user));
 char *daemon_absolute_path _args ((const char *path));
 int daemon_path_is_safe _args ((const char *path));
 void *daemon_parse_config _args ((const char *path, void *obj, daemon_config_parser_t *parser));

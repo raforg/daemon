@@ -1,0 +1,39 @@
+This directory contains several utilities. Most of them are only useful
+to me during development. The last might be useful to libslack users.
+
+The following four perl scripts help to guarantee that at least the formal
+parts of the libslack documentation accurately reflect the code. The first
+checks that the function prototypes that will appear in the DESCRIPTION
+sections of each module's manpage exactly matches the header of the function
+itself. The second checks that the typedefs and function prototypes in the
+header files exactly match the same information in the SYNOPSIS section of
+the corresponding module's manpage. The third checks that the function
+prototypes in each header file exactly matches the function prototypes in the
+DESCRIPTION section of the corresponding module's manpage. Together, these
+three scripts guarantee that the typedefs and function prototypes in the
+manpages match the header files and the source code. The fourth combines
+the above checks.
+
+    check-pod-prototypes.pl # check description = source
+    check-pod-header.pl     # check header = description
+    check-pod-synopsis.pl   # check synopsis = header
+    check-pod               # check source = description = header = synopsis
+
+There's a butchered version of Html.pm that I use to generate the HTML
+versions of the documentation. It is used by pod2html. The original version
+tries to make hyperlinks to things that it shouldn't because it assumes that
+the POD being converted into HTML is a perl related manpage. The assumptions
+that it makes are wrong for C library manpages.
+
+    Html.pm [not included in the distribution (43KB) - available on request]
+
+There's a script to help me maintain the stupid configuration files at least
+until I start using autoconf.
+
+    viconf
+
+The final script reads the output of the debug lockers defined in the
+locker module and shows where any deadlocks have occurred.
+
+    analyse-debug-locker.pl
+

@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20010215 raf <raf@raf.org>
+* 20011109 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_MEM_H
@@ -27,7 +27,7 @@
 #include <stdlib.h>
 
 #include <slack/hdr.h>
-#include <slack/thread.h>
+#include <slack/locker.h>
 
 #ifndef null
 #define null NULL
@@ -39,7 +39,7 @@
 
 typedef struct Pool Pool;
 
-_start_decls
+_begin_decls
 #define mem_new(type) malloc(sizeof(type))
 #define mem_create(size, type) malloc((size) * sizeof(type))
 #define mem_resize(mem, size) mem_resize_fn((void **)(mem), (size) * sizeof(*(mem)))
@@ -66,17 +66,17 @@ size_t mem_space_start _args ((size_t size, ...));
 #define mem_destroy4d(space) mem_destroy_space(space)
 #define mem_destroy_space(space) mem_destroy(space)
 Pool *pool_create _args ((size_t size));
-Pool *pool_create_locked _args ((Locker *locker, size_t size));
+Pool *pool_create_with_locker _args ((Locker *locker, size_t size));
 void pool_release _args ((Pool *pool));
 void *pool_destroy _args ((Pool **pool));
 Pool *pool_create_secure _args ((size_t size));
-Pool *pool_create_secure_locked _args ((Locker *locker, size_t size));
+Pool *pool_create_secure_with_locker _args ((Locker *locker, size_t size));
 void pool_release_secure _args ((Pool *pool));
 void *pool_destroy_secure _args ((Pool **pool));
 void pool_clear_secure _args ((Pool *pool));
 #define pool_new(pool, type) pool_alloc((pool), sizeof(type))
 #define pool_newsz(pool, size, type) pool_alloc((pool), (size) * sizeof(type))
-void *pool_alloc _args ((Pool *pool, size_t bytes));
+void *pool_alloc _args ((Pool *pool, size_t size));
 void pool_clear _args ((Pool *pool));
 _end_decls
 

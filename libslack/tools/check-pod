@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Perform all the other pod checks on all modules.
+
+[ "${0%/*}" = "$0" ] && path="./" || path="${0%/*}/"
+
+${path}check-pod-prototypes.pl *.c
+${path}check-pod-header.pl *.c
+${path}check-pod-synopsis.pl *.c
+

@@ -1,0 +1,16 @@
+#!/bin/sh
+
+# Demonstrate daemon(1) with client3
+#
+# client3 prints 0 to 4 each on a line to both stdout and stderr, sleeping 1
+# second before each line, then closes its stdout and stderr. The
+# daemon.conf file causes client3 to be run with debug=9, with stdout
+# redirected to syslog destination daemon.err, and stderr redirected to
+# syslog destination local0.err ,and respawning. Terminate the demonstration
+# by sending daemon a TERM signal.
+#
+# Note: Respawning won't occur unless libslack was compiled with
+# RESPAWN_THRESHOLD less than 5 or client2 modified to run for more
+# than 600 seconds.
+
+../daemon -C "`pwd`/daemon.conf" -n client3 "`pwd`/client3"

@@ -1,6 +1,10 @@
 README
 ~~~~~~
-libslack - A UNIX/C library of general utilities for programmers with slack
+libslack - A UNIX/C library of general utilities for programmers with Slack
+
+    Slack(n.): The state in which you need nothing,
+               because you already have it.
+                     -- Dobbs, 1956
 
 DESCRIPTION
 ~~~~~~~~~~~
@@ -15,46 +19,59 @@ should always be easy to read.
 
 Libslack contains the following modules:
 
+    agent    - agent oriented programming
+    coproc   - coprocess using pipes or pseudo terminals
     daemon   - becoming a daemon
-    err      - message/error/debug/verbosity messaging
+    err      - message/error/debug/verbosity/alert messaging
     fio      - fifo and file control and some I/O
     getopt   - GNU getopt_long() for systems that don't have it
-    hsort    - heap sort (by Stephen Russell)
+    hsort    - generic heap sort
     lim      - POSIX.1 limits convenience functions
-    list     - list data type
+    link     - abstract linked lists with optional growable free lists
+    list     - list (growable pointer array) data type
+    locker   - abstract locking and reader/writer lock implementation
     map      - map (hash table) data type
-    mem      - memory helper functions
+    mem      - memory helper functions, secure memory, memory pools
     msg      - message handling and syslog helper functions
     net      - network functions (clients/servers, expect/send, pack/unpack, mail)
     prog     - program framework and flexible command line option handling
     prop     - program properties files
-    sig      - ANSI C compliant signal handling
+    pseudo   - pseudo terminals
+    sig      - ISO C compliant signal handling
+    snprintf - safe sprintf for systems that don't have it
     str      - string data type (tr, regex, regsub, fmt, trim, lc, uc, ...)
-    thread   - abstract locking, pthread shortcuts, rwlocks, barriers
     vsscanf  - sscanf() with va_list argument for systems that don't have it
 
 INSTALL
 ~~~~~~~
-Currently this is only known to work on Linux Redhat 6.x/7.x and Solaris 2.6.
+Currently, this is only known to work on the following systems:
+
+    Linux Redhat 6.x/7.x
+    Solaris 2.6
+    OpenBSD 2.9
+
 Compiling on Solaris 2.6 requires running conf/solaris-cc (If you have the
 Sun WorkShop C compiler) or conf/solaris-gcc (If you have gcc) in the source
-directory. It is ready to compile on Linux as distributed so it is not
-necessary to run conf/linux. There isn't a real configure script yet so you
-will no doubt encounter problems on other systems. An ANSI C and POSIX
-environment will help greatly.
+directory. Compiling on OpenBSD 2.9 requires running conf/openbsd. It is
+ready to compile on Linux as distributed so it is not necessary to run
+conf/linux. There isn't a real configure script yet so you will no doubt
+encounter problems on other systems. An ISO C and POSIX/XPG4 environment
+will help greatly.
 
 If your system doesn't have snprintf(3), GNU getopt_long(3), vsscanf(3),
 strcasecmp(3), strncasecmp(3), strlcpy(3) or strlcat(3), uncomment the
-relevant lines in the macros.mk file to include them in libslack.
+relevant lines in the libslack/config.h file to include them in libslack.
 
-If your system doesn't have POSIX 1003.2 compliant regex functions, either:
-install the GNU implementation, ftp://ftp.gnu.org/gnu/regex/regex-0.12.tar.gz
-[290K] (doesn't support internationalisation); or install Henry Spencer's
-implementation, ftp://ftp.zoo.toronto.edu/pub/regex.shar [157K].
+If your system doesn't have POSIX 1003.2 compliant regex functions, or they
+are buggy, either: install the GNU implementation,
+ftp://ftp.gnu.org/gnu/regex/regex-0.12.tar.gz [290K]
+(doesn't support internationalisation);
+or install Henry Spencer's implementation,
+ftp://ftp.zoo.toronto.edu/pub/regex.shar [157K].
 
 If you really, really, really don't want the regular expression functions,
-uncomment REGEX_MISSING in macros.mk to enable the rest of the str module to be
-compiled.
+uncomment HAVE_REGEX_H in libslack/config.h to enable the rest of the str
+module to be compiled.
 
 If you have a linux-2.2.x system, you must have LinuxThreads-0.8 or
 LinuxThreads-0.9 and the latest corresponding version of glibc.
@@ -65,68 +82,113 @@ they are buggy and I don't want to hear about it.
 
 First, uninstall any previous version:
 
-        cd libslack-0.3
-		make uninstall
+    cd libslack-0.4
+    make uninstall
 
 To build and test:
 
-        tar xzf libslack-0.4.tar.gz
-        cd libslack-0.4
-        conf/<your-system>   # if applicable (i.e. solaris-gcc, solaris-cc)
-        make
-        make test            # note: compiling the tests can take ages
+    tar xzf libslack-0.5.tar.gz
+    cd libslack-0.5
+    conf/<your-system>   # if applicable (i.e. solaris-[g]cc, openbsd)
+    make
+    make test
 
 To install libslack and its manpages (into /usr/local by default):
 
-        make install
+    make install
 
 To install into somewhere other than /usr/local:
 
-        make PREFIX=/opt/libslack install
+    make PREFIX=/opt/libslack install
 
 To uninstall:
 
-        make uninstall
+    make uninstall
 
 For more details:
 
-        make help
+    make help
 
 There is one manpage for each module in libslack (as well as one for each
-function). The module manpages are daemon(3), err(3), fio(3), hsort(3),
-lim(3), list(3), map(3), mem(3), msg(3), net(3), prog(3), prop(3), sig(3),
-str(3) and thread(3). If necessary, the manpages getopt(3), snprintf(3) and
-vsscanf(3) are created as well.
+function). The module manpages are agent(3), coproc(3), daemon(3), err(3),
+fio(3), hsort(3), lim(3), link(3), list(3), locker(3), map(3), mem(3), msg(3),
+net(3), prog(3), prop(3), pseudo(3), sig(3) and str(3). If necessary, the
+manpages getopt(3), snprintf(3) and vsscanf(3) are created as well.
 
 BINARY PACKAGES
 ~~~~~~~~~~~~~~~
 To install from the RPM binary package (into /usr by default):
 
-        rpm -i libslack-0.4-1.i386.rpm
+    rpm -i libslack-0.5-1.i386.rpm
 
 To install from the RPM binary package into somewhere other than /usr:
 
-        rpm --prefix=/usr/local -i libslack-0.4-1.i386.rpm
+    rpm --prefix=/usr/local -i libslack-0.5-1.i386.rpm
 
 To install from the (relocatable) Debian binary package (into /usr):
 
-        dpkg -i daemon_0.4_i386.deb
+    dpkg -i libslack_0.5_i386.deb
 
 To install from the (relocatable) Solaris binary package (into /opt/libslack):
 
-        gunzip libslack-0.4.sun4u.pkg.gz
-        pkgadd -d libslack-0.4.sun4u.pkg
+    gunzip libslack-0.5.sun4u.pkg.gz
+    pkgadd -d libslack-0.5.sun4u.pkg
 
+Install from the OpenBSD binary package (into /usr/local):
+
+	pkg_add libslack-0.5-obsd-i386.tar.gz
 
 REQUIREMENTS
 ~~~~~~~~~~~~
 Requires perl to run the scripts in the conf directory.
 Repuires perl to install per-function manpage links.
-Requires an ANSI C compiler like gcc to compile the source.
+Requires an ISO C compiler like gcc to compile the source.
 Requires pod2man (comes with perl) to make the manpages.
 Requires pod2html (comes with perl) to make the html manpages.
 Requires POSIX 1003.2 compliant regex functions. See INSTALL.
 Requires libpthread. See INSTALL.
+
+PLATFORM NOTES
+~~~~~~~~~~~~~~
+Linux
+~~~~~
+Linux 2.2 always returns 0.0.0.0 on getsockopt(IP_MULTICAST_IF) so
+net_multicast_get_interface() always returns 0 under Linux 2.2. Linux 2.4
+does not have this bug.
+
+Make sure you have a recent glibc (at least 2.1.3) and libpthread (at least
+0.8) (See INSTALL).
+
+Linux 2.2 and 2.4 have a bug in poll(2). It always times out 10ms later than
+specified. Libslack corrects for this as best as it can (if > 10ms -= 10ms)
+but it's not good enough when you need timers with a granularity of 10ms. In
+this case, you have to use agent_create_with_select() instead of
+agent_create() under Linux because select() doesn't have this bug. However,
+scalable I/O is impossible with select(). So, if you need timers with a
+granularity of 10ms *and* scalable I/O, you need an agent that uses select()
+in one thread for the timers and separate agents that use poll() in other
+threads for the I/O.
+
+Solaris
+~~~~~~~
+Solaris (at least 2.6 and 2.7) doesn't return the hardware address or index
+of network interfaces from ioctl() with a SIOCGIFINDEX command argument.
+Libslack fills in the index in net_interfaces().
+
+UNIX domain datagram sockets aren't supported very nicely. An actual
+filesystem entry is needed for the client and it must be unlinked after use.
+It's also possible for a malicious local user to deny a client access to the
+server. The solution is to always use UNIX domain stream sockets.
+
+Solaris 2.6 has an inadequate snprintf() function so libslack provides it's
+own implementation. When configured for Solaris, this snprintf() function
+will behave exactly like the system's snprintf() function, even though it
+has incorrect behaviour with respect to the ISO C standard. I thought this
+was better than having thousands of module tests apparently "fail".
+
+OpenBSD
+~~~~~~~
+Has the same UNIX domain datagram socket problem as Solaris.
 
 COPYING
 ~~~~~~~
@@ -174,6 +236,105 @@ All rights reserved.
     WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
     OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
     ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+REFERENCES
+~~~~~~~~~~
+Advanced Programming in the UNIX Environment
+W. Richard Stevens
+Addison-Wesley Professional Computing Series, 1992
+
+UNIX Network Programming
+W. Richard Stevens
+Prentice Hall Software Series, 1990
+
+UNIX System V Network Programming
+Stephen A. Rago
+Addison-Wesley Professional Computing Series, 1993
+
+TCP/IP Illustrated Volume 1, The Protocols
+W. Richard Stevens
+Addison-Wesley Professional Computing Series, 1994
+
+UNIX Network Programming Volume 1, Networking APIs: Sockets and XTI
+W. Richard Stevens
+Prentice Hall Software Series, 1998
+
+The Practice of Programming
+Brian W. Kernighan and Rob Pike,
+Addison-Wesley Professional Computing Series, 1999
+
+Multithreaded Programming with Pthreads
+Bil Lewis and Daniel J. Berg
+Sun Microsystem Press/Prentice Hall, 1998
+
+Effective TCP/IP Programming
+Jon C. Snader
+Addison-Wesley, 2000
+
+Design Patterns - Elements of Reusable Object-Oriented Software
+Erich Gamma, Richard Helm, Ralph Johnson and John Vlissides
+Addison-Wesley Professional Computing Series, 1995
+
+The Standard C Library
+P. J. Plauger
+Prentice Hall, 1992
+
+The Discipline and Method Architecture for Reusable Libraries
+Kiem-Phong Vo
+Software - Practice & Experience, v.30, pp.107-128, 2000
+http://www.research.att.com/sw/tools/sfio/dm-spe.ps
+
+strlcpy and strlcat--Consistent, Safe, String Copy and Concatenation
+Todd C. Miller and Theo De Raadt
+Proceedings of the FREENIX Track: 1999 USENIX Annual Technical Conference
+http://www.usenix.org/events/usenix99/millert.html
+
+The Perl manpages
+Larry Wall
+http://www.perl.com/
+
+Practical UNIX and Internet Security
+Simson Garfinkel and Gene Spafford
+O'Reilly, 1996
+
+Interconnections - Bridges, Routers, Switches and Internetworking Protocols
+Radia Perlman
+Addison-Wesley Professional Computing Series, 2000
+
+MT-Disciplined
+raf
+http://raf.org/papers/mt-disciplined.html, 2001
+
+Scalable Makefiles
+raf
+http://raf.org/papers/scalable-makefiles.html, 2001
+
+I/O Event Handling Under Linux
+Richard Gooch
+http://www.atnf.csiro.au/~rgooch/linux/docs/io-events.html, 1999
+
+Scalable kernel performance for Internet servers under realistic loads
+Gaurav Banga and Jeffrey C. Mogul
+Proceeding of the Refereed Papers Track: 1998 USENIX Annual Technical Conference
+http://www.usenix.org/publications/library/proceedings/usenix98/banga.html
+
+TCP Buffering and Performance Over An ATM Network
+Purdue Technical Report CSD-TR 94-026 (Revision)
+Journal of Internetworking: Research and Experience, Vol. 6 (1), Pages 1-13
+Douglas E. Comer and John C. Lin
+ftp://gwen.cs.purdue.edu/pub/lin/TCP.atm.ps.Z, 1994
+
+Experimental and Simulation Performance Results of TCP/IP over High-Speed ATM over ACTS
+Charalambos, C.; Lazarou, G.; Frost, V.; Evans, J.; Jonkman, R.
+Information and Telecommunication Technology Center,
+Department of Electrical Engineering & Computer Science,
+The University of Kansas
+http://acts.lerc.nasa.gov/library/docs/gsn/charalambous.pdf
+
+Revelation X: The "Bob" Apocryphon
+Translated by The Subgenius Foundation,
+Edited by Reverend Ivan Stang,
+Simon & Schuster, 1994
 
 HISTORY
 ~~~~~~~
@@ -271,78 +432,98 @@ HISTORY
     - Renamed _* functions in err module to *f (not ANSI compliant)
     - Removed MANIFEST
 
+0.5
+    - Fixed Makefile bug: decoupled libslack optlevel from module test optlevel
+    - Fixed API bug: str_length_unlocked() was static
+    - Fixed API bug: prop_locker() prototype wasn't in prop.h
+    - Added prop_clear() to prop module
+    - Added octal/hex and error handling to command line integer option handling
+    - Fixed bug: check() just called dump() without testing the condition first
+    - Added variants of six standard C string functions with more useful APIs
+    - Added thread module tests (and locker timing tests)
+    - Changed locker function return values (now same as pthread return values)
+    - Improved speed of lockers (now overhead = 1 test + 1 deref + 1 offset)
+    - Changed item/length/size, bin/hex/oct functions to return -1 on error
+    - Changed error returns to consistently set errno (str, list, map)
+    - Added set_errnull() to err module
+    - Added relative index/range semantics to list functions (same as with str)
+    - Changed fifo_open() to take writefd return arg to prevent fd leaks
+    - Simplified mem_resize() assuming ISO C compliant realloc()
+    - Added internal ISO C compliant realloc() for systems that don't have it
+    - Fixed bug: optval/optlen for getsockopt(SO_ERROR) not initialised
+    - Fixed inode leak: fifo_open() didn't unlink fifo created on error
+    - Removed thread_init(), thread_setcancel() and barriers from thread module
+    - Renamed thread module to locker (decoupled thread safety)
+    - Stopped daemon_revoke_privileges() from clearing supplementary group list
+    - Added support for "debug sections" to debug messaging
+    - Added daemon_become_user() to daemon module
+    - Added "_unlocked" versions of functions in str, list and map modules
+    - Renamed "_locked" functions to "_with_locker" to avoid confusion
+    - Fixed bug: removed highly dubious synchronisation from internal iterators
+    - Added read locked iterators
+    - Added alert functions to prog, err and msg modules
+    - Systematically corrected function prototype typos in manpages
+    - Added net_options() to net module (sets multiple socket options)
+    - Added soundex() to str module
+    - Removed caching and mutex locks in daemon_started_by_init/inetd()
+    - Added ignoring SIGHUP before losing session leadership in daemon_init()
+    - Improved IPv6 support in net module (i.e. can now bind to IPv6 wildcard)
+    - Added support for UNIX domain sockets to net module
+    - Increased socket listen queue length from 5 to 1024
+    - Fixed bug: net service port selection only used numeric port arg
+    - Added handling of name lookup returning multiple addresses for net clients
+    - Added default host to net client functions (i.e. null host == loopback)
+    - Changed net_create_server() and net_create_client() to take sockopt list
+    - Added support for net clients binding to a specific local port
+    - Added net_gethostbyname() and net_getservbyname() to net module
+    - Made net server and client functions threadsafe
+    - Added socket option notes to net module manpage (from W. Richard Stevens)
+    - Added protocol design notes to net module manpage (from Radia Perlman)
+    - Added sendfd() and recvfd() to net module (send/recv open file descriptor)
+    - Replaced ioctl() with fcntl() in nonblock functions
+    - Added support for net client/server service argument being numeric
+    - Added link module (singly/doubly linked lists and "growable" freelists)
+    - Added agent module (poll/select plus hierarchical timing wheel scheduler)
+    - Added net_interfaces() to net module (retrieve list of network interfaces)
+    - Added support for IPv4 and IPv6 multicasting to net module
+    - Added Reliability over UDP functions to net module (net_rudp_transact())
+    - Added Type of Service (TOS) functions to net module
+    - Changed net_pack/net_unpack functions to take a timeout arg
+    - Added nap() function to fio module (subsecond sleep)
+    - Added threadsafe snprintf() function for systems that don't have it
+    - Added asprintf() to str module for systems that don't have it
+    - Added config.h to simplify compile commands (prelude to autoconf)
+    - Removed thread_attr_{init,set}() (not useful enough or portable enough)
+    - Ported to OpenBSD 2.9
+    - Added pseudo module (pseudo terminals by Tatu Ylonen from openssh)
+    - Added coproc module (coprocesses with or without a pseudo terminal)
+    - Changed syslog functions to take a priority parameter
+    - Added make obsd obsd-daemon obsd-slack (openbsd binary packages)
+    - Added libslack-config --uninstall
+    - Proofread all of the doco (just once)
+    - Added setting appropriate TOS values in mail()
+    - Fixed validation of relative index/range values in str/list modules
+    - Added relative index semantics to list_item()
+    - Added read locked versions of map_apply() and list_apply()
+    - Added make and dist-html-slack (manpages as html.tar.gz)
+
 TODO
 ~~~~
-    - MT signal handling
-    - Decouple memory type and strategy from List/Map/String code into mem
-    - Add pty/coproc to fio module
-    - Add agent module (select/poll + hashed/hierarchical timing wheels)
-    - Add debian source package creation
-    - Use autoconf and libtool (when API is stable, then add *-devel packages)
-    - Generate sub library packages (at least: daemon, str, net, agent)
+    - Port to FreeBSD, Mac OS X, Cygwin
+    - Decouple memory type and allocation strategy from List/Map/String code
+    - Check out/incorporate Kiem-Phong Vo's error handling architecture [?]
+    - Use autoconf and libtool (then add devel/static/dynamic packages)
+    - Add sub libraries (str/list/map, daemon/net/agent, mtdisc, memdisc) [?]
+    - Add debian source package creation [?]
+    - Add API prefix utility
+    - Make sure net module interoperates with openssl
+    - Add scan/print money/numbers/dates/times according to a locale
+    - Add bit vector module
+    - Use PER for pack/unpack [?]
+    - Write Scalable Makefiles paper
+    - Write fast/slow lane paper
 
-REFERENCES
-~~~~~~~~~~
-Advanced Programming in the UNIX Environment
-W. Richard Stevens
-Addison-Wesley Professional Computing Series, 1992
-
-UNIX Network Programming
-W. Richard Stevens
-Prentice Hall Software Series, 1990
-
-UNIX System V Network Programming
-Stephen A. Rago
-Addison-Wesley Professional Computing Series, 1993
-
-The Practice of Programming
-Brian W. Kernighan and Rob Pike,
-Addison-Wesley Professional Computing Series, 1999
-
-Multithreaded Programming with Pthreads
-Bil Lewis and Daniel J. Berg
-Sun Microsystem Press/Prentice Hall, 1998
-
-Effective TCP/IP Programming
-Jon C. Snader
-Addison-Wesley, 2000
-
-Design Patterns - Elements of Reusable Object-Oriented Software
-Erich Gamma, Richard Helm, Ralph Johnson and John Vlissides
-Addison-Wesley Professional Computing Series, 1995
-
-The Standard C Library
-P. J. Plauger
-Prentice Hall, 1992
-
-The Discipline and Method Architecture for Reusable Libraries
-Kiem-Phong Vo
-Software - Practice & Experience, v.30, pp.107-128, 2000
-http://www.research.att.com/sw/tools/sfio/dm-spe.ps
-
-strlcpy and strlcat--Consistent, Safe, String Copy and Concatenation
-Todd C. Miller and Theo De Raadt
-Proceedings of the FREENIX Track: 1999 USENIX Annual Technical Conference
-http://www.usenix.org/events/usenix99/millert.html
-
-The Perl manpages
-Larry Wall
-
-Practical UNIX and Internet Security
-Simson Garfinkel and Gene Spafford
-O'Reilly, 1996
-
-Interconnections - Bridges, Routers, Switches and Internetworking Protocols
-Radia Perlman
-Addison-Wesley Professional Computing Series, 2000
-
-MT-Disciplined
-raf, http://raf.org/papers/mtdisc.html
-
-Scalable Makefiles
-raf, http://raf.org/papers/scalable-makefiles.html
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 URL: http://libslack.org/
-Date: 20010215
+Date: 20011109
 Author: raf <raf@raf.org>

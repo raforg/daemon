@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20010215 raf <raf@raf.org>
+* 20011109 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_MSG_H
@@ -29,32 +29,46 @@
 #include <sys/syslog.h>
 
 #include <slack/hdr.h>
-#include <slack/thread.h>
+#include <slack/locker.h>
 
 #ifndef MSG_SIZE
 #define MSG_SIZE 8192
 #endif
 
 typedef struct Msg Msg;
+typedef void msg_out_t(void *data, const void *msg, size_t msglen);
+typedef void msg_release_t(void *data);
 
-_start_decls
+_begin_decls
+Msg *msg_create _args ((int type, msg_out_t *out, void *data, msg_release_t *destroy));
+Msg *msg_create_with_locker _args ((Locker *locker, int type, msg_out_t *out, void *data, msg_release_t *destroy));
+int msg_rdlock _args ((Msg *msg));
+int msg_wrlock _args ((Msg *msg));
+int msg_unlock _args ((Msg *msg));
 void msg_release _args ((Msg *msg));
 void *msg_destroy _args ((Msg **msg));
 void msg_out _args ((Msg *dst, const char *fmt, ...));
+void msg_out_unlocked _args ((Msg *dst, const char *fmt, ...));
 void vmsg_out _args ((Msg *dst, const char *fmt, va_list args));
+void vmsg_out_unlocked _args ((Msg *dst, const char *fmt, va_list args));
 Msg *msg_create_fd _args ((int fd));
-Msg *msg_create_fd_locked _args ((Locker *locker, int fd));
+Msg *msg_create_fd_with_locker _args ((Locker *locker, int fd));
 Msg *msg_create_stderr _args ((void));
-Msg *msg_create_stderr_locked _args ((Locker *locker));
+Msg *msg_create_stderr_with_locker _args ((Locker *locker));
 Msg *msg_create_stdout _args ((void));
-Msg *msg_create_stdout_locked _args ((Locker *locker));
+Msg *msg_create_stdout_with_locker _args ((Locker *locker));
 Msg *msg_create_file _args ((const char *path));
-Msg *msg_create_file_locked _args ((Locker *locker, const char *path));
-Msg *msg_create_syslog _args ((const char *ident, int option, int facility));
-Msg *msg_create_syslog_locked _args ((Locker *locker, const char *ident, int option, int facility));
+Msg *msg_create_file_with_locker _args ((Locker *locker, const char *path));
+Msg *msg_create_syslog _args ((const char *ident, int option, int facility, int priority));
+Msg *msg_create_syslog_with_locker _args ((Locker *locker, const char *ident, int option, int facility, int priority));
+Msg *msg_syslog_set_facility _args ((Msg *msg, int facility));
+Msg *msg_syslog_set_facility_unlocked _args ((Msg *msg, int facility));
+Msg *msg_syslog_set_priority _args ((Msg *msg, int priority));
+Msg *msg_syslog_set_priority_unlocked _args ((Msg *msg, int priority));
 Msg *msg_create_plex _args ((Msg *msg1, Msg *msg2));
-Msg *msg_create_plex_locked _args ((Locker *locker, Msg *msg1, Msg *msg2));
+Msg *msg_create_plex_with_locker _args ((Locker *locker, Msg *msg1, Msg *msg2));
 int msg_add_plex _args ((Msg *msg, Msg *item));
+int msg_add_plex_unlocked _args ((Msg *msg, Msg *item));
 const char *msg_set_timestamp_format _args ((const char *format));
 int msg_set_timestamp_format_locker _args ((Locker *locker));
 int syslog_lookup_facility _args ((const char *facility));

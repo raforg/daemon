@@ -18,7 +18,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
-# 20010215 raf <raf@raf.org>
+# 20011109 raf <raf@raf.org>
 
 ifneq ($(SLACK_TARGET),./$(SLACK_NAME))
 
@@ -30,14 +30,22 @@ endif
 
 $(SLACK_TARGET): $(SLACK_OFILES)
 	$(AR) cr $(SLACK_TARGET) $(SLACK_OFILES)
+	$(RANLIB) $(SLACK_TARGET)
 
 $(SLACK_SRCDIR)/%.o: $(SLACK_SRCDIR)/%.c
 	$(CC) $(SLACK_CFLAGS) -o $@ -c $<
 
-.PHONY: ready-slack
+.PHONY: ready-slack test-slack
 
 ready-slack:
-	@$(TEST) -e $(SLACK_INCLINK) || ln -s . $(SLACK_INCLINK)
+	@[ -h $(SLACK_INCLINK) ] || ln -s . $(SLACK_INCLINK)
+
+test-slack: $(SLACK_TESTS)
+	@cd $(SLACK_TESTDIR); for test in $(patsubst $(SLACK_TESTDIR)/%, %, $(SLACK_TESTS)); do echo; ./$$test; done
+
+$(SLACK_TESTDIR)/%: $(SLACK_SRCDIR)/%.c $(SLACK_TARGET)
+	@[ -d $(SLACK_TESTDIR) ] || mkdir $(SLACK_TESTDIR)
+	$(CC) -DTEST $(SLACK_TEST_CFLAGS) -o $@ $< $(SLACK_TEST_LDFLAGS)
 
 .PHONY: man-slack html-slack
 
@@ -56,6 +64,7 @@ html-slack: $(SLACK_LIB_HTMLFILES) $(SLACK_APP_HTMLFILES)
 
 $(SLACK_SRCDIR)/%.$(LIB_MANSECT).html: $(SLACK_SRCDIR)/%.c
 	pod2html --noindex < $< > $@ 2>/dev/null
+	@perl -p -i -e 's/\&amp;lt;/\&lt;/g;s/\&amp;gt;/\&gt;/g' $@
 
 $(SLACK_SRCDIR)/%.$(LIB_MANSECT).html: $(SLACK_SRCDIR)/%.pod
 	pod2html --noindex < $< > $@ 2>/dev/null
@@ -65,7 +74,7 @@ $(SLACK_SRCDIR)/%.$(APP_MANSECT).html: $(SLACK_SRCDIR)/%.pod
 
 .PHONY: install-slack install-slack-bin install-slack-lib install-slack-config install-slack-h install-slack-man install-slack-html
 
-install-slack: install-slack-bin install-slack-h install-slack-man install-slack-config # XXX mangz/html ?
+install-slack: install-slack-bin install-slack-h install-slack-man # XXX mangz
 
 install-slack-bin: install-slack-lib install-slack-config
 
@@ -83,12 +92,13 @@ $(SLACK_CONFIG): $(SLACK_CONFIG).t
 	@perl -e ' \
 		my %arg = \
 		( \
-			URL     => "$(SLACK_URL)", \
-			NAME    => "lib$(SLACK_NAME)", \
-			VERSION => "$(SLACK_VERSION)", \
-			PREFIX  => "$(FINAL_PREFIX)", \
-			CFLAGS  => "$(strip $(SLACK_CLIENT_CFLAGS))", \
-			LIBS    => "$(strip $(SLACK_CLIENT_LDFLAGS))" \
+			URL       => "$(SLACK_URL)", \
+			NAME      => "lib$(SLACK_NAME)", \
+			VERSION   => "$(SLACK_VERSION)", \
+			PREFIX    => "$(FINAL_PREFIX)", \
+			CFLAGS    => "$(strip $(SLACK_CLIENT_CFLAGS))", \
+			LIBS      => "$(strip $(SLACK_CLIENT_LDFLAGS))", \
+			UNINSTALL => join("", `$(MAKE) -n uninstall-slack | grep rm`) \
 		); \
 		undef $$/; \
 		$$_ = <>; \
@@ -112,7 +122,7 @@ install-slack-man: man-slack
 	do \
 		for func in `perl -n -e 'print $$1, "\n" if /^=item C<(?:const )?\w+[\s*]*(\w+)\(.*\)>$$/ or /^=item C< \#define (\w+)\(.*\)>$$/' "$(SLACK_SRCDIR)/$$module.c"`; \
 		do \
-			$(TEST) -e $(LIB_MANDIR)/$$func.$(LIB_MANSECT) || ln -s $$module.$(LIB_MANSECT) $(LIB_MANDIR)/$$func.$(LIB_MANSECT); \
+			[ -f $(LIB_MANDIR)/$$func.$(LIB_MANSECT) ] || ln -s $$module.$(LIB_MANSECT) $(LIB_MANDIR)/$$func.$(LIB_MANSECT); \
 		done; \
 	done
 
@@ -122,7 +132,7 @@ install-slack-html: html-slack
 
 .PHONY: uninstall-slack uninstall-slack-bin uninstall-slack-lib uninstall-slack-config uninstall-slack-h uninstall-slack-man uninstall-slack-html
 
-uninstall-slack: uninstall-slack-bin uninstall-slack-h uninstall-slack-man uninstall-slack-config
+uninstall-slack: uninstall-slack-bin uninstall-slack-h uninstall-slack-man
 
 uninstall-slack-bin: uninstall-slack-lib uninstall-slack-config
 
@@ -144,16 +154,7 @@ uninstall-slack-man:
 uninstall-slack-html:
 	@rm -f $(patsubst %, $(SLACK_HTMLDIR)/%, $(notdir $(SLACK_APP_HTMLFILES) $(SLACK_LIB_HTMLFILES)))
 
-.PHONY: test-slack
-
-test-slack: $(SLACK_TESTS)
-	@cd $(SLACK_TESTDIR); for test in $(patsubst $(SLACK_TESTDIR)/%, %, $(SLACK_TESTS)); do echo; ./$$test; done
-
-$(SLACK_TESTDIR)/%: $(SLACK_SRCDIR)/%.c $(SLACK_TARGET)
-	@$(TEST) -d $(SLACK_TESTDIR) || mkdir $(SLACK_TESTDIR)
-	$(CC) -DTEST $(SLACK_CFLAGS) -o $@ $< $(SLACK_LDFLAGS)
-
-.PHONY: dist-slack rpm-slack deb-slack pkg-slack
+.PHONY: dist-slack dist-html-slack rpm-slack deb-slack pkg-slack obsd-slack
 
 dist-slack: distclean
 	@set -e; \
@@ -162,10 +163,24 @@ dist-slack: distclean
 	src=`basename \`pwd\``; \
 	dst=$(SLACK_ID); \
 	cd ..; \
-	$(TEST) "$$src" != "$$dst" -a ! -e "$$dst" && ln -s $$src $$dst; \
+	[ "$$src" != "$$dst" -a ! -d "$$dst" ] && ln -s $$src $$dst; \
 	tar chzf $$up/$(SLACK_DIST) $$dst; \
-	$(TEST) -L "$$dst" && rm -f $$dst; \
-	tar tzf $$up/$(SLACK_DIST)
+	[ -h "$$dst" ] && rm -f $$dst; \
+	tar tzfv $$up/$(SLACK_DIST); \
+	ls -l $$up/$(SLACK_DIST)
+
+dist-html-slack: html-slack
+	@set -e; \
+	up="`pwd`/.."; \
+	cd $(SLACK_SRCDIR); \
+	src=`basename \`pwd\``; \
+	dst=$(SLACK_ID); \
+	cd ..; \
+	[ "$$src" != "$$dst" -a ! -d "$$dst" ] && ln -s $$src $$dst; \
+	tar chzf $$up/$(SLACK_HTML_DIST) $(patsubst $(SLACK_SRCDIR)/%, $$dst/%, $(SLACK_SRCDIR)/README $(SLACK_LIB_HTMLFILES) $(SLACK_APP_HTMLFILES)); \
+	[ -h "$$dst" ] && rm -f $$dst; \
+	tar tzfv $$up/$(SLACK_HTML_DIST); \
+	ls -l $$up/$(SLACK_HTML_DIST)
 
 REDHAT := /usr/src/redhat
 
@@ -304,6 +319,54 @@ $(SLACK_SRCDIR)/libslack.pkginfo:
 		} \
 	' < $(SLACK_SRCDIR)/README > $(SLACK_SRCDIR)/libslack.pkginfo
 
+obsd-slack: $(SLACK_SRCDIR)/obsd-slack-oneline $(SLACK_SRCDIR)/obsd-slack-description
+	@set -e; \
+	base="`pwd`"; \
+	up="$$base/.."; \
+	mkdir -p "$$base/obsd-$(SLACK_NAME)/build"; \
+	mkdir -p "$$base/obsd-$(SLACK_NAME)/install"; \
+	cd "$$base/obsd-$(SLACK_NAME)/build"; \
+	tar xzf "$$up/$(SLACK_DIST)"; \
+	cd ./$(SLACK_ID); \
+	conf/openbsd; \
+	make PREFIX=../../install FINAL_PREFIX="$(PREFIX)" all install-slack; \
+	cd "$$base"; \
+	echo "@name $(SLACK_ID)" > $(SLACK_SRCDIR)/obsd-slack-packinglist; \
+	echo "@cwd $(PREFIX)" >> $(SLACK_SRCDIR)/obsd-slack-packinglist; \
+	echo "@src $$base/obsd-$(SLACK_NAME)/install" >> $(SLACK_SRCDIR)/obsd-slack-packinglist; \
+	for file in $(patsubst $(PREFIX)/%, %, $(sort $(SLACK_RPM_FILES) $(SLACK_RPM_DOCFILES))); do echo $$file >> $(SLACK_SRCDIR)/obsd-slack-packinglist; done; \
+	echo "@dirrm include/slack" >> $(SLACK_SRCDIR)/obsd-slack-packinglist; \
+	pkg_create -f $(SLACK_SRCDIR)/obsd-slack-packinglist -c $(SLACK_SRCDIR)/obsd-slack-oneline -d $(SLACK_SRCDIR)/obsd-slack-description -v $(SLACK_NAME); \
+	arch="`uname -m`"; \
+	mv $(SLACK_NAME).tgz "$$up/$(SLACK_ID)-obsd-$$arch.tar.gz"; \
+	rm -rf "$$base/obsd-$(SLACK_NAME)" $(SLACK_SRCDIR)/obsd-slack-packinglist $(SLACK_SRCDIR)/obsd-slack-oneline $(SLACK_SRCDIR)/obsd-slack-description
+
+$(SLACK_SRCDIR)/obsd-slack-oneline:
+	@perl -ne ' \
+		next if /^~+$$/; \
+		chop($$section = $$_), next if /^[A-Z]+$$/; \
+		chop($$description = $$_) if $$section eq "README" && /^\w/; \
+		if ($$section ne "README") \
+		{ \
+			my ($$name, $$desc) = $$description =~ /^(\w+) - (.*)$$/; \
+			$$desc =~ s/general //; \
+			print "$$desc\n"; \
+			exit; \
+		} \
+	' < $(SLACK_SRCDIR)/README > $(SLACK_SRCDIR)/obsd-slack-oneline
+
+$(SLACK_SRCDIR)/obsd-slack-description:
+	@perl -ne ' \
+		next if /^~+$$/; \
+		chop($$section = $$_), next if /^[A-Z]+$$/; \
+		$$description .= $$_ if $$section eq "DESCRIPTION"; \
+		if ($$section ne "README" && $$section ne "DESCRIPTION") \
+		{ \
+			print $$description; \
+			exit; \
+		} \
+	' < $(SLACK_SRCDIR)/README > $(SLACK_SRCDIR)/obsd-slack-description
+
 # Present make targets separately in help if we are not alone
 
 ifneq ($(SLACK_SRCDIR), .)
@@ -332,9 +395,11 @@ help::
 	echo " uninstall-slack-html  -- uninstalls $(SLACK_NAME) html manpages from $(SLACK_HTMLDIR)"; \
 	echo " test-slack            -- makes and runs library unit tests"; \
 	echo " dist-slack            -- makes a source tarball for libslack"; \
+	echo " dist-html-slack       -- makes a tarball of libslack's html manpages"; \
 	echo " rpm-slack             -- makes binary and source rpm packages for libslack"; \
 	echo " deb-slack             -- makes a binary deb package for libslack"; \
 	echo " pkg-slack             -- makes a binary solaris pkg for libslack"; \
+	echo " obsd-slack            -- makes a binary openbsd pkg for libslack"; \
 	echo
 endif
 
@@ -343,6 +408,7 @@ help-macros::
 	echo "SLACK_VERSION = $(SLACK_VERSION)"; \
 	echo "SLACK_ID = $(SLACK_ID)"; \
 	echo "SLACK_DIST = $(SLACK_DIST)"; \
+	echo "SLACK_HTML_DIST = $(SLACK_HTML_DIST)"; \
 	echo "SLACK_TARGET = $(SLACK_TARGET)"; \
 	echo "SLACK_INSTALL = $(SLACK_INSTALL)"; \
 	echo "SLACK_CONFIG = $(SLACK_CONFIG)"; \
@@ -351,7 +417,6 @@ help-macros::
 	echo "SLACK_SRCDIR = $(SLACK_SRCDIR)"; \
 	echo "SLACK_INCDIRS = $(SLACK_INCDIRS)"; \
 	echo "SLACK_LIBDIRS = $(SLACK_LIBDIRS)"; \
-	echo "SLACK_LIBS = $(SLACK_LIBS)"; \
 	echo "SLACK_TESTDIR = $(SLACK_TESTDIR)"; \
 	echo "SLACK_CFILES = $(SLACK_CFILES)"; \
 	echo "SLACK_OFILES = $(SLACK_OFILES)"; \
@@ -369,7 +434,11 @@ help-macros::
 	echo "SLACK_CPPFLAGS = $(SLACK_CPPFLAGS)"; \
 	echo "SLACK_CCFLAGS = $(SLACK_CCFLAGS)"; \
 	echo "SLACK_CFLAGS = $(SLACK_CFLAGS)"; \
-	echo "SLACK_LDFLAGS = $(SLACK_LDFLAGS)"; \
+	echo "SLACK_TEST_CPPFLAGS = $(SLACK_TEST_CPPFLAGS)"; \
+	echo "SLACK_TEST_CCFLAGS = $(SLACK_TEST_CCFLAGS)"; \
+	echo "SLACK_TEST_CFLAGS = $(SLACK_TEST_CFLAGS)"; \
+	echo "SLACK_TEST_LIBS = $(SLACK_TEST_LIBS)"; \
+	echo "SLACK_TEST_LDFLAGS = $(SLACK_TEST_LDFLAGS)"; \
 	echo "SLACK_CLIENT_CFLAGS = $(SLACK_CLIENT_CFLAGS)"; \
 	echo "SLACK_CLIENT_LIBS = $(SLACK_CLIENT_LIBS)"; \
 	echo "SLACK_CLIENT_LDFLAGS = $(SLACK_CLIENT_LDFLAGS)"; \
