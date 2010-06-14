@@ -44,18 +44,21 @@ Libslack contains the following modules:
 
 INSTALL
 ~~~~~~~
-Currently, this is only known to work on the following systems:
+This version is only known to work on the following systems:
 
-    Linux 2.2/2.4 (intel, Redhat 6.x/7.x, Debian 2.2r6/3.0r0)
-    Solaris 2.6/8 (sparc, intel)
-    OpenBSD 2.9/3.1 (intel)
-    FreeBSD 4.5 (intel)
-    Mac OS X (Darwin) 10.3.2 (G4)
+    Linux 2.6 (i386, x86_64, debian-5.0.4, ubuntu-10.04, fedora-13)
+    Solaris 10 10/09 (i386, amd64)
+    OpenSolaris 2009/06 (i386, amd64)
+    OpenBSD 4.7 (i386, amd64)
+    FreeBSD 8.0 (i386, amd64)
+    NetBSD 5.0.2 (i386, amd64)
+    MacOSX 10.{4,5,6} (i386, x86_64, ppc)
+    kFreeBSD 20090729 (i386)
 
 For these systems, just run the "config" script in the source directory. It
 will run the appropriate script in the "conf" directory for the current host.
 
-Note: There isn't a real configure script yet so you will no doubt encounter
+Note: There isn't a real configure script so you will no doubt encounter
 problems on other systems. An ISO C and POSIX/XPG4 environment will help
 greatly. If your system doesn't have snprintf(3), GNU getopt_long(3),
 vsscanf(3), strcasecmp(3), strncasecmp(3), strlcpy(3) or strlcat(3),
@@ -86,14 +89,14 @@ First, uninstall any previous version:
 
 or:
 
-    cd /usr/local/src/libslack-0.5.1
+    cd /usr/local/src/libslack-0.5.2
     make uninstall
 
 To build and test:
 
-    tar xzf libslack-0.5.2.tar.gz
-    cd libslack-0.5.2
-    ./config          # iff linux, solaris, openbsd, freebsd or macosx
+    tar xzf libslack-0.6.tar.gz
+    cd libslack-0.6
+    ./config          # iff linux, solaris, openbsd, freebsd, netbsd or macosx
     make              # must be gnu make
     make test
 
@@ -122,42 +125,53 @@ well.
 
 BINARY PACKAGES
 ~~~~~~~~~~~~~~~
-To install from the RPM binary package (into /usr by default):
+Some binary packages are available on libslack's website:
 
-    rpm -i libslack-0.5.2-1.i386.rpm
+To install from the Fedora RPM binary package (into /usr by default):
 
-To install from the RPM binary package into somewhere other than /usr:
+    rpm -i libslack-0.6-1.x86_64.rpm # or
+    rpm -i libslack-0.6-1.i686.rpm
 
-    rpm --prefix=/usr/local -i libslack-0.5.2-1.i386.rpm
+To install from the OpenBSD binary package (into /usr/local by default):
 
-Install from the OpenBSD binary package (into /usr/local):
+	mv libslack-0.6-openbsd-amd64.tgz libslack-0.6.tgz # or
+	mv libslack-0.6-openbsd-i386.tgz  libslack-0.6.tgz
+    # then
+    pkg_add libslack-0.6.tgz
 
-    pkg_add libslack-0.5.2-obsd-i386.tar.gz
+To install from the FreeBSD binary package (into /usr/local by default):
 
-Install from the FreeBSD binary package (into /usr/local):
+    pkg_add libslack-0.6-freebsd-amd64.tbz # or
+    pkg_add libslack-0.6-freebsd-i386.tbz
 
-    pkg_add libslack-0.5.2-fbsd-i386.tar.gz
+To install from the NetBSD binary package (into /usr/local by default):
 
-Install from the Mac OS X binary package (into /usr/local):
+    pkg_add libslack-0.6-netbsd-amd64.tgz # or
+    pkg_add libslack-0.6-netbsd-i386.tgz
+
+To install from the Mac OS X binary package (into /usr/local by default):
 
     cd /usr/local
-    tar xzf /usr/local/src/daemon-0.6.2-osx-powerpc.tar.gz
+    tar xzf /usr/local/src/libslack-0.6-macosx-universal.tar.gz # or
+    tar xzf /usr/local/src/libslack-0.6-macosx-x86_64.tar.gz # or
+    tar xzf /usr/local/src/libslack-0.6-macosx-i386.tar.gz # or
+    tar xzf /usr/local/src/libslack-0.6-macosx-powerpc.tar.gz
 
-To install from the (relocatable) Solaris8 binary package (into /opt/libslack):
+To install from the Solaris10 binary package (into /usr/local by default):
 
-    gunzip libslack-0.5.2.sun4u.pkg.gz
-    pkgadd -d libslack-0.5.2.sun4u.pkg
+    gunzip libslack-0.6-solaris-amd64.pkg.gz
+    pkgadd -d libslack-0.6-solaris-amd64.pkg
 
-or:
+or
 
-    gunzip libslack-0.5.2.i86pc.pkg.gz
-    pkgadd -d libslack-0.5.2.i86pc.pkg
+    gunzip libslack-0.6-solaris-i386.pkg.gz
+    pkgadd -d libslack-0.6-solaris-i386.pkg
 
 REQUIREMENTS
 ~~~~~~~~~~~~
 Requires GNU make to compile.
 Requires perl to run the scripts in the conf directory.
-Repuires perl to install per-function manpage links.
+Requires perl to install per-function manpage links.
 Requires an ISO C compiler like gcc to compile the source.
 Requires pod2man (comes with perl) to make the manpages.
 Requires pod2html (comes with perl) to make the html manpages.
@@ -166,6 +180,8 @@ Requires libpthread. See INSTALL.
 
 PLATFORM NOTES
 ~~~~~~~~~~~~~~
+These platform notes are quite old and probably mostly irrelevant.
+
 Redhat9
 ~~~~~~~
 Redhat 9 has some very disturbing bugs that affect libslack client
@@ -199,15 +215,15 @@ does not have this bug.
 Make sure you have a recent glibc (at least 2.1.3) and libpthread (at least
 0.8) (See INSTALL).
 
-Linux 2.2 and 2.4 have a bug in poll(2). It always times out 10ms later than
-specified. Libslack corrects for this as best as it can (if > 10ms -= 10ms)
-but it's not good enough when you need timers with a granularity of 10ms. In
-this case, you have to use agent_create_with_select() instead of
-agent_create() under Linux because select() doesn't have this bug. However,
-scalable I/O is impossible with select(). So, if you need timers with a
-granularity of 10ms *and* scalable I/O, you need an agent that uses select()
-in one thread for the timers and separate agents that use poll() in other
-threads for the I/O.
+Linux 2.2 and 2.4 have a bug-like feature in poll(2). It always times out
+10ms later than specified. Libslack corrects for this as best as it can (if
+> 10ms -= 10ms) but it's not good enough when you need timers with a
+granularity of 10ms. In this case, you have to use
+agent_create_with_select() instead of agent_create() under Linux because
+select() doesn't have this bug. However, scalable I/O is impossible with
+select(). So, if you need timers with a granularity of 10ms *and* scalable
+I/O, you need an agent that uses select() in one thread for the timers and
+separate agents that use poll() in other threads for the I/O.
 
 Solaris
 ~~~~~~~
@@ -263,7 +279,7 @@ And don't forget to use `libslack-config --cflags` when compiling it and
 COPYING
 ~~~~~~~
 libslack - A UNIX/C library of general utilities for programmers with Slack
-Copyright (C) 1999-2004 raf <raf@raf.org>
+Copyright (C) 1999-2010 raf <raf@raf.org>
 
     This library is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -425,10 +441,6 @@ MT-Disciplined
 raf
 http://raf.org/papers/mt-disciplined.html, 2001
 
-Scalable Makefiles [NOT WRITTEN]
-raf
-http://raf.org/papers/scalable-makefiles.html, 2001
-
 I/O Event Handling Under Linux
 Richard Gooch
 http://www.atnf.csiro.au/~rgooch/linux/docs/io-events.html, 1999
@@ -468,7 +480,7 @@ HISTORY
     - Cached daemon_started_by_init() and daemon_started_by_inetd() results
     - Added some modules to libprog: conf, list, hsort, map, prop
     - Added timestamps to msg_out_file()
-    - Included source to GNU getopt_long_only() (if neccessary)
+    - Included source to GNU getopt_long_only() (if necessary)
     - Added hdr.h to allow non-ANSI compilers to parse libprog's headers
     - Moved libprog to a subdirectory using a "Whole Project" Makefile
     - Converted "Whole Project" Makefile into "Scalable" Makefiles
@@ -519,7 +531,7 @@ HISTORY
     - Added strlcpy(), strlcat(), strcasecmp() and strncasecmp() to str module
     - Renamed conf/solaris to solaris-gcc and added solaris-cc for sun workshop
     - Added support for root and user pidfiles in separate directories
-    - Added make rpm rpm-daemon rpm-slack (with Edward Avis ed@membled.com)
+    - Added make rpm rpm-daemon rpm-slack (with Edward Avis ed at membled.com)
     - Added installation of manpages for each function (link to module manpage)
     - Added libslack(3) overview manpage
     - Added list_break(), map_break()
@@ -630,7 +642,7 @@ HISTORY
 0.5.1 (20020916)
     - Added HEADER FILES section to libslack(3) manpage
     - Added #include <slack/std.h> to example sections of module manpages
-    - Added conf/freebsd (mmoraes@teleias.com)
+    - Added conf/freebsd (mmoraes at teleias.com)
     - Added tools/prefix utility (add prefix to all libslack identifiers)
     - Added manpage for tools/analyse-debug-locker utility
     - Separated stdout and stderr in coproc_open() and coproc_close()
@@ -638,7 +650,7 @@ HISTORY
     - Exposed daemon_pidfile()
     - Added daemon_is_running()
     - Added daemon_stop()
-    - Renamed sighandler_t to signal_handler_t (glibc clash - gdr@gno.org)
+    - Renamed sighandler_t to signal_handler_t (glibc clash - gdr at gno.org)
     - Ported to Solaris 8
     - Split Solaris configuration scripts into conf/solaris[68]-[g]cc
     - Added support for installing gzipped manpages
@@ -653,12 +665,12 @@ HISTORY
     - Fixed API bug: <slack/lib.h> didn't include <slack/coproc.h>
     - Fixed bug: -lm wasn't in `libslack-config --libs` on Solaris
     - Changed daemon_path_is_safe() to give an explanation when unsafe
-    - Fixed bug: reset agent state to IDLE when interrupted (bte@kamash.com)
-    - Trim unquoted leading spaces from property values (with bte@kamash.com)
+    - Fixed bug: reset agent state to IDLE when interrupted (bte at kamash.com)
+    - Trim unquoted leading spaces from property values (with bte at kamash.com)
     - Also trim only unquoted trailing spaces from property names
     - Added tools/migrate-properties utility (preserves old propfile behaviour)
-    - Fixed bug: ownership partially lost in map_resize (with bte@kamash.com)
-    - Fixed bug: mem_resize was broken since libslack-0.4 (bte@kamash.com)
+    - Fixed bug: ownership partially lost in map_resize (with bte at kamash.com)
+    - Fixed bug: mem_resize was broken since libslack-0.4 (bte at kamash.com)
     - Fixed DOC bug: stated the importance of including <slack/lib.h> first
     - Added sections to libslack(3) features list (coproc+pty, low level api)
     - Fixed bug: if select() failed (unlikely), coproc wasn't closed properly
@@ -671,24 +683,38 @@ HISTORY
     - Added intel solaris8 binary package
     - Ported to Mac OS X (Darwin) 10.3.2
     - Added make osx osx-daemon osx-slack (macosx binary packages)
-    - Dropped support for K&R clients (suggested by skaller@ozemail.com.au)
-    - Added hsort_closure(3) (suggested by skaller@maxtal.com.au)
+    - Dropped support for K&R clients (suggested by skaller at ozemail.com.au)
+    - Added hsort_closure(3) (suggested by skaller at maxtal.com.au)
     - Added make slack.swig (generate a SWIG input file for libslack)
+
+0.6 (20100612)
+    - Stopped accidentally installing config.h (spotted by rrt at sc3d.org)
+    - Fixed bug: need double-fork on Linux (spotted by Joey Hess joeyh at debian.org)
+    - Fixed bug checking argument validity in agent_recv()
+    - Updated makefiles to work with recent versions of GNU make
+    - Changed opt module to be ISO C compliant (backwards-incompatible!)
+    - Updated to avoid new warnings in recent versions of gcc
+    - Fixed pidfile race condition (with Hilko Bengen bengen at hilluzination.de)
+    - 64-bit-related fixes for pack() and snprintf()
+    - Updated to use va_copy() with vsnprintf() in str module
+    - Made daemon_is_running() work when readonly (spotted by Thomas Koch thomas at koch.ro)
+    - Ported to GNU/kFreeBSD (with Cyril Brulebois cyril.brulebois at enst-bretagne.fr)
+    - Ported to NetBSD
+    - Added make nbsd nbsd-daemon nbsd-slack (netbsd binary packages)
+    - Ported to Solaris10 and OpenSolaris
+    - Tested on ubuntu-10.04, debian-5.0.4, fedora-13 (x86_64, i386)
+    - Tested on solaris-10-200910, opensolaris-200906 (amd64, i386)
+    - Tested on openbsd-4.7, freebsd-8.0, netbsd-5.0.2 (amd64, i386)
+    - Tested on macosx-10.{4,5,6} (x86_64, i386, ppc)
+    - Tested on kfreebsd-20090729 (i386)
+    - Updated make rpm sol obsd fbsd osx to continue working
 
 TODO
 ~~~~
-    - Port to NetBSD, Cygwin[?]
     - Decouple memory type and allocation strategy from List/Map/String code
-    - Check out/incorporate Kiem-Phong Vo's error handling architecture [?]
-    - Use autoconf and libtool (then add devel/static/dynamic packages)
-    - Add debian source package creation for libslack (after libtool)
-    - Make sure net module interoperates with openssl
-    - Add scan/print money/numbers/dates/times according to a locale [?]
-    - Add bitstring module [?]
-    - Write Scalable Makefiles paper
-    - Write fast/slow lane paper (requires access to a gigabit network)
+    - Use autoconf and libtool
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 URL: http://libslack.org/
-Date: 20040102
+Date: 20100612
 Author: raf <raf@raf.org>

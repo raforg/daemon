@@ -51,8 +51,8 @@ output of this program to locate deadlocks in client code.
 
 =head1 SEE ALSO
 
-L<libslack(3)|libslack(3)>,
-L<locker(3)|locker(3)>
+I<libslack(3)>,
+I<locker(3)>
 
 =head1 AUTHOR
 

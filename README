@@ -74,8 +74,8 @@ o Open stdin, stdout and stderr to /dev/null in case something
 o If the --name option is supplied, create and lock a file containing the
   process id of the daemon process. The presence of this locked file
   prevents two instances of a daemon with the same name from running at the
-  same time.  The default location of the pidfile is /var/run on Linux and
-  /etc on Solaris for root or /tmp for ordinary users.
+  same time.  The default location of the pidfile is /var/run for root or
+  /tmp for ordinary users.
 
 If the --umask option was supplied, set the umask to its argument.
 Otherwise, set the umask to 022 to prevent accidentally creating group or
@@ -103,18 +103,21 @@ user and group for safety before doing anything else.
 
 INSTALL
 ~~~~~~~
-Currently, this is only known to work on the following systems:
+This version is only known to work on the following systems:
 
-    Linux 2.2/2.4 (intel, Redhat 6.x/7.x/9, Debian 2.2r6/3.0r0)
-    Solaris 2.6/8 (sparc, intel)
-    OpenBSD 2.9/3.1 (intel)
-    FreeBSD 4.5 (intel)
-    Mac OS X (Darwin) 10.3.2 (G4)
+    Linux 2.6 (i386, x86_64, debian-5.0.4, ubuntu-10.04, fedora-13)
+    Solaris 10 10/09 (i386, amd64)
+    OpenSolaris 2009/06 (i386, amd64)
+    OpenBSD 4.7 (i386, amd64)
+    FreeBSD 8.0 (i386, amd64)
+    NetBSD 5.0.2 (i386, amd64)
+    MacOSX 10.{4,5,6} (i386, x86_64, ppc)
+    kFreeBSD 20090729 (i386)
 
 For these systems, just run the "config" script in the source directory. It
 will run the appropriate script in the "conf" directory for the current host.
 
-Note: There isn't a real configure script yet so you will no doubt encounter
+Note: There isn't a real configure script so you will no doubt encounter
 problems on other systems. An ISO C and POSIX/XPG4 environment will help
 greatly. If your system doesn't have snprintf(3), GNU getopt_long(3),
 vsscanf(3), strcasecmp(3), strncasecmp(3), strlcpy(3) or strlcat(3),
@@ -141,14 +144,14 @@ they have some very nasty bugs.
 
 First, uninstall any previous version:
 
-    cd /usr/local/src/daemon-0.6.2
+    cd /usr/local/src/daemon-0.6.3
     make uninstall
 
 To build and test:
 
-    tar xzf daemon-0.6.3.tar.gz
-    cd daemon-0.6.3
-    ./config          # iff linux, solaris, openbsd, freebsd or macosx
+    tar xzf daemon-0.6.4.tar.gz
+    cd daemon-0.6.4
+    ./config          # iff linux, solaris, openbsd, freebsd, netbsd or macosx
     make              # must be gnu make
     make test         # only tests libslack. to test daemon, see test/README
 
@@ -156,21 +159,21 @@ To install daemon and its manpage (in /usr/local by default):
 
     make install
 
-To install an empty /etc/daemon.conf file:
-
-    make install-daemon-conf
-
-To install libslack and its manpages (into /usr/local by default):
-
-    make install-slack
-
 To install into somewhere other than /usr/local:
 
     make PREFIX=/opt/daemon install
 
+To install an empty /etc/daemon.conf file:
+
+    make install-daemon-conf
+
 To uninstall daemon:
 
     make uninstall
+
+To install libslack and its manpages (into /usr/local by default):
+
+    make install-slack
 
 To uninstall libslack:
 
@@ -189,46 +192,57 @@ snprintf(3) and vsscanf(3) are created as well.
 
 BINARY PACKAGES
 ~~~~~~~~~~~~~~~
-To install from the RPM binary package (into /usr by default):
+Some binary packages are available on daemon's website:
 
-    rpm -i daemon-0.6.3-1.i386.rpm
+To install from the Fedora RPM binary package (into /usr by default):
 
-To install from the RPM binary package into somewhere other than /usr:
+    rpm -i daemon-0.6.4-1.x86_64.rpm # or
+    rpm -i daemon-0.6.4-1.i686.rpm
 
-    rpm --prefix=/usr/local -i daemon-0.6.3-1.i386.rpm
+To install from the OpenBSD binary package (into /usr/local by default):
 
-To install from the (relocatable) Debian binary package (into /usr):
+    mv daemon-0.6.4-openbsd-amd64.tgz daemon-0.6.4.tgz # or
+    mv daemon-0.6.4-openbsd-i386.tgz  daemon-0.6.4.tgz
+    # then
+    pkg_add daemon-0.6.4.tar.gz
 
-    dpkg -i daemon_0.6.3-0_i386.deb # you should really use apt-get
+To install from the FreeBSD binary package (into /usr/local by default):
 
-Install from the OpenBSD binary package (into /usr/local):
+    pkg_add daemon-0.6.4-freebsd-amd64.tbz # or
+    pkg_add daemon-0.6.4-freebsd-i386.tbz
 
-    pkg_add daemon-0.6.3-obsd-i386.tar.gz
+To install from the NetBSD binary package (into /usr/local by default):
 
-Install from the FreeBSD binary package (into /usr/local):
+    pkg_add daemon-0.6.4-netbsd-amd64.tgz # or
+    pkg_add daemon-0.6.4-netbsd-i386.tgz
 
-    pkg_add daemon-0.6.3-fbsd-i386.tar.gz
-
-Install from the (relocatable) Mac OS X binary package (into /usr/local):
+To install from the Mac OS X binary package (into /usr/local by default):
 
     cd /usr/local
-    tar xzf /usr/local/src/daemon-0.6.3-osx-powerpc.tar.gz
+    tar xzf /usr/local/src/daemon-0.6.4-macosx-universal.tar.gz # or
+    tar xzf /usr/local/src/daemon-0.6.4-macosx-x86_64.tar.gz # or
+    tar xzf /usr/local/src/daemon-0.6.4-macosx-i386.tar.gz # or
+    tar xzf /usr/local/src/daemon-0.6.4-macosx-powerpc.tar.gz
 
-To install from the (relocatable) Solaris8 binary package (into /opt/daemon):
+To install from the Solaris10 binary package (into /usr/local by default):
 
-    gunzip daemon-0.6.3.sun4u.pkg.gz
-    pkgadd -d daemon-0.6.3.sun4u.pkg
+    gunzip daemon-0.6.4-solaris-amd64.pkg.gz
+    pkgadd -d daemon-0.6.4-solaris-amd64.pkg
 
-or:
+or
 
-    gunzip daemon-0.6.3.i86pc.pkg.gz
-    pkgadd -d daemon-0.6.3.i86pc.pkg
+    gunzip daemon-0.6.4-solaris-i386.pkg.gz
+    pkgadd -d daemon-0.6.4-solaris-i386.pkg
+
+On debian/ubuntu systems you should be able to:
+
+    apt-get install daemon
 
 REQUIREMENTS
 ~~~~~~~~~~~~
 Requires GNU make to compile.
 Requires perl to run the scripts in the conf directory.
-Repuires perl to install per-function manpage links.
+Requires perl to install per-function manpage links.
 Requires an ISO C compiler like gcc to compile the source.
 Requires pod2man (comes with perl) to make the manpages.
 Requires pod2html (comes with perl) to make the html manpages.
@@ -237,6 +251,8 @@ Requires libpthread. See INSTALL.
 
 PLATFORM NOTES
 ~~~~~~~~~~~~~~
+These platform notes are quite old and probably mostly irrelevant.
+
 Linux
 ~~~~~
 Linux 2.2 always returns 0.0.0.0 on getsockopt(IP_MULTICAST_IF) so
@@ -246,15 +262,15 @@ does not have this bug.
 Make sure you have a recent glibc (at least 2.1.3) and libpthread (at least
 0.8) (See INSTALL).
 
-Linux 2.2 and 2.4 have a bug in poll(2). It always times out 10ms later than
-specified. Libslack corrects for this as best as it can (if > 10ms -= 10ms)
-but it's not good enough when you need timers with a granularity of 10ms. In
-this case, you have to use agent_create_with_select() instead of
-agent_create() under Linux because select() doesn't have this bug. However,
-scalable I/O is impossible with select(). So, if you need timers with a
-granularity of 10ms *and* scalable I/O, you need an agent that uses select()
-in one thread for the timers and separate agents that use poll() in other
-threads for the I/O.
+Linux 2.2 and 2.4 have a bug-like feature in poll(2). It always times out
+10ms later than specified. Libslack corrects for this as best as it can (if
+> 10ms -= 10ms) but it's not good enough when you need timers with a
+granularity of 10ms. In this case, you have to use
+agent_create_with_select() instead of agent_create() under Linux because
+select() doesn't have this bug. However, scalable I/O is impossible with
+select(). So, if you need timers with a granularity of 10ms *and* scalable
+I/O, you need an agent that uses select() in one thread for the timers and
+separate agents that use poll() in other threads for the I/O.
 
 Solaris
 ~~~~~~~
@@ -289,7 +305,7 @@ Probably has the same UNIX domain datagram problem as Solaris.
 COPYING
 ~~~~~~~
 daemon - turns other processes into daemons
-Copyright (C) 1999-2004 raf <raf@raf.org>
+Copyright (C) 1999-2010 raf <raf@raf.org>
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -307,7 +323,7 @@ Copyright (C) 1999-2004 raf <raf@raf.org>
     or visit http://www.gnu.org/copyleft/gpl.html
 
 libslack - A UNIX/C library of general utilities for programmers with Slack
-Copyright (C) 1999-2004 raf <raf@raf.org>
+Copyright (C) 1999-2010 raf <raf@raf.org>
 
     This library is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -469,10 +485,6 @@ MT-Disciplined
 raf
 http://raf.org/papers/mt-disciplined.html, 2001
 
-Scalable Makefiles [NOT WRITTEN]
-raf
-http://raf.org/papers/scalable-makefiles.html, 2001
-
 I/O Event Handling Under Linux
 Richard Gooch
 http://www.atnf.csiro.au/~rgooch/linux/docs/io-events.html, 1999
@@ -513,7 +525,7 @@ HISTORY
     - Fixed bug when formatting --help message
     - Added some modules to libprog: conf, list, hsort, map, prop
     - Added timestamps to msg_out_file()
-    - Included source to GNU getopt_long_only() (if neccessary)
+    - Included source to GNU getopt_long_only() (if necessary)
     - Added hdr.h to allow non-ANSI compilers to parse libprog's headers
     - Moved libprog to a subdirectory using a "Whole Project" Makefile
     - Converted "Whole Project" Makefile into "Scalable" Makefiles
@@ -582,7 +594,7 @@ HISTORY
     - Fixed bug: -n and -u options together failed to unlink pidfiles
     - Fixed security bug: wasn't clearing supplementary groups with -u option
     - Added support for root and user pidfiles in separate directories
-    - Added make rpm rpm-daemon rpm-slack (with Edward Avis ed@membled.com)
+    - Added make rpm rpm-daemon rpm-slack (with Edward Avis ed at membled.com)
     - Added installation of manpages for each function (link to module manpage)
     - Added libslack(3) overview manpage
     - Added list_break(), map_break()
@@ -699,21 +711,21 @@ HISTORY
 0.6 (20020916)
     - Added HEADER FILES section to libslack(3) manpage
     - Added #include <slack/std.h> to example sections of module manpages
-    - Added conf/freebsd (mmoraes@teleias.com)
+    - Added conf/freebsd (mmoraes at teleias.com)
     - Added tools/prefix utility (add prefix to all libslack identifiers)
     - Added manpage for tools/analyse-debug-locker utility
     - Separated stdout and stderr in coproc_open() and coproc_close()
     - Changed coproc open functions to take action() and data arguments
     - Started using libslack's coproc functions to run client
-    - Added chdir to chroot directory (mmoraes@teleias.com)
-    - Added --env option (mmoraes@teleias.com)
+    - Added chdir to chroot directory (mmoraes at teleias.com)
+    - Added --env option (mmoraes at teleias.com)
     - Changed restart behaviour to be like init(8)
     - Added --acceptable option
-    - Added --attempts option (mmoraes@teleias.com)
+    - Added --attempts option (mmoraes at teleias.com)
     - Added --delay option
     - Added --limit option
     - Removed --force option (no longer meaningful)
-    - Added --foreground option (suggested by mh+daemon@zugschlus.de)
+    - Added --foreground option (suggested by mh+daemon at zugschlus.de)
     - Added --pty option
     - Exposed daemon_pidfile()
     - Added daemon_is_running()
@@ -730,7 +742,7 @@ HISTORY
     - Renamed --errlog to --stderr (-e to -E)
     - Renamed --log to --errlog
     - Added --dbglog option
-    - Renamed sighandler_t to signal_handler_t (glibc clash - gdr@gno.org)
+    - Renamed sighandler_t to signal_handler_t (glibc clash - gdr at gno.org)
     - Ported to Solaris 8
     - Split Solaris configuration scripts into conf/solaris[68]-[g]cc
     - Added support for installing gzipped manpages
@@ -742,11 +754,11 @@ HISTORY
     - Added Debian source package generation
     - Stopped generating debian package (until it's a shared library)
     - Added make fbsd fbsd-daemon fbsd-slack (freebsd binary packages)
-    - Added --command option (suggested by mh+daemon@zugschlus.de)
+    - Added --command option (suggested by mh+daemon at zugschlus.de)
     - Added support for absolute path in daemon_pidfile()
-    - Added --pidfiles, --pidfile options (suggested by mh+daemon@zugschlus.de)
+    - Added --pidfiles, --pidfile options (suggested by mh+daemon at zugschlus.de)
     - Added daemon_getpid()
-    - Added --restart option (suggested by mh+daemon@zugschlus.de)
+    - Added --restart option (suggested by mh+daemon at zugschlus.de)
     - Added support for ~/.daemonrc
     - Added --noconfig option
     - Added check for dubious characters in daemon names
@@ -754,24 +766,24 @@ HISTORY
     - Added lame ./config script that just calls existing lame conf/* scripts
 
 0.6.1 (20030901)
-    - Fixed bug: --noconfig option broken (spotted by paolo@telmap.com)
-    - Fixed bug: --command option broken (spotted by paolo@telmap.com)
-    - Fixed bug: exit too quickly on sigterm (spotted by stodden@cs.tum.edu)
+    - Fixed bug: --noconfig option broken (spotted by paolo at telmap.com)
+    - Fixed bug: --command option broken (spotted by paolo at telmap.com)
+    - Fixed bug: exit too quickly on sigterm (spotted by stodden at cs.tum.edu)
     - Set prog name to --name argument, if any (for syslog message prefix)
 
 0.6.2 (20040102)
     - Fixed bug: --stop during spawn delay wasn't acted upon
     - Fixed API bug: <slack/lib.h> didn't include <slack/coproc.h>
     - Fixed bug: -lm wasn't in `libslack-config --libs` on Solaris
-    - Changed --restart: reset spawn burst counters (for stodden@peppermind.de)
+    - Changed --restart: reset spawn burst counters (for stodden at peppermind.de)
     - Changed daemon_path_is_safe() to give an explanation when unsafe
     - Added explanations when rejecting unsafe config files and executables
-    - Fixed bug: reset agent state to IDLE when interrupted (bte@kamash.com)
-    - Trim unquoted leading spaces from property values (with bte@kamash.com)
+    - Fixed bug: reset agent state to IDLE when interrupted (bte at kamash.com)
+    - Trim unquoted leading spaces from property values (with bte at kamash.com)
     - Also trim only unquoted trailing spaces from property names
     - Added tools/migrate-properties utility (preserves old propfile behaviour)
-    - Fixed bug: ownership partially lost in map_resize (with bte@kamash.com)
-    - Fixed bug: mem_resize was broken since libslack-0.4 (bte@kamash.com)
+    - Fixed bug: ownership partially lost in map_resize (with bte at kamash.com)
+    - Fixed bug: mem_resize was broken since libslack-0.4 (bte at kamash.com)
     - Fixed DOC bug: stated the importance of including <slack/lib.h> first
     - Cleaned up error messages (now that prog name is set to --name argument)
     - Added sections to libslack(3) features list (coproc+pty, low level api)
@@ -785,28 +797,40 @@ HISTORY
     - Added intel solaris8 binary package
     - Ported to Mac OS X (Darwin) 10.3.2
     - Added make osx osx-daemon osx-slack (macosx binary packages)
-    - Added pid to --running output (requested by rubinson@email.arizona.edu)
-    - Dropped support for K&R clients (suggested by skaller@ozemail.com.au)
-    - Added hsort_closure(3) (suggested by skaller@maxtal.com.au)
+    - Added pid to --running output (requested by rubinson at email.arizona.edu)
+    - Dropped support for K&R clients (suggested by skaller at ozemail.com.au)
+    - Added hsort_closure(3) (suggested by skaller at maxtal.com.au)
     - Added make slack.swig (generate a SWIG input file for libslack)
 
 0.6.3 (20040806)
-    - Fixed bug: --acceptable was broken (chris@edesix.com)
+    - Fixed bug: --acceptable was broken (chris at edesix.com)
 
-TODO
-~~~~
-    - Port to NetBSD, Cygwin[?]
-    - Decouple memory type and allocation strategy from List/Map/String code
-    - Check out/incorporate Kiem-Phong Vo's error handling architecture [?]
-    - Use autoconf and libtool (then add devel/static/dynamic packages)
-    - Add debian source package creation for libslack (after libtool)
-    - Make sure net module interoperates with openssl
-    - Add scan/print money/numbers/dates/times according to a locale [?]
-    - Add bitstring module [?]
-    - Write Scalable Makefiles paper
-    - Write fast/slow lane paper (requires access to a gigabit network)
+0.6.4 (20100612)
+    - Added more debug statements
+    - Fixed typographical errors in documentation
+    - Fixed bug: need double-fork on Linux (spotted by Joey Hess joeyh at debian.org)
+    - Updated makefiles to work with recent versions of GNU make
+    - Updated to avoid new warnings in recent versions of gcc
+    - Fixed pidfile race condition (with Hilko Bengen bengen at hilluzination.de)
+    - Fixed bug in message for --verbose --running when --pidfile[s] also used
+    - Don't strip if $DEB_BUILD_OPTIONS contains nostrip (for Julien Danjou acid at debian.org)
+    - Made --running work when readonly (spotted by Thomas Koch thomas at koch.ro)
+    - Stopped modifying --user argument so ps output looks right (for Hilko Bengen)
+    - Made --user use ":" (but still accept ".") (for Lars Wirzenius lars at catalyst.net.nz)
+    - Ported to GNU/kFreeBSD (with Cyril Brulebois cyril.brulebois at enst-bretagne.fr)
+    - Added --idiot option (for Andras Korn korn-debbugs at chardonnay.math.bme.hu)
+    - Added example/daemon.initd script (inspired by Javier Fernández-Sanguino Peña jfs at computer.org)
+    - Ported to NetBSD
+    - Added make nbsd nbsd-daemon nbsd-slack (netbsd binary packages)
+    - Ported to Solaris10 and OpenSolaris
+    - Tested on ubuntu-10.04, debian-5.0.4, fedora-13 (x86_64, i386)
+    - Tested on solaris-10-200910, opensolaris-200906 (amd64, i386)
+    - Tested on openbsd-4.7, freebsd-8.0, netbsd-5.0.2 (amd64, i386)
+    - Tested on macosx-10.{4,5,6} (x86_64, i386, ppc)
+    - Tested on kfreebsd-20090729 (i386)
+    - Updated make rpm sol obsd fbsd osx to continue working
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 URL: http://libslack.org/daemon/
-Date: 20040806
+Date: 20100612
 Author: raf <raf@raf.org>

@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2004 raf <raf@raf.org>
+* Copyright (C) 1999-2010 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20040806 raf <raf@raf.org>
+* 20100612 raf <raf@raf.org>
 */
 
 /*
@@ -90,6 +90,10 @@ priority names and codes.
 =cut
 
 */
+
+#ifndef _BSD_SOURCE
+#define _BSD_SOURCE /* For snprintf() on OpenBSD-4.7 */
+#endif
 
 #include "config.h"
 #include "std.h"
@@ -260,11 +264,11 @@ Msg *msg_create_with_locker(Locker *locker, int type, msg_out_t *out, void *data
 =item C<int msg_rdlock(Msg *mesg)>
 
 Claims a read lock on C<mesg> (if C<mesg> was created with a I<Locker>).
-This is needed when multiple read only L<msg(3)|msg(3)> module functions
-need to be called atomically. It is the caller's responsbility to call
+This is needed when multiple read only I<msg(3)> module functions
+need to be called atomically. It is the caller's responsibility to call
 I<msg_unlock(3)> after the atomic operation. The only functions that may be
 called on C<mesg> between calls to I<msg_rdlock(3)> and I<msg_unlock(3)> are
-any read only L<msg(3)|msg(3)> module functions whose name ends with
+any read only I<msg(3)> module functions whose name ends with
 C<_unlocked>. On success, returns C<0>. On error, returns an error code.
 
 =cut
@@ -287,11 +291,11 @@ int (msg_rdlock)(Msg *mesg)
 Claims a write lock on C<mesg>.
 
 Claims a write lock on C<mesg> (if C<mesg> was created with a I<Locker>).
-This is needed when multiple read/write L<msg(3)|msg(3)> module functions
-need to be called atomically. It is the caller's responsbility to call
+This is needed when multiple read/write I<msg(3)> module functions
+need to be called atomically. It is the caller's responsibility to call
 I<msg_unlock(3)> after the atomic operation. The only functions that may be
 called on C<mesg> between calls to I<msg_rdlock(3)> and I<msg_unlock(3)> are
-any L<msg(3)|msg(3)> module functions whose name ends with C<_unlocked>. On
+any I<msg(3)> module functions whose name ends with C<_unlocked>. On
 success, returns C<0>. On error, returns an error code.
 
 =cut
@@ -509,7 +513,8 @@ descriptor. C<mesg> is the message. C<mesglen> is it's length.
 static void msg_out_fd(void *data, const void *mesg, size_t mesglen)
 {
 	if (data && mesg)
-		write(*(MsgFDData *)data, mesg, mesglen);
+		if (write(*(MsgFDData *)data, mesg, mesglen) == -1)
+			/* Avoid gcc warning */;
 }
 
 /*
@@ -738,7 +743,8 @@ static void msg_out_file(void *data, const void *mesg, size_t mesglen)
 	memmove(buf + buflen, mesg, mesglen);
 
 	if (mesg && dst && dst->fd != -1)
-		write(dst->fd, buf, buflen + mesglen);
+		if (write(dst->fd, buf, buflen + mesglen) == -1)
+			/* Avoid gcc warning */;
 }
 
 /*
@@ -1482,7 +1488,7 @@ On error, C<errno> is set by underlying functions or as follows:
 
 =over 4
 
-=item EINVAL
+=item C<EINVAL>
 
 An argument was C<null> or could not be parsed.
 
@@ -1490,7 +1496,7 @@ An argument was C<null> or could not be parsed.
 
 =head1 MT-Level
 
-MT-Disciplined - msg functions - See L<locker(3)|locker(3)> for details.
+MT-Disciplined - msg functions - See I<locker(3)> for details.
 
 MT-Safe - syslog functions
 
@@ -1535,16 +1541,16 @@ Multiplex a message to several locations:
 
 =head1 SEE ALSO
 
-L<libslack(3)|libslack(3)>,
-L<err(3)|err(3)>,
-L<prog(3)|prog(3)>,
-L<openlog(3)|openlog(3)>,
-L<syslog(3)|syslog(3)>,
-L<locker(3)|locker(3)>
+I<libslack(3)>,
+I<err(3)>,
+I<prog(3)>,
+I<openlog(3)>,
+I<syslog(3)>,
+I<locker(3)>
 
 =head1 AUTHOR
 
-20040806 raf <raf@raf.org>
+20100612 raf <raf@raf.org>
 
 =cut
 
@@ -1614,7 +1620,7 @@ int main(int ac, char **av)
 	if (!msg_stdout)
 		++errors, printf("Test1: failed to create msg_stdout");
 	if (!msg_stderr)
-		++errors, printf("Test2: failed to create msg_stder");
+		++errors, printf("Test2: failed to create msg_stderr");
 	if (!msg_file)
 		++errors, printf("Test3: failed to create msg_file");
 	if (!msg_syslog)

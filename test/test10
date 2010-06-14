@@ -7,3 +7,4 @@ echo "#!`pwd`/test10.interpreter" > test10.client
 chmod 755 test10.client
 
 ../daemon -C "`pwd`/daemon.conf" -n test10 "`pwd`/test10.client"
+rm test10.interpreter

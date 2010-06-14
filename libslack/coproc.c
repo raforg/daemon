@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2004 raf <raf@raf.org>
+* Copyright (C) 1999-2010 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20040806 raf <raf@raf.org>
+* 20100612 raf <raf@raf.org>
 */
 
 /*
@@ -47,6 +47,10 @@ pipes or pseudo terminals for communication.
 =cut
 
 */
+
+#ifndef _BSD_SOURCE
+#define _BSD_SOURCE /* For snprintf() on OpenBSD-4.7 */
+#endif
 
 #include "config.h"
 #include "std.h"
@@ -189,7 +193,7 @@ static void do_exec(int has_meta, const char *cmd, char * const *argv, char * co
 			if (!(f = strchr(s, PATH_LIST_SEP)))
 				f = s + strlen(s);
 
-			if (snprintf(cmdbuf, 512, "%.*s%s%s", f - s, s, (f - s) ? PATH_SEP_STR : "", cmd) >= 512)
+			if (snprintf(cmdbuf, 512, "%.*s%s%s", (int)(f - s), s, (f - s) ? PATH_SEP_STR : "", cmd) >= 512)
 				continue;
 
 			if (execve(cmdbuf, argv, (envv) ? envv : environ) == -1)
@@ -488,7 +492,7 @@ calls. See their manual pages.
 
 =over 4
 
-=item EINVAL
+=item C<EINVAL>
 
 Invalid arguments were passed to I<coproc_open(3)>, I<coproc_close(3)>,
 I<coproc_pty_open(3)> or I<coproc_pty_close(3)>.
@@ -497,8 +501,8 @@ I<coproc_pty_open(3)> or I<coproc_pty_close(3)>.
 
 =head1 MT-Level
 
-MT-Safe (I<coproc_pty_open(3)> is MT-Safe iff the L<pseudo(3)|pseudo(3)>
-module is MT-Safe).
+MT-Safe (I<coproc_pty_open(3)> is MT-Safe iff the I<pseudo(3)> module is
+MT-Safe).
 
 =head1 EXAMPLES
 
@@ -635,7 +639,9 @@ This version uses a pseudo terminal and does not use C<sh -c>.
             return -1;
 
         attr->c_lflag &= ~(ECHO | ECHOE | ECHOK | ECHONL);
+	#ifdef ONLCR
         attr->c_oflag &= ~ONLCR;
+	#endif
 
         return tcsetattr(fd, TCSANOW, attr);
     }
@@ -721,7 +727,9 @@ This version uses a pseudo terminal and C<sh -c>.
             return -1;
 
         attr->c_lflag &= ~(ECHO | ECHOE | ECHOK | ECHONL);
+	#ifdef ONLCR
         attr->c_oflag &= ~ONLCR;
+	#endif
 
         return tcsetattr(fd, TCSANOW, attr);
     }
@@ -795,17 +803,17 @@ This version uses a pseudo terminal and C<sh -c>.
 
 =head1 SEE ALSO
 
-L<libslack(3)|libslack(3)>,
-L<execve(2)|execve(2)>,
-L<system(3)|system(3)>,
-L<popen(3)|popen(3)>,
-L<waitpid(2)|waitpid(2)>,
-L<sh(1)|sh(1)>,
-L<pseudo(3)|pseudo(3>>
+I<libslack(3)>,
+I<execve(2)>,
+I<system(3)>,
+I<popen(3)>,
+I<waitpid(2)>,
+I<sh(1)>,
+I<pseudo(3>>
 
 =head1 AUTHOR
 
-20040806 raf <raf@raf.org>
+20100612 raf <raf@raf.org>
 
 =cut
 
@@ -818,6 +826,7 @@ L<pseudo(3)|pseudo(3>>
 #include <fcntl.h>
 
 #include "fio.h"
+#include "str.h"
 
 int cwd_in_path()
 {
@@ -848,7 +857,8 @@ int main()
 	char *argv2[5] = { "arkleseizure", "a", "b", "c", NULL };
 	char buf[BUFSIZ];
 	char slavename[64];
-	size_t bytes;
+	ssize_t bytes;
+	String *qbuf;
 
 	printf("Testing: %s\n", "coproc");
 
@@ -895,9 +905,9 @@ int main()
 			if ((status = coproc_close(pid, &to, &from, &err)) == -1)
 				++errors, printf("Test16: coproc_close() failed (%s)\n", strerror(errno));
 			else if (WIFSIGNALED(status))
-				++errors, printf("Test17: coproc received signal %d\n", WTERMSIG(status));
+				++errors, printf("Test17: coproc(\"cat\") received signal %d\n", WTERMSIG(status));
 			else if (WIFEXITED(status) && WEXITSTATUS(status))
-				++errors, printf("Test18: coproc returned %d\n", WEXITSTATUS(status));
+				++errors, printf("Test18: coproc(\"cat\") exited %d\n", WEXITSTATUS(status));
 		}
 	}
 
@@ -944,9 +954,9 @@ int main()
 			if ((status = coproc_close(pid, &to, &from, &err)) == -1)
 				++errors, printf("Test34: coproc_close() failed (%s)\n", strerror(errno));
 			else if (WIFSIGNALED(status))
-				++errors, printf("Test35: coproc received signal %d\n", WTERMSIG(status));
+				++errors, printf("Test35: coproc(\"cat\") received signal %d\n", WTERMSIG(status));
 			else if (WIFEXITED(status) && WEXITSTATUS(status))
-				++errors, printf("Test36: coproc returned %d\n", WEXITSTATUS(status));
+				++errors, printf("Test36: coproc(\"cat\") exited %d\n", WEXITSTATUS(status));
 		}
 	}
 
@@ -993,9 +1003,9 @@ int main()
 			if ((status = coproc_close(pid, &to, &from, &err)) == -1)
 				++errors, printf("Test52: coproc_close() failed (%s)\n", strerror(errno));
 			else if (WIFSIGNALED(status))
-				++errors, printf("Test53: coproc received signal %d\n", WTERMSIG(status));
+				++errors, printf("Test53: coproc(\"/bin/cat\") received signal %d\n", WTERMSIG(status));
 			else if (WIFEXITED(status) && WEXITSTATUS(status))
-				++errors, printf("Test54: coproc returned %d\n", WEXITSTATUS(status));
+				++errors, printf("Test54: coproc(\"/bin/cat\") exited %d\n", WEXITSTATUS(status));
 		}
 	}
 
@@ -1042,9 +1052,9 @@ int main()
 			if ((status = coproc_close(pid, &to, &from, &err)) == -1)
 				++errors, printf("Test70: coproc_close() failed (%s)\n", strerror(errno));
 			else if (WIFSIGNALED(status))
-				++errors, printf("Test71: coproc received signal %d\n", WTERMSIG(status));
+				++errors, printf("Test71: coproc(\"cat | sort\") received signal %d\n", WTERMSIG(status));
 			else if (WIFEXITED(status) && WEXITSTATUS(status))
-				++errors, printf("Test72: coproc returned %d\n", WEXITSTATUS(status));
+				++errors, printf("Test72: coproc(\"cat | sort\") exited %d\n", WEXITSTATUS(status));
 		}
 	}
 
@@ -1075,9 +1085,9 @@ int main()
 			if ((status = coproc_close(pid, &to, &from, &err)) == -1)
 				++errors, printf("Test80: coproc_close() failed (%s)\n", strerror(errno));
 			else if (WIFSIGNALED(status))
-				++errors, printf("Test81: coproc received signal %d\n", WTERMSIG(status));
+				++errors, printf("Test81: coproc(\"arkleseizure a b c\") received signal %d\n", WTERMSIG(status));
 			else if (WIFEXITED(status) && WEXITSTATUS(status))
-				++errors, printf("Test82: coproc returned %d\n", WEXITSTATUS(status));
+				++errors, printf("Test82: coproc(\"arkleseizure a b c\") exited %d\n", WEXITSTATUS(status));
 		}
 
 		unlink("arkleseizure");
@@ -1108,9 +1118,9 @@ int main()
 		if ((status = coproc_close(pid, &to, &from, &err)) == -1)
 			++errors, printf("Test90: coproc_close() failed (%s)\n", strerror(errno));
 		else if (WIFSIGNALED(status))
-			++errors, printf("Test91: coproc received signal %d\n", WTERMSIG(status));
+			++errors, printf("Test91: coproc(\"./arkleseizure a b c\") received signal %d\n", WTERMSIG(status));
 		else if (WIFEXITED(status) && WEXITSTATUS(status))
-			++errors, printf("Test92: coproc returned %d\n", WEXITSTATUS(status));
+			++errors, printf("Test92: coproc(\"./arkleseizure a b c\") exited %d\n", WEXITSTATUS(status));
 	}
 
 	unlink("arkleseizure");
@@ -1158,37 +1168,71 @@ int main()
 		++errors, printf("Test107: coproc_pty_open(\"cat\") failed (%s)\n", strerror(errno));
 	else
 	{
+		errno = 0;
 		if (write_timeout(masterfd, 5, 0) == -1 || write(masterfd, "abc\n", 4) != 4)
 			++errors, printf("Test108: write_timeout(masterfd) or write(masterfd, \"abc\\n\") failed (%s)\n", strerror(errno));
 		else if (read_timeout(masterfd, 5, 0) == -1)
 			++errors, printf("Test109: read_timeout(masterfd) failed (%s)\n", strerror(errno));
-		else if ((bytes = read(masterfd, buf, 5)) != 5)
-			++errors, printf("Test110: read(masterfd) failed (returned %d, not %d) (%s)\n", (int)bytes, 5, strerror(errno));
-		else if (memcmp(buf, "abc", 3))
+		else if ((bytes = read(masterfd, buf, BUFSIZ)) != 5)
+		{
+			++errors, printf("Test110: read(masterfd) failed (returned %d, not %d) ", (int)bytes, 5);
+			if (bytes == -1)
+				printf("(%s)\n", strerror(errno));
+			else
+			{
+				buf[bytes] = '\0';
+				qbuf = encode(buf, "\a\b\t\n\v\f\r", "abtnvfr", '\\', 1);
+				printf("read <%s> expected <abc\\r\\n>\n", cstr(qbuf));
+				str_destroy(&qbuf);
+			}
+		}
+		else if (memcmp(buf, "abc\r\n", 5))
 			++errors, printf("Test111: read(masterfd) failed (read \"%.3s\", not \"%.3s\")\n", buf, "abc");
 		else if (write_timeout(masterfd, 5, 0) == -1 || write(masterfd, "def\n", 4) != 4)
 			++errors, printf("Test112: write_timeout(masterfd) or write(masterfd, \"def\\n\") failed (%s)\n", strerror(errno));
 		else if (read_timeout(masterfd, 5, 0) == -1)
 			++errors, printf("Test113: read_timeout(masterfd) failed (%s)\n", strerror(errno));
-		else if ((bytes = read(masterfd, buf, 5)) != 5)
-			++errors, printf("Test114: read(masterfd) failed (returned %d, not %d) (%s)\n", (int)bytes, 5, strerror(errno));
-		else if (memcmp(buf, "def", 3))
+		else if ((bytes = read(masterfd, buf, BUFSIZ)) != 5)
+		{
+			++errors, printf("Test114: read(masterfd) failed (returned %d, not %d) ", (int)bytes, 5);
+			if (bytes == -1)
+				printf("(%s)\n", strerror(errno));
+			else
+			{
+				buf[bytes] = '\0';
+				qbuf = encode(buf, "\a\b\t\n\v\f\r", "abtnvfr", '\\', 1);
+				printf("read <%s> expected <def\\r\\n>\n", cstr(qbuf));
+				str_destroy(&qbuf);
+			}
+		}
+		else if (memcmp(buf, "def\r\n", 5))
 			++errors, printf("Test115: read(masterfd) failed (read \"%.3s\", not \"%.3s\")\n", buf, "def");
 		else if (write_timeout(masterfd, 5, 0) == -1 || write(masterfd, "ghi\n", 4) != 4)
 			++errors, printf("Test116: write_timeout(masterfd) or write(masterfd, \"ghi\\n\") failed (%s)\n", strerror(errno));
 		else if (read_timeout(masterfd, 5, 0) == -1)
 			++errors, printf("Test117: read_timeout(masterfd) failed (%s)\n", strerror(errno));
-		else if ((bytes = read(masterfd, buf, 5)) != 5)
-			++errors, printf("Test118: read(masterfd) failed (returned %d, not %d) (%s)\n", (int)bytes, 5, strerror(errno));
-		else if (memcmp(buf, "ghi", 3))
+		else if ((bytes = read(masterfd, buf, BUFSIZ)) != 5)
+		{
+			++errors, printf("Test118: read(masterfd) failed (returned %d, not %d) ", (int)bytes, 5);
+			if (bytes == -1)
+				printf("(%s)\n", strerror(errno));
+			else
+			{
+				buf[bytes] = '\0';
+				qbuf = encode(buf, "\a\b\t\n\v\f\r", "abtnvfr", '\\', 1);
+				printf("read <%s> expected <ghi\\r\\n>\n", cstr(qbuf));
+				str_destroy(&qbuf);
+			}
+		}
+		else if (memcmp(buf, "ghi\r\n", 5))
 			++errors, printf("Test119: read(masterfd) failed (read \"%.3s\", not \"%.3s\")\n", buf, "ghi");
 
 		if ((status = coproc_pty_close(pid, &masterfd, slavename)) == -1)
 			++errors, printf("Test120: coproc_pty_close() failed (%s)\n", strerror(errno));
 		else if (WIFSIGNALED(status) && WTERMSIG(status) != SIGHUP)
-			++errors, printf("Test121: coproc received signal %d\n", WTERMSIG(status));
+			++errors, printf("Test121: pty coproc(\"cat\") received signal %d\n", WTERMSIG(status));
 		else if (WIFEXITED(status) && WEXITSTATUS(status))
-			++errors, printf("Test122: coproc returned %d\n", WEXITSTATUS(status));
+			++errors, printf("Test122: pty coproc(\"cat\") exited %d\n", WEXITSTATUS(status));
 	}
 
 	/* Test coproc_pty_open("/bin/cat") - does not search path */
@@ -1201,33 +1245,66 @@ int main()
 			++errors, printf("Test124: write_timeout(masterfd) or write(masterfd, \"abc\\n\") failed (%s)\n", strerror(errno));
 		else if (read_timeout(masterfd, 5, 0) == -1)
 			++errors, printf("Test125: read_timeout(masterfd) failed (%s)\n", strerror(errno));
-		else if ((bytes = read(masterfd, buf, 5)) != 5)
-			++errors, printf("Test126: read(masterfd) failed (returned %d, not %d) (%s)\n", (int)bytes, 5, strerror(errno));
-		else if (memcmp(buf, "abc", 3))
+		else if ((bytes = read(masterfd, buf, BUFSIZ)) != 5)
+		{
+			++errors, printf("Test126: read(masterfd) failed (returned %d, not %d) ", (int)bytes, 5);
+			if (bytes == -1)
+				printf("(%s)\n", strerror(errno));
+			else
+			{
+				buf[bytes] = '\0';
+				qbuf = encode(buf, "\a\b\t\n\v\f\r", "abtnvfr", '\\', 1);
+				printf("read <%s> expected <abc\\r\\n>\n", cstr(qbuf));
+				str_destroy(&qbuf);
+			}
+		}
+		else if (memcmp(buf, "abc\r\n", 5))
 			++errors, printf("Test127: read(masterfd) failed (read \"%.3s\", not \"%.3s\")\n", buf, "abc");
 		else if (write_timeout(masterfd, 5, 0) == -1 || write(masterfd, "def\n", 4) != 4)
 			++errors, printf("Test128: write_timeout(masterfd) or write(masterfd, \"def\\n\") failed (%s)\n", strerror(errno));
 		else if (read_timeout(masterfd, 5, 0) == -1)
 			++errors, printf("Test129: read_timeout(masterfd) failed (%s)\n", strerror(errno));
-		else if ((bytes = read(masterfd, buf, 5)) != 5)
-			++errors, printf("Test130: read(masterfd) failed (returned %d, not %d) (%s)\n", (int)bytes, 5, strerror(errno));
-		else if (memcmp(buf, "def", 3))
+		else if ((bytes = read(masterfd, buf, BUFSIZ)) != 5)
+		{
+			++errors, printf("Test130: read(masterfd) failed (returned %d, not %d) ", (int)bytes, 5);
+			if (bytes == -1)
+				printf("(%s)\n", strerror(errno));
+			else
+			{
+				buf[bytes] = '\0';
+				qbuf = encode(buf, "\a\b\t\n\v\f\r", "abtnvfr", '\\', 1);
+				printf("read <%s> expected <def\\r\\n>\n", cstr(qbuf));
+				str_destroy(&qbuf);
+			}
+		}
+		else if (memcmp(buf, "def\r\n", 5))
 			++errors, printf("Test131: read(masterfd) failed (read \"%.3s\", not \"%.3s\")\n", buf, "def");
 		else if (write_timeout(masterfd, 5, 0) == -1 || write(masterfd, "ghi\n", 4) != 4)
 			++errors, printf("Test132: write_timeout(masterfd) or write(masterfd, \"ghi\\n\") failed (%s)\n", strerror(errno));
 		else if (read_timeout(masterfd, 5, 0) == -1)
 			++errors, printf("Test133: read_timeout(masterfd) failed (%s)\n", strerror(errno));
-		else if ((bytes = read(masterfd, buf, 5)) != 5)
-			++errors, printf("Test134: read(masterfd) failed (returned %d, not %d) (%s)\n", (int)bytes, 5, strerror(errno));
-		else if (memcmp(buf, "ghi", 3))
+		else if ((bytes = read(masterfd, buf, BUFSIZ)) != 5)
+		{
+			++errors, printf("Test134: read(masterfd) failed (returned %d, not %d) ", (int)bytes, 5);
+			if (bytes == -1)
+				printf("(%s)\n", strerror(errno));
+			else
+			{
+				buf[bytes] = '\0';
+				qbuf = encode(buf, "\a\b\t\n\v\f\r", "abtnvfr", '\\', 1);
+				printf("read <%s> expected <ghi\\r\\n>\n", cstr(qbuf));
+				str_destroy(&qbuf);
+			}
+		}
+		else if (memcmp(buf, "ghi\r\n", 5))
 			++errors, printf("Test135: read(masterfd) failed (read \"%.3s\", not \"%.3s\")\n", buf, "ghi");
 
 		if ((status = coproc_pty_close(pid, &masterfd, slavename)) == -1)
 			++errors, printf("Test136: coproc_pty_close() failed (%s)\n", strerror(errno));
 		else if (WIFSIGNALED(status) && WTERMSIG(status) != SIGHUP)
-			++errors, printf("Test137: coproc received signal %d\n", WTERMSIG(status));
+			++errors, printf("Test137: pty coproc(\"/bin/cat\") received signal %d\n", WTERMSIG(status));
 		else if (WIFEXITED(status) && WEXITSTATUS(status))
-			++errors, printf("Test138: coproc returned %d\n", WEXITSTATUS(status));
+			++errors, printf("Test138: pty coproc(\"/bin/cat\") exited %d\n", WEXITSTATUS(status));
 	}
 
 	/* Test coproc_pty_open("cat | cat") - uses "sh -c cmd" to handle meta characters */
@@ -1240,33 +1317,66 @@ int main()
 			++errors, printf("Test140: write_timeout(masterfd) or write(masterfd, \"abc\\n\") failed (%s)\n", strerror(errno));
 		else if (read_timeout(masterfd, 5, 0) == -1)
 			++errors, printf("Test141: read_timeout(masterfd) failed (%s)\n", strerror(errno));
-		else if ((bytes = read(masterfd, buf, 5)) != 5)
-			++errors, printf("Test142: read(masterfd) failed (returned %d, not %d) (%s)\n", (int)bytes, 5, strerror(errno));
-		else if (memcmp(buf, "abc", 3))
+		else if ((bytes = read(masterfd, buf, BUFSIZ)) != 5)
+		{
+			++errors, printf("Test142: read(masterfd) failed (returned %d, not %d) ", (int)bytes, 5);
+			if (bytes == -1)
+				printf("(%s)\n", strerror(errno));
+			else
+			{
+				buf[bytes] = '\0';
+				qbuf = encode(buf, "\a\b\t\n\v\f\r", "abtnvfr", '\\', 1);
+				printf("read <%s> expected <abc\\r\\n>\n", cstr(qbuf));
+				str_destroy(&qbuf);
+			}
+		}
+		else if (memcmp(buf, "abc\r\n", 5))
 			++errors, printf("Test143: read(masterfd) failed (read \"%.3s\", not \"%.3s\")\n", buf, "abc");
 		else if (write_timeout(masterfd, 5, 0) == -1 || write(masterfd, "def\n", 4) != 4)
 			++errors, printf("Test144: write_timeout(masterfd) or write(masterfd, \"def\\n\") failed (%s)\n", strerror(errno));
 		else if (read_timeout(masterfd, 5, 0) == -1)
 			++errors, printf("Test145: read_timeout(masterfd) failed (%s)\n", strerror(errno));
-		else if ((bytes = read(masterfd, buf, 5)) != 5)
-			++errors, printf("Test146: read(masterfd) failed (returned %d, not %d) (%s)\n", (int)bytes, 5, strerror(errno));
-		else if (memcmp(buf, "def", 3))
+		else if ((bytes = read(masterfd, buf, BUFSIZ)) != 5)
+		{
+			++errors, printf("Test146: read(masterfd) failed (returned %d, not %d) ", (int)bytes, 5);
+			if (bytes == -1)
+				printf("(%s)\n", strerror(errno));
+			else
+			{
+				buf[bytes] = '\0';
+				qbuf = encode(buf, "\a\b\t\n\v\f\r", "abtnvfr", '\\', 1);
+				printf("read <%s> expected <def\\r\\n>\n", cstr(qbuf));
+				str_destroy(&qbuf);
+			}
+		}
+		else if (memcmp(buf, "def\r\n", 5))
 			++errors, printf("Test147: read(masterfd) failed (read \"%.3s\", not \"%.3s\")\n", buf, "def");
 		else if (write_timeout(masterfd, 5, 0) == -1 || write(masterfd, "ghi\n", 4) != 4)
 			++errors, printf("Test148: write_timeout(masterfd) or write(masterfd, \"ghi\\n\") failed (%s)\n", strerror(errno));
 		else if (read_timeout(masterfd, 5, 0) == -1)
 			++errors, printf("Test149: read_timeout(masterfd) failed (%s)\n", strerror(errno));
-		else if ((bytes = read(masterfd, buf, 5)) != 5)
-			++errors, printf("Test150: read(masterfd) failed (returned %d, not %d) (%s)\n", (int)bytes, 5, strerror(errno));
-		else if (memcmp(buf, "ghi", 3))
+		else if ((bytes = read(masterfd, buf, BUFSIZ)) != 5)
+		{
+			++errors, printf("Test150: read(masterfd) failed (returned %d, not %d) ", (int)bytes, 5);
+			if (bytes == -1)
+				printf("(%s)\n", strerror(errno));
+			else
+			{
+				buf[bytes] = '\0';
+				qbuf = encode(buf, "\a\b\t\n\v\f\r", "abtnvfr", '\\', 1);
+				printf("read <%s> expected <ghi\\r\\n>\n", cstr(qbuf));
+				str_destroy(&qbuf);
+			}
+		}
+		else if (memcmp(buf, "ghi\r\n", 5))
 			++errors, printf("Test151: read(masterfd) failed (read \"%.3s\", not \"%.3s\")\n", buf, "ghi");
 
 		if ((status = coproc_pty_close(pid, &masterfd, slavename)) == -1)
 			++errors, printf("Test152: coproc_pty_close() failed (%s)\n", strerror(errno));
 		else if (WIFSIGNALED(status) && WTERMSIG(status) != SIGHUP)
-			++errors, printf("Test153: coproc received signal %d\n", WTERMSIG(status));
+			++errors, printf("Test153: pty coproc(\"cat | cat\") received signal %d\n", WTERMSIG(status));
 		else if (WIFEXITED(status) && WEXITSTATUS(status))
-			++errors, printf("Test154: coproc returned %d\n", WEXITSTATUS(status));
+			++errors, printf("Test154: pty coproc(\"cat | cat\") exited %d\n", WEXITSTATUS(status));
 	}
 
 	/* Test coproc_pty_open() - path search of sh script without #! line (cwd must be in $PATH) */
@@ -1295,9 +1405,9 @@ int main()
 			if ((status = coproc_pty_close(pid, &masterfd, slavename)) == -1)
 				++errors, printf("Test162: coproc_pty_close() failed (%s)\n", strerror(errno));
 			else if (WIFSIGNALED(status) && WTERMSIG(status) != SIGHUP)
-				++errors, printf("Test163: coproc received signal %d\n", WTERMSIG(status));
+				++errors, printf("Test163: pty coproc(\"arkleseizure a b c\") received signal %d\n", WTERMSIG(status));
 			else if (WIFEXITED(status) && WEXITSTATUS(status) != 0 && WEXITSTATUS(status) != 128 + SIGHUP)
-				++errors, printf("Test164: coproc returned %d\n", WEXITSTATUS(status));
+				++errors, printf("Test164: pty coproc(\"arkleseizure a b c\") exited %d\n", WEXITSTATUS(status));
 		}
 
 		unlink("arkleseizure");
@@ -1327,9 +1437,9 @@ int main()
 		if ((status = coproc_pty_close(pid, &masterfd, slavename)) == -1)
 			++errors, printf("Test172: coproc_pty_close() failed (%s)\n", strerror(errno));
 		else if (WIFSIGNALED(status) && WTERMSIG(status) != SIGHUP)
-			++errors, printf("Test173: coproc received signal %d\n", WTERMSIG(status));
+			++errors, printf("Test173: pty coproc(\"arkleseizure a b c\") received signal %d\n", WTERMSIG(status));
 		else if (WIFEXITED(status) && WEXITSTATUS(status) != 0 && WEXITSTATUS(status) != 128 + SIGHUP)
-			++errors, printf("Test174: coproc returned %d\n", WEXITSTATUS(status));
+			++errors, printf("Test174: pty coproc(\"arkleseizure a b c\") exited %d\n", WEXITSTATUS(status));
 	}
 
 	unlink("arkleseizure");

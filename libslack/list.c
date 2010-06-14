@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2004 raf <raf@raf.org>
+* Copyright (C) 1999-2010 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20040806 raf <raf@raf.org>
+* 20100612 raf <raf@raf.org>
 */
 
 /*
@@ -349,7 +349,7 @@ static void killitems(List *list, size_t index, size_t range)
 =item C<List *list_create(list_release_t *destroy)>
 
 Creates a I<List> with C<destroy> as its item destructor. It is the caller's
-responsbility to deallocate the new list with I<list_release(3)> or
+responsibility to deallocate the new list with I<list_release(3)> or
 I<list_destroy(3)>. On success, returns the new list. On error, returns
 C<null> with C<errno> set appropriately.
 
@@ -530,11 +530,11 @@ List *list_copy_with_locker(Locker *locker, const List *src, list_copy_t *copy)
 =item C<int list_rdlock(const List *list)>
 
 Claims a read lock on C<list> (if C<list> was created with a I<Locker>).
-This is needed when multiple read only L<list(3)|list(3)> module functions
-need to be called atomically. It is the client's responsibility to call
+This is needed when multiple read only I<list(3)> module functions need to
+be called atomically. It is the client's responsibility to call
 I<list_unlock(3)> after the atomic operation. The only functions that may be
 called on C<list> between calls to I<list_rdlock(3)> and I<list_unlock(3)>
-are any read only L<list(3)|list(3)> module functions whose name ends with
+are any read only I<list(3)> module functions whose name ends with
 C<_unlocked>. On success, returns C<0>. On error, returns an error code.
 
 =cut
@@ -555,12 +555,12 @@ int (list_rdlock)(const List *list)
 =item C<int list_wrlock(const List *list)>
 
 Claims a write lock on C<list> (if C<list> was created with a I<Locker>).
-This is needed when multiple read/write L<list(3)|list(3)> module functions
-need to be called atomically. It is the client's responsibility to call
+This is needed when multiple read/write I<list(3)> module functions need to
+be called atomically. It is the client's responsibility to call
 I<list_unlock(3)> after the atomic operation. The only functions that may be
 called on C<list> between calls to I<list_wrlock(3)> and I<list_unlock(3)>
-are any L<list(3)|list(3)> module functions whose name ends with
-C<_unlocked>. On success, returns C<0>. On error, returns an error code.
+are any I<list(3)> module functions whose name ends with C<_unlocked>. On
+success, returns C<0>. On error, returns an error code.
 
 =cut
 
@@ -706,15 +706,15 @@ list_release_t *list_disown(List *list)
 	int err;
 
 	if (!list)
-		return (list_release_t *)set_errnull(EINVAL);
+		return (list_release_t *)set_errnullf(EINVAL);
 
 	if ((err = list_wrlock(list)))
-		return (list_release_t *)set_errnull(err);
+		return (list_release_t *)set_errnullf(err);
 
 	destroy = list_disown_unlocked(list);
 
 	if ((err = list_unlock(list)))
-		return (list_release_t *)set_errnull(err);
+		return (list_release_t *)set_errnullf(err);
 
 	return destroy;
 }
@@ -734,7 +734,7 @@ list_release_t *list_disown_unlocked(List *list)
 	list_release_t *destroy;
 
 	if (!list)
-		return (list_release_t *)set_errnull(EINVAL);
+		return (list_release_t *)set_errnullf(EINVAL);
 
 	destroy = list->destroy;
 	list->destroy = NULL;
@@ -814,7 +814,7 @@ type.
 
 int list_item_int(const List *list, ssize_t index)
 {
-	return (int)list_item(list, index);
+	return (int)(long)list_item(list, index);
 }
 
 /*
@@ -829,7 +829,7 @@ Equivalent to I<list_item_int(3)> except that C<list> is not read locked.
 
 int list_item_int_unlocked(const List *list, ssize_t index)
 {
-	return (int)list_item_unlocked(list, index);
+	return (int)(long)list_item_unlocked(list, index);
 }
 
 /*
@@ -1159,7 +1159,7 @@ Equivalent to I<list_insert(3)> except that C<item> is an integer type.
 
 List *list_insert_int(List *list, ssize_t index, int item)
 {
-	return list_insert(list, index, (void *)item);
+	return list_insert(list, index, (void *)(long)item);
 }
 
 /*
@@ -1174,7 +1174,7 @@ Equivalent to I<list_insert_int(3)> except that C<list> is not write locked.
 
 List *list_insert_int_unlocked(List *list, ssize_t index, int item)
 {
-	return list_insert_unlocked(list, index, (void *)item);
+	return list_insert_unlocked(list, index, (void *)(long)item);
 }
 
 /*
@@ -1537,7 +1537,7 @@ Equivalent to I<list_replace(3)> except that C<item> is an integer type.
 
 List *list_replace_int(List *list, ssize_t index, ssize_t range, int item)
 {
-	return list_replace(list, index, range, (void *)item);
+	return list_replace(list, index, range, (void *)(long)item);
 }
 
 /*
@@ -1552,7 +1552,7 @@ Equivalent to I<list_replace_int(3)> except that C<list> is not write locked.
 
 List *list_replace_int_unlocked(List *list, ssize_t index, ssize_t range, int item)
 {
-	return list_replace_unlocked(list, index, range, (void *)item);
+	return list_replace_unlocked(list, index, range, (void *)(long)item);
 }
 
 /*
@@ -1902,7 +1902,7 @@ type.
 
 int list_pop_int(List *list)
 {
-	return (int)list_pop(list);
+	return (int)(long)list_pop(list);
 }
 
 /*
@@ -1917,7 +1917,7 @@ Equivalent to I<list_pop_int(3)> except that C<list> is not write locked.
 
 int list_pop_int_unlocked(List *list)
 {
-	return (int)list_pop_unlocked(list);
+	return (int)(long)list_pop_unlocked(list);
 }
 
 /*
@@ -1995,7 +1995,7 @@ type.
 
 int list_shift_int(List *list)
 {
-	return (int)list_shift(list);
+	return (int)(long)list_shift(list);
 }
 
 /*
@@ -2010,7 +2010,7 @@ Equivalent to I<list_shift_int(3)> except that C<list> is not write locked.
 
 int list_shift_int_unlocked(List *list)
 {
-	return (int)list_shift_unlocked(list);
+	return (int)(long)list_shift_unlocked(list);
 }
 
 /*
@@ -3028,7 +3028,7 @@ On error, C<errno> is set either by an underlying function, or as follows:
 
 =over 4
 
-=item EINVAL
+=item C<EINVAL>
 
 When arguments are C<null> or out of range.
 
@@ -3087,7 +3087,7 @@ its values with the internal iterator to print the values:
         list_append(list, "789");
 
         while (list_has_next(list) == 1)
-            printf("%s\n", list_next(list));
+            printf("%s\n", (char *)list_next(list));
 
         list_destroy(&list);
 
@@ -3107,7 +3107,7 @@ The same but create the list and populate it at the same time:
             return EXIT_FAILURE;
 
         while (list_has_next(list) == 1)
-            printf("%s\n", list_next(list));
+            printf("%s\n", (char *)list_next(list));
 
         list_destroy(&list);
 
@@ -3139,7 +3139,7 @@ with an external iterator to print its items.
         }
 
         while (lister_has_next(lister) == 1)
-            printf("%s\n", lister_next(lister));
+            printf("%s\n", (char *)lister_next(lister));
 
         lister_destroy(&lister);
         list_destroy(&list);
@@ -3154,7 +3154,7 @@ The same but with an apply function:
 
     void action(void *item, size_t *index, void *data)
     {
-        printf("%s\n", item);
+        printf("%s\n", (char *)item);
     }
 
     int main()
@@ -3220,7 +3220,7 @@ Create a copy of a list:
         list_destroy(&orig);
 
         while (list_has_next(copy) == 1)
-            printf("%s\n", list_next(copy));
+            printf("%s\n", (char *)list_next(copy));
 
         list_destroy(&copy);
 
@@ -3253,7 +3253,7 @@ Transfer ownership from one list to another:
         list_destroy(&donor);
 
         while (list_has_next(recipient) == 1)
-            printf("%s\n", list_next(recipient));
+            printf("%s\n", (char *)list_next(recipient));
 
         list_destroy(&recipient);
 
@@ -3273,7 +3273,7 @@ remove items while iterating:
 
     void action(void *item, size_t *index, void *data)
     {
-        printf("%s\n", item);
+        printf("%s\n", (char *)item);
     }
 
     void *upper(void *item, size_t *index, void *data)
@@ -3319,7 +3319,7 @@ remove items while iterating:
         list_unshift(list, list_shift(list));
         list_release(list_splice(list, 0, 1, NULL));
         list_sort(list, cmp);
-        printf("last %s\n", list_item(list, list_last(list)));
+        printf("last %s\n", (char *)list_item(list, list_last(list)));
 
         // Apply an action to a list
 
@@ -3340,7 +3340,7 @@ remove items while iterating:
         // Locate a list's items that match some criteria
 
         for (i = 0; list_query(list, &i, even, NULL) != -1; ++i)
-            printf("%d %s even\n", i, list_item(list, i));
+            printf("%d %s even\n", i, (char *)list_item(list, i));
 
         // Remove elements via the internal iterator and break out of loop
 
@@ -3453,7 +3453,7 @@ Append, insert, prepend and replace using another list, not just one item:
         list_replace_list(list, 1, 2, src, NULL);
 
         for (i = 0; i < list_length(list); ++i)
-            printf("%s\n", list_item(list, i));
+            printf("%s\n", (char *)list_item(list, i));
 
         list_destroy(&list);
 
@@ -3486,7 +3486,7 @@ The same as the previous example but with a list that owns its items:
         list_replace_list(list, 1, 2, src, (list_copy_t *)strdup);
 
         for (i = 0; i < list_length(list); ++i)
-            printf("%s\n", list_item(list, i));
+            printf("%s\n", (char *)list_item(list, i));
 
         list_destroy(&list);
 
@@ -3515,16 +3515,16 @@ to be decoupled from this code.
 
 =head1 SEE ALSO
 
-L<libslack(3)|libslack(3)>,
-L<map(3)|map(3)>,
-L<mem(3)|mem(3)>,
-L<hsort(3)|hsort(3)>,
-L<qsort(3)|qsort(3)>,
-L<locker(3)|locker(3)>
+I<libslack(3)>,
+I<map(3)>,
+I<mem(3)>,
+I<hsort(3)>,
+I<qsort(3)>,
+I<locker(3)>
 
 =head1 AUTHOR
 
-20040806 raf <raf@raf.org>
+20100612 raf <raf@raf.org>
 
 =cut
 
@@ -3680,7 +3680,7 @@ void *iterate_rdlocked(void *arg)
 
 		while (lister_has_next(lister) == 1)
 		{
-			int val = (int)lister_next(lister);
+			int val = (int)(long)lister_next(lister);
 
 			if (debug)
 				printf("j%d: loop %d/%d val %d\n", t, i, lim / 10, val);
@@ -3707,7 +3707,7 @@ void *iterate_wrlocked(void *arg)
 
 		while (lister_has_next(lister) == 1)
 		{
-			int val = (int)lister_next(lister);
+			int val = (int)(long)lister_next(lister);
 
 			if (debug)
 				printf("k%d: loop %d/%d val %d\n", t, i, lim / 10, val);
@@ -3779,7 +3779,7 @@ void mt_test(int test, Locker *locker)
 
 #define CHECK_LENGTH(i, action, list, length) \
 	if (list_length(list) != (length)) \
-		++errors, printf("Test%d: %s failed: list_length(%s) = %d, not %d\n", (i), (#action), (#list), list_length(list), (length));
+		++errors, printf("Test%d: %s failed: list_length(%s) = %d, not %d\n", (i), (#action), (#list), (int)list_length(list), (length));
 
 #define CHECK_ITEM(i, action, list, item, value) \
 	if (!list_item((list), (item)) || strcmp(list_item((list), (item)), (value))) \
@@ -3970,7 +3970,7 @@ int main(int ac, char **av)
 	{
 		if (index != query_data[i])
 		{
-			++errors, printf("Test32: list_query returned %d (not %d)\n", index, query_data[i]);
+			++errors, printf("Test32: list_query returned %d (not %d)\n", (int)index, query_data[i]);
 			break;
 		}
 	}
@@ -4276,7 +4276,7 @@ int main(int ac, char **av)
 		{
 			int item = list_next_int(a);
 
-			if (item != (int)a->list[i]) /* white box */
+			if (item != (int)(long)a->list[i]) /* white box */
 				++errors, printf("Test77: int list test failed (item %d = %d, not %d)\n", i, item, list_item_int(a, i));
 		}
 
@@ -4291,7 +4291,7 @@ int main(int ac, char **av)
 			{
 				int item = lister_next_int(lister);
 
-				if (item != (int)a->list[i]) /* white box */
+				if (item != (int)(long)a->list[i]) /* white box */
 					++errors, printf("Test80: int list test failed (item %d = %d, not %d)\n", i, item, i);
 			}
 

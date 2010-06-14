@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2004 raf <raf@raf.org>
+* Copyright (C) 1999-2010 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20040806 raf <raf@raf.org>
+* 20100612 raf <raf@raf.org>
 */
 
 /*
@@ -42,6 +42,9 @@
  * Added a manpage (perldoc -F pseudo.c)
  * Made pty_allocate() more like openpty() but safe (called it pty_open())
  * Added safe version of forkpty() (called it pty_fork())
+ *
+ * 20100612 raf <raf@raf.org>
+ * pty_open: master fd often has ECHO on by default these days so turn it off
  */
 
 /*
@@ -75,7 +78,22 @@ attached to a pseudo terminal which is made the controlling terminal.
 
 */
 
-#define _GNU_SOURCE /* ptsname_r() under Linux */
+#ifndef _BSD_SOURCE
+#define _BSD_SOURCE /* For strlcpy() on OpenBSD-4.7 */
+#endif
+
+#ifndef __BSD_VISIBLE
+#define __BSD_VISIBLE 1 /* For strlcpy() on FreeBSD-8.0 */
+#endif
+
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE /* For ptsname_r() on Linux */
+#endif
+
+#ifndef _NETBSD_SOURCE
+#define _NETBSD_SOURCE /* For strlcpy() and so <utmpx.h> (included by <util.h>) isn't broken on NetBSD-5.0.2 */
+#endif
+
 #include "config.h"
 #include "std.h"
 
@@ -198,6 +216,8 @@ static int uid2gid(uid_t uid)
 
 int pty_open(int *masterfd, int *slavefd, char *slavename, size_t slavenamesize, const struct termios *slave_termios, const struct winsize *slave_winsize)
 {
+	struct termios master_termios[1];
+
 #if defined(HAVE_OPENPTY) || defined(BSD4_4)
 
 	/* openpty(3) exists in OSF/1 and some other os'es */
@@ -479,11 +499,30 @@ int pty_open(int *masterfd, int *slavefd, char *slavename, size_t slavenamesize,
 
 	if (!found)
 		return set_errno(ENOENT);
+}
 
 #endif /* HAVE_DEV_PTS_AND_PTC */
 #endif /* HAVE_DEV_PTMX */
 #endif /* HAVE__GETPTY */
 #endif /* HAVE_OPENPTY */
+
+	/* The master's terminal may have echo on, turn it off */
+	/* But this returns EINVAL on Solaris-10 so let it fail */
+
+	if (tcgetattr(*masterfd, master_termios) != -1)
+	{
+		if (master_termios->c_lflag & ECHO)
+		{
+			master_termios->c_lflag &= ~ECHO;
+
+			if (tcsetattr(*masterfd, TCSANOW, master_termios) == -1)
+			{
+				close(*masterfd);
+				close(*slavefd);
+				return -1;
+			}
+		}
+	}
 
 	/* Set the slave's terminal attributes if requested */
 
@@ -723,7 +762,7 @@ pid_t pty_fork(int *masterfd, char *slavename, size_t slavenamesize, const struc
 	/*
 	** Note: we don't use forkpty() because it closes the master in the
 	** child process before making the slave the controlling terminal of the
-	** child proces and this can prevent the slave from becoming the
+	** child process and this can prevent the slave from becoming the
 	** controlling terminal (but I have no idea why).
 	*/
 
@@ -790,28 +829,28 @@ calls. See their manual pages.
 
 =over 4
 
-=item EINVAL
+=item C<EINVAL>
 
 Invalid arguments were passed to one of the functions.
 
-=item ENOTTY
+=item C<ENOTTY>
 
 I<openpty(3)> or I<open("/dev/ptc")> returned a slave descriptor for which
 I<ttyname(3)> failed to return the slave device name. I<open("/dev/ptmx")>
 returned a master descriptor for which I<ptsname(3)> failed to return the
-the slave device name.
+slave device name.
 
-=item ENOENT
+=item C<ENOENT>
 
 The old BSD-style pty device search failed to locate an available pseudo
 terminal.
 
-=item ENOSPC
+=item C<ENOSPC>
 
 The device name of the slave side of the pseudo terminal was too large to
 fit in the C<slavename> buffer passed to I<pty_open(3)> or I<pty_fork(3)>.
 
-=item ENXIO
+=item C<ENXIO>
 
 I<pty_make_controlling_tty(3)> failed to disconnect from the controlling
 terminal.
@@ -998,32 +1037,33 @@ A very simple pty program:
 
 =head1 SEE ALSO
 
-L<libslack(3)|libslack(3)>,
-L<openpty(3)|openpty(3)>,
-L<forkpty(3)|forkpty(3)>
-L<open(2)|open(2)>,
-L<close(2)|close(2)>,
-L<grantpt(3)|grantpt(3)>,
-L<unlockpt(3)|unlockpt(3)>,
-L<ioctl(2)|ioctl(2)>,
-L<ttyname(3)|ttyname(3)>,
-L<ttyname_r(3)|ttyname_r(3)>,
-L<ptsname(3)|ptsname(3)>,
-L<ptsname_r(3)|ptsname_r(3)>,
-L<setpgrp(2)|setpgrp(2)>,
-L<vhangup(2)|vhangup(2)>,
-L<setsid(2)|setsid(2)>,
-L<_getpty(2)|_getpty(2)>,
-L<chown(2)|chown(2)>,
-L<chmod(2)|chmod(2)>,
-L<tcsetattr(3)|tcsetattr(3)>,
-L<setpgrp(2)|setpgrp(2)>,
-L<fork(2)|fork(2)>,
-L<dup2(2)|dup2(2)>
+I<libslack(3)>,
+I<openpty(3)>,
+I<forkpty(3)>
+I<open(2)>,
+I<close(2)>,
+I<grantpt(3)>,
+I<unlockpt(3)>,
+I<ioctl(2)>,
+I<ttyname(3)>,
+I<ttyname_r(3)>,
+I<ptsname(3)>,
+I<ptsname_r(3)>,
+I<setpgrp(2)>,
+I<vhangup(2)>,
+I<setsid(2)>,
+I<_getpty(2)>,
+I<chown(2)>,
+I<chmod(2)>,
+I<tcsetattr(3)>,
+I<setpgrp(2)>,
+I<fork(2)>,
+I<dup2(2)>
 
 =head1 AUTHOR
 
-1995 Tatu Ylonen <ylo@cs.hut.fi>, 2001 raf <raf@raf.org>
+1995 Tatu Ylonen <ylo@cs.hut.fi>
+2001-2010 raf <raf@raf.org>
 
 =cut
 

@@ -1,7 +1,7 @@
 #
 # daemon - http://libslack.org/daemon/
 #
-# Copyright (C) 1999-2004 raf <raf@raf.org>
+# Copyright (C) 1999-2010 raf <raf@raf.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
 
-# 20040806 raf <raf@raf.org>
+# 20100612 raf <raf@raf.org>
 
 # Uncomment this to override the default value of 600 seconds
 # as the minimum amount of time that a client can live if it
@@ -36,8 +36,8 @@
 # DAEMON_DEFINES += -DNDEBUG
 
 DAEMON_NAME := daemon
-DAEMON_VERSION := 0.6.3
-DAEMON_DATE := 20040806
+DAEMON_VERSION := 0.6.4
+DAEMON_DATE := 20100612
 DAEMON_URL := http://libslack.org/daemon/
 DAEMON_ID := $(DAEMON_NAME)-$(DAEMON_VERSION)
 DAEMON_DIST := $(DAEMON_ID).tar.gz
@@ -50,10 +50,14 @@ DAEMON_DEFINES += -DDAEMON_URL=\"$(DAEMON_URL)\"
 
 # Uncomment this if your system has POSIX threads reader/writer locks.
 #
+DAEMON_DEFINES += -DHAVE_PTHREAD_RWLOCK=1
+
+# Uncomment these as appropriate
+#
 DAEMON_DEFINES += -DHAVE_SNPRINTF=1
 DAEMON_DEFINES += -DHAVE_VSSCANF=1
 DAEMON_DEFINES += -DHAVE_GETOPT_LONG=1
-DAEMON_DEFINES += -DHAVE_PTHREAD_RWLOCK=1
+# DAEMON_DEFINES += -DNO_POSIX_C_SOURCE=1
 # DAEMON_DEFINES += -DNO_POSIX_SOURCE=1
 # DAEMON_DEFINES += -DNO_XOPEN_SOURCE=1
 
@@ -98,6 +102,7 @@ DEB_TARGETS += deb-daemon
 SOL_TARGETS += sol-daemon
 OBSD_TARGETS += obsd-daemon
 FBSD_TARGETS += fbsd-daemon
+NBSD_TARGETS += nbsd-daemon
 OSX_TARGETS += osx-daemon
 
 CLEAN_FILES += $(DAEMON_OFILES) $(DAEMON_MANFILES) $(DAEMON_HTMLFILES) $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE)
@@ -108,6 +113,16 @@ DAEMON_RPM_FILES += $(patsubst %, $(APP_INSDIR)/%, $(notdir $(DAEMON_TARGET)))
 DAEMON_RPM_DOCFILES += $(patsubst %, $(APP_MANDIR)/%, $(notdir $(DAEMON_MANFILES)))
 DAEMON_RPM_DOCFILES += $(patsubst %, $(FMT_MANDIR)/%, $(notdir $(DAEMON_MANLINK)))
 DAEMON_SOL := RAFOdmn
+
+# Uncomment these on MacOSX to create universal binaries
+#
+# DAEMON_CCFLAGS += -arch x86_64 -arch i386 -arch ppc # -arch ppc64
+# DAEMON_LDFLAGS += -arch x86_64 -arch i386 -arch ppc # -arch ppc64
+
+# Uncomment these on 64-bit OpenSolaris or Solaris10 to compile for 64-bit
+#
+# DAEMON_CCFLAGS += -m64
+# DAEMON_LDFLAGS += -m64
 
 DAEMON_CPPFLAGS += $(DAEMON_DEFINES) $(patsubst %, -I%, $(DAEMON_INCDIRS))
 DAEMON_CCFLAGS += $(CCFLAGS)

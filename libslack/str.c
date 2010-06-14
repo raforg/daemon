@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2004 raf <raf@raf.org>
+* Copyright (C) 1999-2010 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,13 +18,13 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20040806 raf <raf@raf.org>
+* 20100612 raf <raf@raf.org>
 */
 
 /*
 * $OpenBSD: strlcpy.c,v 1.4 1999/05/01 18:56:41 millert Exp $
 * $OpenBSD: strlcat.c,v 1.5 2001/01/13 16:17:24 millert Exp $
-* Modified by raf <raf2@raf.org>
+* Modified by raf <raf@raf.org>
 *
 * Copyright (c) 1998 Todd C. Miller <Todd.Miller@courtesan.com>
 * All rights reserved.
@@ -298,7 +298,7 @@ I<libslack(str)> - string module
 
 This module provides text strings that grow and shrink automatically and
 functions for manipulating them. Some of the functions were modelled on the
-L<list(3)|list(3)> module. Others were modelled on the string functions and
+I<list(3)> module. Others were modelled on the string functions and
 operators in I<perlfunc(1)> and I<perlop(1)>. Others came from OpenBSD.
 
 =over 4
@@ -306,6 +306,18 @@ operators in I<perlfunc(1)> and I<perlop(1)>. Others came from OpenBSD.
 =cut
 
 */
+
+#ifndef _BSD_SOURCE
+#define _BSD_SOURCE /* For snprintf() on OpenBSD-4.7 */
+#endif
+
+#ifndef __BSD_VISIBLE
+#define __BSD_VISIBLE 1 /* For ntohl() on FreeBSD-8.0 */
+#endif
+
+#ifndef _NETBSD_SOURCE
+#define _NETBSD_SOURCE /* For ntohl() on NetBSD-5.0.2 */
+#endif
 
 #include "config.h"
 #include "std.h"
@@ -652,12 +664,17 @@ the new string will be synchronised by C<locker>.
 
 */
 
+#ifndef va_copy
+#define va_copy(dst, src) __va_copy((dst), (src))
+#endif
+
 String *str_vcreate_with_locker_sized(Locker *locker, size_t size, const char *format, va_list args)
 {
 	String *str;
 	char *buf = NULL;
 	ssize_t length;
 	unsigned int bit;
+	va_list args_copy;
 
 	for (bit = 1; bit; bit <<= 1)
 	{
@@ -682,7 +699,13 @@ String *str_vcreate_with_locker_sized(Locker *locker, size_t size, const char *f
 			return NULL;
 		}
 
+#ifdef va_copy
+		va_copy(args_copy, args);
+		length = vsnprintf(buf, size, format, args_copy);
+		va_end(args_copy);
+#else
 		length = vsnprintf(buf, size, format, args);
+#endif
 		if (length != -1 && length < size)
 			break;
 	}
@@ -827,7 +850,6 @@ String *str_fgetline_with_locker(Locker *locker, FILE *stream)
 	}
 
 	funlockfile(stream);
-
 	return ret;
 }
 
@@ -888,13 +910,13 @@ Claims a read lock on C<str> (if C<str> was created with a I<Locker>).
 Clients must call this before calling I<cstr(3)> (for the purpose of reading
 the raw string data) on a string that was created with a I<Locker>. It is
 the client's responsibility to call I<str_unlock(3)> when finished with the
-raw string data. It is also needed when multiple read only L<str(3)|str(3)>
-module functions need to be called atomically. It is the caller's
-responsbility to call I<str_unlock(3)> after the atomic operation. The only
-functions that may be called on C<str> between calls to I<str_rdlock(3)> and
-I<str_unlock(3)> are I<cstr(3)> and any read only L<str(3)|str(3)> module
-functions whose name ends with C<_unlocked>. On success, returns C<0>. On
-error, returns an error code.
+raw string data. It is also needed when multiple read only I<str(3)> module
+functions need to be called atomically. It is the caller's responsibility to
+call I<str_unlock(3)> after the atomic operation. The only functions that
+may be called on C<str> between calls to I<str_rdlock(3)> and
+I<str_unlock(3)> are I<cstr(3)> and any read only I<str(3)> module functions
+whose name ends with C<_unlocked>. On success, returns C<0>. On error,
+returns an error code.
 
 =cut
 
@@ -918,12 +940,12 @@ Clients need to call this before calling I<cstr(3)> (for the purpose of
 modifying the raw string data) on a string that was created with a
 I<Locker>. It is the client's responsibility to call I<str_unlock(3)> when
 finished with the raw string data. It is also needed when multiple
-read/write L<str(3)|str(3)> module functions need to be called atomically.
-It is the caller's responsbility to call I<str_unlock(3)> after the atomic
+read/write I<str(3)> module functions need to be called atomically. It is
+the caller's responsibility to call I<str_unlock(3)> after the atomic
 operation. The only functions that may be called on C<str> between calls to
-I<str_wrlock(3)> and I<str_unlock(3)> are I<cstr(3)> and any
-L<str(3)|str(3)> module functions whose name ends with C<_unlocked>. On
-success, returns C<0>. On error, returns an error code.
+I<str_wrlock(3)> and I<str_unlock(3)> are I<cstr(3)> and any I<str(3)>
+module functions whose name ends with C<_unlocked>. On success, returns
+C<0>. On error, returns an error code.
 
 =cut
 
@@ -3644,7 +3666,7 @@ string.
 B<Note:> I<str_fmt(3)> provides straightforward formatting completely
 lacking in any aesthetic sensibilities. If you need awesome paragraph
 formatting, pipe text through I<par(1)> instead (available from
-L<http://www.cs.berkeley.edu/~amc/Par/|http://www.cs.berkeley.edu/~amc/Par/>).
+C<http://www.cs.berkeley.edu/~amc/Par/>).
 
 =cut
 
@@ -4119,7 +4141,7 @@ List *split_with_locker(Locker *locker, const char *str, const char *delim)
 
 Splits C<str> into tokens separated by occurrences of the regular
 expression, C<delim>. C<str> is interpreted as a C<nul>-terminated C string.
-C<cflags> is passed to I<regcomp(3)> aling with C<REG_EXTENDED> and
+C<cflags> is passed to I<regcomp(3)> along with C<REG_EXTENDED> and
 C<eflags> is passed to I<regexec(3)>. On success, returns a new I<List> of
 I<String> objects. It is the caller's responsibility to deallocate the list
 with I<list_release(3)> or I<list_destroy(3)>. On error, returns C<null>
@@ -4989,7 +5011,7 @@ char *squeeze(char *str)
 =item C<String *str_quote(const String *str, const char *quotable, char quote_char)>
 
 Creates a new I<String> containing C<str> with every occurrence of any
-character in C<quotable> preceeded by C<quote_char>. On success, returns the
+character in C<quotable> preceded by C<quote_char>. On success, returns the
 new string. It is the caller's responsibility to deallocate the new string
 with I<str_release(3)> or I<str_destroy(3)>. On error, returns C<null> with
 C<errno> set appropriately.
@@ -6858,7 +6880,7 @@ On error, C<errno> is set either by an underlying function, or as follows:
 
 =over 4
 
-=item EINVAL
+=item C<EINVAL>
 
 When arguments to any of the functions are invalid.
 
@@ -7663,19 +7685,19 @@ to be decoupled from this code.
 
 =head1 SEE ALSO
 
-L<libslack(3)|libslack(3)>,
-L<locker(3)|locker(3)>,
-L<string(3)|string(3)>,
-L<regcomp(3)|regcomp(3)>,
-L<regexec(3)|regexec(3)>,
-L<regerror(3)|regerror(3)>,
-L<regfree(3)|regfree(3)>,
-L<perlfunc(1)|perlfunc(1)>,
-L<perlop(1)|perlop(1)>
+I<libslack(3)>,
+I<locker(3)>,
+I<string(3)>,
+I<regcomp(3)>,
+I<regexec(3)>,
+I<regerror(3)>,
+I<regfree(3)>,
+I<perlfunc(1)>,
+I<perlop(1)>
 
 =head1 AUTHOR
 
-20040806 raf <raf@raf.org>
+20100612 raf <raf@raf.org>
 
 =cut
 
@@ -8067,7 +8089,8 @@ int main(int ac, char **av)
 		++errors, printf("Test%d: %s failed\n", (i), (#action));
 
 #define TEST_EQ(i, action, eq) \
-	if (!((rc = (action)) == (eq))) \
+	rc = (action); \
+	if (!(rc == (eq))) \
 		++errors, printf("Test%d: %s failed: returned %x, not %x\n", (i), (#action), rc, (eq));
 
 #define TEST_NE(i, action, ne) \
@@ -8145,7 +8168,7 @@ int main(int ac, char **av)
 
 #define CHECK_LIST_LENGTH(i, action, list, len) \
 	if (list_length(list) != (len)) \
-		++errors, printf("Test%d: %s failed (length %d, not %d)\n", (i), #action, list_length(list), (len));
+		++errors, printf("Test%d: %s failed (length %d, not %d)\n", (i), #action, (int)list_length(list), (len));
 
 #define CHECK_LIST_ITEM(i, action, index, tok) \
 	if (list_item(list, index) && memcmp(cstr((String *)list_item(list, index)), tok, str_length((String *)list_item(list, index)) + 1)) \
@@ -8195,7 +8218,7 @@ int main(int ac, char **av)
 			else \
 			{ \
 				if (str_length(line) != length) \
-					++errors, printf("Test%d: str_fgetline() failed: length is %d, not %d\n", (test_num), str_length(line), (int)length); \
+					++errors, printf("Test%d: str_fgetline() failed: length is %d, not %d\n", (test_num), (int)str_length(line), (int)length); \
 				else \
 				{ \
 					for (i = 0; i < length - 1; ++i) \
@@ -8329,7 +8352,7 @@ int main(int ac, char **av)
 
 		if (str_length(a) != ((i + 1) * 1024))
 		{
-			++errors, printf("Test62: str_append(\"%%1024s\", \"\") failed: (on iteration %d) length %d, not %d\n", i, str_length(a), (i + 1) * 1024);
+			++errors, printf("Test62: str_append(\"%%1024s\", \"\") failed: (on iteration %d) length %d, not %d\n", i, (int)str_length(a), (i + 1) * 1024);
 			break;
 		}
 	}
@@ -8353,7 +8376,7 @@ int main(int ac, char **av)
 
 		if (str_length(a) != ((i + 1) * 1024))
 		{
-			++errors, printf("Test64: str_append(\"%%1024s\", \"\") failed: (on iteration %d) length %d, not %d\n", i, str_length(a), (i + 1) * 1024);
+			++errors, printf("Test64: str_append(\"%%1024s\", \"\") failed: (on iteration %d) length %d, not %d\n", i, (int)str_length(a), (i + 1) * 1024);
 			break;
 		}
 	}
@@ -8539,7 +8562,7 @@ int main(int ac, char **av)
 		"himself, though he had good reason to believe that the bag held\n"
 		"nothing but flaxen thread, or else the long rolls of strong linen\n"
 		"spun from that thread, was not quite sure that this trade of\n"
-		"weaving, indispensible though it was, could be carried on\n"
+		"weaving, indispensable though it was, could be carried on\n"
 		"entirely without the help of the Evil One.\n"
 	))
 
@@ -8557,7 +8580,7 @@ int main(int ac, char **av)
 	CHECK_LIST_ITEM(130, str_fmt(a, 70, ALIGN_LEFT), 9,  "abroad without that mysterious burden. The shepherd himself, though he")
 	CHECK_LIST_ITEM(130, str_fmt(a, 70, ALIGN_LEFT), 10, "had good reason to believe that the bag held nothing but flaxen")
 	CHECK_LIST_ITEM(130, str_fmt(a, 70, ALIGN_LEFT), 11, "thread, or else the long rolls of strong linen spun from that thread,")
-	CHECK_LIST_ITEM(130, str_fmt(a, 70, ALIGN_LEFT), 12, "was not quite sure that this trade of weaving, indispensible though it")
+	CHECK_LIST_ITEM(130, str_fmt(a, 70, ALIGN_LEFT), 12, "was not quite sure that this trade of weaving, indispensable though it")
 	CHECK_LIST_ITEM(130, str_fmt(a, 70, ALIGN_LEFT), 13, "was, could be carried on entirely without the help of the Evil One.")
 	list_destroy(&list);
 
@@ -8575,7 +8598,7 @@ int main(int ac, char **av)
 	CHECK_LIST_ITEM(131, str_fmt(a, 70, ALIGN_RIGHT), 9,  "abroad without that mysterious burden. The shepherd himself, though he")
 	CHECK_LIST_ITEM(131, str_fmt(a, 70, ALIGN_RIGHT), 10, "       had good reason to believe that the bag held nothing but flaxen")
 	CHECK_LIST_ITEM(131, str_fmt(a, 70, ALIGN_RIGHT), 11, " thread, or else the long rolls of strong linen spun from that thread,")
-	CHECK_LIST_ITEM(131, str_fmt(a, 70, ALIGN_RIGHT), 12, "was not quite sure that this trade of weaving, indispensible though it")
+	CHECK_LIST_ITEM(131, str_fmt(a, 70, ALIGN_RIGHT), 12, "was not quite sure that this trade of weaving, indispensable though it")
 	CHECK_LIST_ITEM(131, str_fmt(a, 70, ALIGN_RIGHT), 13, "   was, could be carried on entirely without the help of the Evil One.")
 	list_destroy(&list);
 
@@ -8595,7 +8618,7 @@ int main(int ac, char **av)
 	CHECK_LIST_ITEM(132, str_fmt(a, 70, ALIGN_CENTRE), 11, "   himself, though he had good reason to believe that the bag held")
 	CHECK_LIST_ITEM(132, str_fmt(a, 70, ALIGN_CENTRE), 12, "  nothing but flaxen thread, or else the long rolls of strong linen")
 	CHECK_LIST_ITEM(132, str_fmt(a, 70, ALIGN_CENTRE), 13, "     spun from that thread, was not quite sure that this trade of")
-	CHECK_LIST_ITEM(132, str_fmt(a, 70, ALIGN_CENTRE), 14, "      weaving, indispensible though it was, could be carried on")
+	CHECK_LIST_ITEM(132, str_fmt(a, 70, ALIGN_CENTRE), 14, "      weaving, indispensable though it was, could be carried on")
 	CHECK_LIST_ITEM(132, str_fmt(a, 70, ALIGN_CENTRE), 15, "              entirely without the help of the Evil One.")
 	list_destroy(&list);
 
@@ -8613,7 +8636,7 @@ int main(int ac, char **av)
 	CHECK_LIST_ITEM(133, str_fmt(a, 70, ALIGN_FULL), 9,  "abroad without that mysterious burden. The shepherd himself, though he")
 	CHECK_LIST_ITEM(133, str_fmt(a, 70, ALIGN_FULL), 10, "had good reason to believe  that  the  bag  held  nothing  but  flaxen")
 	CHECK_LIST_ITEM(133, str_fmt(a, 70, ALIGN_FULL), 11, "thread, or else the long rolls of strong linen spun from that  thread,")
-	CHECK_LIST_ITEM(133, str_fmt(a, 70, ALIGN_FULL), 12, "was not quite sure that this trade of weaving, indispensible though it")
+	CHECK_LIST_ITEM(133, str_fmt(a, 70, ALIGN_FULL), 12, "was not quite sure that this trade of weaving, indispensable though it")
 	CHECK_LIST_ITEM(133, str_fmt(a, 70, ALIGN_FULL), 13, "was, could be carried on entirely without the help of the Evil One.")
 	list_destroy(&list);
 	str_destroy(&a);
@@ -8864,7 +8887,7 @@ int main(int ac, char **av)
 	str_destroy(&a);
 
 #define TEST_FUNC(i, func, str, len, val) \
-	strcpy(tst, (str)); \
+	strlcpy(tst, (str), BUFSIZ); \
 	TEST_ACT((i), func(tst)) \
 	CHECK_CSTR((i), func(str), tst, len, val)
 
@@ -9116,7 +9139,7 @@ int main(int ac, char **av)
 	str_destroy(&a);
 
 #define TEST_FUNC_EQ(i, func, str, eq, len, val) \
-	strcpy(tst, (str)); \
+	strlcpy(tst, (str), BUFSIZ); \
 	TEST_EQ((i), func(tst), eq) \
 	CHECK_CSTR((i), func(str), tst, len, val)
 
@@ -9156,7 +9179,7 @@ int main(int ac, char **av)
 	str_destroy(&a);
 
 #define TEST_NUM(i, func, str, eq) \
-	strcpy(tst, str); \
+	strlcpy(tst, (str), BUFSIZ); \
 	TEST_EQ((i), func(tst), eq)
 
 	TEST_SNUM(450, str_bin, "010", 2)
@@ -9280,43 +9303,49 @@ int main(int ac, char **av)
 
 	/* Test cstrchr() */
 
-	TEST_ACT(522, cstrchr(t = "abcabc", 'a') == t + 0)
-	TEST_ACT(523, cstrchr(t = "abcabc", 'b') == t + 1)
-	TEST_ACT(524, cstrchr(t = "abcabc", 'c') == t + 2)
-	TEST_ACT(525, cstrchr(t = "abcabc", 'd') == t + 6)
-	TEST_ACT(526, cstrchr(t = "abcabc", 'e') == t + 6)
-	TEST_ACT(527, cstrchr(t = "abcabc", '\0') == t + 6)
+	t = "abcabc";
+	TEST_ACT(522, cstrchr(t, 'a') == t + 0)
+	TEST_ACT(523, cstrchr(t, 'b') == t + 1)
+	TEST_ACT(524, cstrchr(t, 'c') == t + 2)
+	TEST_ACT(525, cstrchr(t, 'd') == t + 6)
+	TEST_ACT(526, cstrchr(t, 'e') == t + 6)
+	TEST_ACT(527, cstrchr(t, '\0') == t + 6)
 
 	/* Test cstrpbrk() */
 
-	TEST_ACT(528, cstrpbrk(t = "abcdef", "abc") == t + 0)
-	TEST_ACT(529, cstrpbrk(t = "abcdef", "bcd") == t + 1)
-	TEST_ACT(530, cstrpbrk(t = "abcdef", "cde") == t + 2)
-	TEST_ACT(531, cstrpbrk(t = "abcdef", "def") == t + 3)
-	TEST_ACT(532, cstrpbrk(t = "abcdef", "efg") == t + 4)
-	TEST_ACT(533, cstrpbrk(t = "abcdef", "fgh") == t + 5)
-	TEST_ACT(534, cstrpbrk(t = "abcdef", "ghi") == t + 6)
-	TEST_ACT(535, cstrpbrk(t = "abcdef", "\0") == t + 6)
+	t = "abcdef";
+	TEST_ACT(528, cstrpbrk(t, "abc") == t + 0)
+	TEST_ACT(529, cstrpbrk(t, "bcd") == t + 1)
+	TEST_ACT(530, cstrpbrk(t, "cde") == t + 2)
+	TEST_ACT(531, cstrpbrk(t, "def") == t + 3)
+	TEST_ACT(532, cstrpbrk(t, "efg") == t + 4)
+	TEST_ACT(533, cstrpbrk(t, "fgh") == t + 5)
+	TEST_ACT(534, cstrpbrk(t, "ghi") == t + 6)
+	TEST_ACT(535, cstrpbrk(t, "\0") == t + 6)
 
 	/* Test cstrrchr() */
 
-	TEST_ACT(536, cstrrchr(t = "abcabc", 'a') == t + 3)
-	TEST_ACT(537, cstrrchr(t = "abcabc", 'b') == t + 4)
-	TEST_ACT(538, cstrrchr(t = "abcabc", 'c') == t + 5)
-	TEST_ACT(539, cstrrchr(t = "abcabc", 'd') == t + 6)
-	TEST_ACT(540, cstrrchr(t = "abcabc", 'e') == t + 6)
-	TEST_ACT(541, cstrrchr(t = "abcabc", '\0') == t + 6)
+	t = "abcabc";
+	TEST_ACT(536, cstrrchr(t, 'a') == t + 3)
+	TEST_ACT(537, cstrrchr(t, 'b') == t + 4)
+	TEST_ACT(538, cstrrchr(t, 'c') == t + 5)
+	TEST_ACT(539, cstrrchr(t, 'd') == t + 6)
+	TEST_ACT(540, cstrrchr(t, 'e') == t + 6)
+	TEST_ACT(541, cstrrchr(t, '\0') == t + 6)
 
 	/* Test cstrstr() */
 
-	TEST_ACT(542, cstrstr(t = "abcabc", "abc") == t + 0)
-	TEST_ACT(543, cstrstr(t = "abcabc", "bca") == t + 1)
-	TEST_ACT(544, cstrstr(t = "abcabc", "cab") == t + 2)
-	TEST_ACT(545, cstrstr(t = "abcabc", "def") == t + 6)
-	TEST_ACT(546, cstrstr(t = "abcabc", "ghi") == t + 6)
-	TEST_ACT(547, cstrstr(t = "abcabc", "\0") == t + 0)
-	TEST_ACT(548, cstrstr(t = "texttext", "text") == t + 0);
-	TEST_ACT(549, cstrstr(t = "exttext", "text") == t + 3);
+	t = "abcabc";
+	TEST_ACT(542, cstrstr(t, "abc") == t + 0)
+	TEST_ACT(543, cstrstr(t, "bca") == t + 1)
+	TEST_ACT(544, cstrstr(t, "cab") == t + 2)
+	TEST_ACT(545, cstrstr(t, "def") == t + 6)
+	TEST_ACT(546, cstrstr(t, "ghi") == t + 6)
+	TEST_ACT(547, cstrstr(t, "\0") == t + 0)
+	t = "texttext";
+	TEST_ACT(548, cstrstr(t, "text") == t + 0);
+	t = "exttext";
+	TEST_ACT(549, cstrstr(t, "text") == t + 3);
 
 	/* Test strings containing nuls and high bit characters */
 
@@ -9334,7 +9363,7 @@ int main(int ac, char **av)
 		++errors; \
 		printf("Test%d: str_split(\"", i); \
 		str_print(str, origlen); \
-		printf("\", \"%s\") failed (%d tokens, not %d)\n", delim, list_length(list), 4); \
+		printf("\", \"%s\") failed (%d tokens, not %d)\n", delim, (int)list_length(list), 4); \
 	} \
 	CHECK_SPLIT_ITEM(i, str_split, str, delim, 0, tok1) \
 	CHECK_SPLIT_ITEM(i, str_split, str, delim, 1, tok2) \

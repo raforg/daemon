@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-$^W = 1;
+use warnings;
 use strict;
 
 # Compares the contents of each module's header file against the synposis
@@ -94,6 +94,7 @@ for my $src (@ARGV)
 	my $first = 1;
 	for ($i = 0; $i <= $#src; ++$i)
 	{
+		$src[$i] =~ s/\((\w+)\)([^;])/$1$2/; # handle special case of avoiding cpp expansion
 		if ($src[$i] ne $hdr[$i])
 		{
 			print("$src != $hdr\n") if $first;

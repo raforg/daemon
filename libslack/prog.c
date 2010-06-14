@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2004 raf <raf@raf.org>
+* Copyright (C) 1999-2010 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20040806 raf <raf@raf.org>
+* 20100612 raf <raf@raf.org>
 */
 
 /*
@@ -41,6 +41,7 @@ I<libslack(prog)> - program framework module
     typedef void opt_action_string_t(const char *arg);
     typedef void opt_action_optional_string_t(const char *arg);
     typedef void opt_action_none_t(void);
+    typedef void func_t(void);
 
     enum OptionArgument
     {
@@ -69,6 +70,7 @@ I<libslack(prog)> - program framework module
         OptionArgument arg_type;
         OptionAction action;
         void *object;
+        func_t *function;
     };
 
     struct Options
@@ -164,8 +166,8 @@ options independently and link them together via C<parent> pointers.
 Option syntax is specified in much the same way as for I<GNU
 getopt_long(3)>. Option semantics are specified by an action
 (C<OPT_NOTHING>, C<OPT_VARIABLE> or C<OPT_FUNCTION>), an argument type
-(C<OPT_NONE>, C<OPT_INTEGER> or C<OPT_STRING>) and an object (C<int *>,
-C<char **>, C<func()>, C<func(int)> or C<func(char *)>).
+(C<OPT_NONE>, C<OPT_INTEGER> or C<OPT_STRING>) and either an object
+(C<int *>, C<char **>) or function (C<func()>, C<func(int)> or C<func(char *)>).
 
 The I<opt_process(3)> and I<opt_usage(3)> functions are used by the I<prog>
 functions and needn't be used directly. Instead, use I<prog_opt_process(3)>
@@ -179,6 +181,10 @@ module.
 =cut
 
 */
+
+#ifndef _BSD_SOURCE
+#define _BSD_SOURCE /* For snprintf() on OpenBSD-4.7 */
+#endif
 
 #include "config.h"
 #include "std.h"
@@ -565,7 +571,7 @@ sections of a program (at most 24). Debug messages with a section value
 whose bits overlap those of the program's current debug section and with a
 level that is less than or equal to the program's current debug level are
 emitted. As a convenience, if the program debug section is zero, debug
-messages with a sufficuently small level are emitted regardless of the
+messages with a sufficiently small level are emitted regardless of the
 message section. On success, returns the previous debug level. On error,
 returns C<-1> with C<errno> set appropriately.
 
@@ -623,9 +629,9 @@ ssize_t prog_set_verbosity_level(size_t verbosity_level)
 =item C<int prog_set_locker(Locker *locker)>
 
 Sets the locker (multiple thread synchronisation strategy) for this module.
-This is only needed in multi-threaded programs. See L<locker(3)|locker(3)>
-for details. On success, returns C<0>. On error, returns C<-1> with C<errno>
-set appropriately.
+This is only needed in multi-threaded programs. See I<locker(3)> for
+details. On success, returns C<0>. On error, returns C<-1> with C<errno> set
+appropriately.
 
 =cut
 
@@ -1719,24 +1725,24 @@ static Option prog_optab[] =
 {
 	{
 		"help", 'h', NULL, "Print a help message then exit",
-		no_argument, OPT_NONE, OPT_FUNCTION, (void *)prog_help_msg
+		no_argument, OPT_NONE, OPT_FUNCTION, NULL, (func_t *)prog_help_msg
 	},
 	{
 		"version", 'V', NULL, "Print a version message then exit",
-		no_argument, OPT_NONE, OPT_FUNCTION, (void *)prog_version_msg
+		no_argument, OPT_NONE, OPT_FUNCTION, NULL, (func_t *)prog_version_msg
 	},
 	{
 		"verbose", 'v', "level", "Set the verbosity level",
-		optional_argument, OPT_INTEGER, OPT_FUNCTION, (void *)handle_verbose_option
+		optional_argument, OPT_INTEGER, OPT_FUNCTION, NULL, (func_t *)handle_verbose_option
 	},
 #ifndef NDEBUG
 	{
 		"debug", 'd', "level", "Set the debugging level",
-		optional_argument, OPT_INTEGER, OPT_FUNCTION, (void *)handle_debug_option
+		optional_argument, OPT_INTEGER, OPT_FUNCTION, NULL, (func_t *)handle_debug_option
 	},
 #endif
 	{
-		NULL, nul, NULL, NULL, 0, 0, 0, NULL
+		NULL, nul, NULL, NULL, 0, 0, 0, NULL, NULL
 	}
 };
 
@@ -1948,9 +1954,9 @@ static void opt_action(Options *options, int rc, int longindex, const char *argu
 						int arg = int_arg(argument);
 
 						if (option->has_arg == required_argument)
-							((opt_action_int_t *)option->object)(arg);
+							((opt_action_int_t *)option->function)(arg);
 						else
-							((opt_action_optional_int_t *)option->object)(&arg);
+							((opt_action_optional_int_t *)option->function)(&arg);
 
 						break;
 					}
@@ -1971,7 +1977,7 @@ static void opt_action(Options *options, int rc, int longindex, const char *argu
 						break;
 
 					case OPT_FUNCTION:
-						((opt_action_string_t *)option->object)(argument);
+						((opt_action_string_t *)option->function)(argument);
 						break;
 				}
 
@@ -1993,9 +1999,9 @@ static void opt_action(Options *options, int rc, int longindex, const char *argu
 
 			case OPT_FUNCTION:
 				if (option->action == optional_argument)
-					((opt_action_optional_int_t *)option->object)(NULL);
+					((opt_action_optional_int_t *)option->function)(NULL);
 				else
-					((opt_action_none_t *)option->object)();
+					((opt_action_none_t *)option->function)();
 				break;
 		}
 	}
@@ -2011,28 +2017,28 @@ performed. On success, returns C<optind>. On error, returns C<-1> with
 C<errno> set appropriately.
 
 The following table shows the actions that are applied to an option's
-C<object> based on its C<has_arg>, C<arg_type> and C<arg_action> attributes
-and whether or not an argument is present.
+C<object> or C<function> based on its C<has_arg>, C<arg_type> and
+C<arg_action> attributes and whether or not an argument is present.
 
  has_arg           arg_type    arg_action   optarg action
  ~~~~~~~~~~~~~~~~~ ~~~~~~~~~~~ ~~~~~~~~~~~~ ~~~~~~ ~~~~~~
  required_argument OPT_INTEGER OPT_VARIABLE yes    *object = strtol(argument)
  required_argument OPT_STRING  OPT_VARIABLE yes    *object = argument
- required_argument OPT_INTEGER OPT_FUNCTION yes    object(strtol(argument))
- required_argument OPT_STRING  OPT_FUNCTION yes    object(argument)
+ required_argument OPT_INTEGER OPT_FUNCTION yes    fuction(strtol(argument))
+ required_argument OPT_STRING  OPT_FUNCTION yes    fuction(argument)
 
  optional_argument OPT_INTEGER OPT_VARIABLE yes    *object = strtol(argument)
  optional_argument OPT_STRING  OPT_VARIABLE yes    *object = argument
- optional_argument OPT_INTEGER OPT_FUNCTION yes    object(&strtol(argument))
- optional_argument OPT_STRING  OPT_FUNCTION yes    object(argument)
+ optional_argument OPT_INTEGER OPT_FUNCTION yes    fuction(&strtol(argument))
+ optional_argument OPT_STRING  OPT_FUNCTION yes    fuction(argument)
 
  optional_argument OPT_INTEGER OPT_VARIABLE no     ++*object
  optional_argument OPT_STRING  OPT_VARIABLE no     nothing
- optional_argument OPT_INTEGER OPT_FUNCTION no     object(NULL)
- optional_argument OPT_STRING  OPT_FUNCTION no     object(NULL)
+ optional_argument OPT_INTEGER OPT_FUNCTION no     fuction(NULL)
+ optional_argument OPT_STRING  OPT_FUNCTION no     fuction(NULL)
 
  no_argument       OPT_NONE    OPT_VARIABLE no     ++*object
- no_argument       OPT_NONE    OPT_FUNCTION no     object()
+ no_argument       OPT_NONE    OPT_FUNCTION no     fuction()
 
 Note that integer option arguments may be expressed in octal, decimal or
 hexadecimal. There may be leading whitespace but no trailing text of any
@@ -2108,7 +2114,7 @@ int opt_process(int argc, char **argv, Options *options, char *msgbuf, size_t bu
 Writes a usage message into C<buf> that displays the names, syntax and
 descriptions of all options in C<options>. C<options> is traversed depth
 first so the chunk with the C<null> C<parent> appears first. Each chunk of
-options is preceeded by a blank line. No more than C<size> bytes are
+options is preceded by a blank line. No more than C<size> bytes are
 written, including the terminating C<nul> character. The string returned
 will look like:
 
@@ -2265,7 +2271,7 @@ char *opt_usage(char *buf, size_t size, Options *options)
 
 				/* Add one line of description */
 
-				snprintf(help + help_length, BUFSIZ - help_length, "%*.*s\n", next - desc, next - desc, desc);
+				snprintf(help + help_length, BUFSIZ - help_length, "%*.*s\n", (int)(next - desc), (int)(next - desc), desc);
 				help_length = strlen(help);
 
 				/* Ignore any extra whitespace to the right */
@@ -2311,15 +2317,15 @@ On error, C<errno> is set either by an underlying function, or as follows:
 
 =over 4
 
-=item EINVAL
+=item C<EINVAL>
 
 Arguments are C<null> or invalid.
 
-=item EDOM
+=item C<EDOM>
 
 An integer option argument string failed to be parsed completely.
 
-=item ERANGE
+=item C<ERANGE>
 
 An integer option argument string was out of integer range. In this case,
 C<INT_MAX> or C<INT_MIN> is used.
@@ -2359,23 +2365,23 @@ The following program:
  {
      {
          "name", 'n', "name", "Provide a name",
-         required_argument, OPT_STRING, OPT_VARIABLE, &name
+         required_argument, OPT_STRING, OPT_VARIABLE, &name, NULL
      },
      {
          "minimum", 'm', "minval", "Ignore everything below minimum",
-         required_argument, OPT_INTEGER, OPT_VARIABLE, &minimum
+         required_argument, OPT_INTEGER, OPT_VARIABLE, &minimum, NULL
      },
      {
          "syslog", 's', "facility.priority", "Send client's output to syslog (defaults to local0.debug)",
-         optional_argument, OPT_STRING, OPT_FUNCTION, (void *)setup_syslog
+         optional_argument, OPT_STRING, OPT_FUNCTION, NULL, (func_t *)setup_syslog
      },
      {
          "reverse", 'r', NULL, "Reverse direction",
-         no_argument, OPT_NONE, OPT_VARIABLE, &reverse
+         no_argument, OPT_NONE, OPT_VARIABLE, &reverse, NULL
      },
      {
          "config", 'c', "path", "Specify the configuration file",
-         required_argument, OPT_STRING, OPT_FUNCTION, (void *)parse_config
+         required_argument, OPT_STRING, OPT_FUNCTION, NULL, (func_t *)parse_config
      },
      {
          NULL, '\0', NULL, NULL, 0, 0, 0, NULL
@@ -2392,7 +2398,7 @@ The following program:
      prog_set_syntax("[options] arg...");
      prog_set_options(options);
      prog_set_version("1.0");
-     prog_set_date("20040806");
+     prog_set_date("20100612");
      prog_set_author("raf <raf@raf.org>");
      prog_set_contact(prog_author());
      prog_set_url("http://libslack.org/");
@@ -2430,7 +2436,7 @@ will behave like:
 
  Name: example
  Version: 1.0
- Date: 20040806
+ Date: 20100612
  Author: raf <raf@raf.org>
  URL: http://libslack.org/
 
@@ -2462,17 +2468,17 @@ will behave like:
 
 =head1 SEE ALSO
 
-L<libslack(3)|libslack(3)>,
-L<getopt_long(3)|getopt_long(3)>,
-L<err(3)|err(3)>,
-L<msg(3)|msg(3)>,
-L<prop(3)|prop(3)>,
-L<sig(3)|sig(3)>,
-L<locker(3)|locker(3)>
+I<libslack(3)>,
+I<getopt_long(3)>,
+I<err(3)>,
+I<msg(3)>,
+I<prop(3)>,
+I<sig(3)>,
+I<locker(3)>
 
 =head1 AUTHOR
 
-20040806 raf <raf@raf.org>
+20100612 raf <raf@raf.org>
 
 =cut
 
@@ -2491,6 +2497,7 @@ int verify(int i, const char *name, const char *result, const char *prog_name, c
 	char result_buf[BUFSIZ];
 	int fd;
 	ssize_t bytes;
+	char *q;
 
 	if ((fd = open(name, O_RDONLY)) == -1)
 	{
@@ -2510,6 +2517,9 @@ int verify(int i, const char *name, const char *result, const char *prog_name, c
 	}
 
 	snprintf(result_buf, BUFSIZ, result, prog_name, prog_name);
+	/* Replace ` with ' as getopt seems to use either */
+	while ((q = strchr(buf, '`')))
+		*q = '\'';
 
 	if (strcmp(buf, result_buf))
 	{
@@ -2538,17 +2548,17 @@ void optstrfunc_j(const char *arg) { if (arg) optstrvar_j = arg; }
 
 static Option optab[] =
 {
-	{ "aaa", 'a', NULL,  "no-arg/var option", no_argument, OPT_NONE, OPT_VARIABLE, &intvar_a },
-	{ "bbb", 'b', NULL,  "no-arg/func option", no_argument, OPT_NONE, OPT_FUNCTION, (void *)nonefunc_b },
-	{ "ccc", nul, "int", "int-arg/var option", required_argument, OPT_INTEGER, OPT_VARIABLE, &intvar_c },
-	{ "ddd", 'd', "int", "int-arg/func option", required_argument, OPT_INTEGER, OPT_FUNCTION, (void *)intfunc_d },
-	{ "eee", 'e', "str", "str-arg/var option", required_argument, OPT_STRING, OPT_VARIABLE, &strvar_e },
-	{ "fff", nul, "str", "str-arg/func option", required_argument, OPT_STRING, OPT_FUNCTION, (void *)strfunc_f },
-	{ "ggg", 'g', "int", "opt-int-arg/var option", optional_argument, OPT_INTEGER, OPT_VARIABLE, &optintvar_g },
-	{ "hhh", 'h', "int", "opt-int-arg/func option", optional_argument, OPT_INTEGER, OPT_FUNCTION, (void *)optintfunc_h },
-	{ "iii", 'i', "str", "opt-str-arg/var option", optional_argument, OPT_STRING, OPT_VARIABLE, &optstrvar_i },
-	{ "jjj", 'j', "str", "opt-str-arg/func option with one of those really, really, really, long descriptions that goes on and on and even contains a really long url: http://www.zip.com.au/~joe/fairly/long/url/index.html would you believe? Here it is again! http://www.zip.com.au/~joe/fairly/long/url/index.html#just_kidding", optional_argument, OPT_STRING, OPT_FUNCTION, (void *)optstrfunc_j },
-	{ NULL, nul, NULL, NULL, 0, 0, 0, NULL }
+	{ "aaa", 'a', NULL,  "no-arg/var option", no_argument, OPT_NONE, OPT_VARIABLE, &intvar_a, NULL },
+	{ "bbb", 'b', NULL,  "no-arg/func option", no_argument, OPT_NONE, OPT_FUNCTION, NULL, (func_t *)nonefunc_b },
+	{ "ccc", nul, "int", "int-arg/var option", required_argument, OPT_INTEGER, OPT_VARIABLE, &intvar_c, NULL },
+	{ "ddd", 'd', "int", "int-arg/func option", required_argument, OPT_INTEGER, OPT_FUNCTION, NULL, (func_t *)intfunc_d },
+	{ "eee", 'e', "str", "str-arg/var option", required_argument, OPT_STRING, OPT_VARIABLE, &strvar_e, NULL },
+	{ "fff", nul, "str", "str-arg/func option", required_argument, OPT_STRING, OPT_FUNCTION, NULL, (func_t *)strfunc_f },
+	{ "ggg", 'g', "int", "opt-int-arg/var option", optional_argument, OPT_INTEGER, OPT_VARIABLE, &optintvar_g, NULL },
+	{ "hhh", 'h', "int", "opt-int-arg/func option", optional_argument, OPT_INTEGER, OPT_FUNCTION, NULL, (func_t *)optintfunc_h },
+	{ "iii", 'i', "str", "opt-str-arg/var option", optional_argument, OPT_STRING, OPT_VARIABLE, &optstrvar_i, NULL },
+	{ "jjj", 'j', "str", "opt-str-arg/func option with one of those really, really, really, long descriptions that goes on and on and even contains a really long url: http://www.zip.com.au/~joe/fairly/long/url/index.html would you believe? Here it is again! http://www.zip.com.au/~joe/fairly/long/url/index.html#just_kidding", optional_argument, OPT_STRING, OPT_FUNCTION, NULL, (func_t *)optstrfunc_j },
+	{ NULL, nul, NULL, NULL, 0, 0, 0, NULL, NULL }
 };
 
 static Options options[1] = {{ NULL, optab }};
@@ -2612,7 +2622,7 @@ int main(int ac, char **av)
 			"\n"
 			"Name: %s\n"
 			"Version: 1.0\n"
-			"Date: 20040806\n"
+			"Date: 20100612\n"
 			"Author: raf <raf@raf.org>\n"
 			"Vendor: A Software Vendor\n"
 			"URL: http://libslack.org/test/\n"
@@ -2641,7 +2651,7 @@ int main(int ac, char **av)
 			"",
 
 			/* stderr */
-			"%s: unrecognized option `--invalid'\n"
+			"%s: unrecognized option '--invalid'\n"
 			"usage: %s [options]\n"
 			"options:\n"
 			"\n"
@@ -2705,7 +2715,7 @@ int main(int ac, char **av)
 	prog_set_syntax("[options]");
 	prog_set_options(prog_options_table);
 	prog_set_version("1.0");
-	prog_set_date("20040806");
+	prog_set_date("20100612");
 	prog_set_author("raf <raf@raf.org>");
 	prog_set_contact("raf <raf@raf.org>");
 	prog_set_vendor("A Software Vendor");

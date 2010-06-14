@@ -1,7 +1,7 @@
 /*
 # libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2004 raf <raf@raf.org>
+* Copyright (C) 1999-2010 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20040806 raf <raf@raf.org>
+* 20100612 raf <raf@raf.org>
 */
 
 /*
@@ -112,7 +112,7 @@ This examples sorts and prints an array of strings.
 
 =head1 SEE ALSO
 
-L<qsort(3)|qsort(3)>
+I<qsort(3)>
 
 =head1 AUTHOR
 
@@ -163,7 +163,7 @@ static void swap
 	register char ctmp;
 
 	/*
-	 *  On machines with no alignment restrictions for int's,
+	 *  On machines with no alignment restrictions for ints,
 	 *  the following loop may improve performance if moving lots
 	 *  of data. It has been commented out for portability.
 

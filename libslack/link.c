@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2004 raf <raf@raf.org>
+* Copyright (C) 1999-2010 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20040806 raf <raf@raf.org>
+* 20100612 raf <raf@raf.org>
 */
 
 /*
@@ -554,11 +554,11 @@ The following errors are returned by these functions.
 
 =over 4
 
-=item EINVAL
+=item C<EINVAL>
 
 When C<null> pointers are incorrectly passed as arguments to most functions.
 
-=item ENOSPC
+=item C<ENOSPC>
 
 When I<slink_alloc(3)> or I<dlink_alloc(3)> is called and the free list is
 exhausted.
@@ -817,15 +817,15 @@ and more metadata. Again, it's probably not worth it.
 
 =head1 SEE ALSO
 
-L<libslack(3)|libslack(3)>,
-L<list(3)|list(3)>,
-L<map(3)|map(3)>,
-L<mem(3)|mem(3)>,
-L<locker(3)|locker(3)>
+I<libslack(3)>,
+I<list(3)>,
+I<map(3)>,
+I<mem(3)>,
+I<locker(3)>
 
 =head1 AUTHOR
 
-20040806 raf <raf@raf.org>
+20100612 raf <raf@raf.org>
 
 =cut
 

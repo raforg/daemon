@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2004 raf <raf@raf.org>
+* Copyright (C) 1999-2010 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20040806 raf <raf@raf.org>
+* 20100612 raf <raf@raf.org>
 */
 
 /*
@@ -122,6 +122,10 @@ size of 26,214,401 buckets.
 =cut
 
 */
+
+#ifndef _BSD_SOURCE
+#define _BSD_SOURCE /* For snprintf() on OpenBSD-4.7 */
+#endif
 
 #include "config.h"
 #include "std.h"
@@ -520,12 +524,12 @@ Map *map_create_generic_with_locker_sized(Locker *locker, size_t size, map_copy_
 =item C<int map_rdlock(const Map *map)>
 
 Claims a read lock on C<map> (if C<map> was created with a I<Locker>). This
-is needed when multiple read only L<map(3)|map(3)> module functions need to
-be called atomically. It is the client's responsibility to call
+is needed when multiple read only I<map(3)> module functions need to be
+called atomically. It is the client's responsibility to call
 I<map_unlock(3)> after the atomic operation. The only functions that may be
 called on C<map> between calls to I<map_rdlock(3)> and I<map_unlock(3)> are
-any read only L<map(3)|map(3)> module functions whose name ends with
-C<_unlocked>. On success, returns C<0>. On error, returns an error code.
+any read only I<map(3)> module functions whose name ends with C<_unlocked>.
+On success, returns C<0>. On error, returns an error code.
 
 =cut
 
@@ -545,12 +549,12 @@ int (map_rdlock)(const Map *map)
 =item C<int map_wrlock(const Map *map)>
 
 Claims a write lock on C<map> (if C<map> was created with a I<Locker>). This
-is needed when multiple read/write L<map(3)|map(3)> module functions need to
-be called atomically. It is the client's responsibility to subsequently call
+is needed when multiple read/write I<map(3)> module functions need to be
+called atomically. It is the client's responsibility to subsequently call
 I<map_unlock(3)>. The only functions that may be called on C<map> between
-calls to I<map_wrlock(3)> and I<map_unlock(3)> are any L<map(3)|map(3)>
-module functions whose name ends with C<_unlocked>. On success, returns
-C<0>. On error, returns an error code.
+calls to I<map_wrlock(3)> and I<map_unlock(3)> are any I<map(3)> module
+functions whose name ends with C<_unlocked>. On success, returns C<0>. On
+error, returns an error code.
 
 =cut
 
@@ -720,15 +724,15 @@ map_release_t *map_disown(Map *map)
 	int err;
 
 	if (!map)
-		return (map_release_t *)set_errnull(EINVAL);
+		return (map_release_t *)set_errnullf(EINVAL);
 
 	if ((err = map_wrlock(map)))
-		return (map_release_t *)set_errnull(err);
+		return (map_release_t *)set_errnullf(err);
 
 	ret = map_disown_unlocked(map);
 
 	if ((err = map_unlock(map)))
-		return (map_release_t *)set_errnull(err);
+		return (map_release_t *)set_errnullf(err);
 
 	return ret;
 }
@@ -750,7 +754,7 @@ map_release_t *map_disown_unlocked(Map *map)
 	map_release_t *destroy;
 
 	if (!map)
-		return (map_release_t *)set_errnull(EINVAL);
+		return (map_release_t *)set_errnullf(EINVAL);
 
 	if (!map->value_destroy)
 		return NULL;
@@ -2051,11 +2055,11 @@ On error, C<errno> is set either by an underlying function, or as follows:
 
 =over 4
 
-=item EINVAL
+=item C<EINVAL>
 
 When arguments are C<null> or out of range.
 
-=item ENOENT
+=item C<ENOENT>
 
 When I<map_get(3)> tries to get or I<map_remove(3)> tries to remove a
 non-existent mapping.
@@ -2115,7 +2119,7 @@ its values with the internal iterator to print the values:
         map_add(map, "ghi", "789");
 
         while (map_has_next(map) == 1)
-            printf("%s\n", map_next(map));
+            printf("%s\n", (char *)map_next(map));
 
         map_destroy(&map);
 
@@ -2150,7 +2154,7 @@ its items with an external iterator to print its keys and values:
         {
             const Mapping *mapping = mapper_next_mapping(mapper);
 
-            printf("%s -> %s\n", mapping_key(mapping), mapping_value(mapping));
+            printf("%s -> %s\n", (char *)mapping_key(mapping), (char *)mapping_value(mapping));
         }
 
         mapper_destroy(&mapper);
@@ -2242,14 +2246,14 @@ to be decoupled from this code.
 
 =head1 SEE ALSO
 
-L<libslack(3)|libslack(3)>,
-L<list(3)|list(3)>,
-L<mem(3)|mem(3)>,
-L<locker(3)|locker(3)>
+I<libslack(3)>,
+I<list(3)>,
+I<mem(3)>,
+I<locker(3)>
 
 =head1 AUTHOR
 
-20040806 raf <raf@raf.org>
+20100612 raf <raf@raf.org>
 
 =cut
 
@@ -2500,7 +2504,7 @@ void *produce(void *arg)
 		if (debug)
 			printf("p: add %d\n", i);
 
-		if (map_add(mtmap, (void *)i, (void *)i) == -1)
+		if (map_add(mtmap, (void *)(long)i, (void *)(long)i) == -1)
 			++errors, printf("Test%d: map_add(mtmap, %d), failed (%s)\n", test, i, strerror(errno));
 
 		write(size[WR], "", 1);
@@ -2524,7 +2528,7 @@ void *consume(void *arg)
 		while (read(size[RD], &ack, 1) == -1 && errno == EINTR)
 		{}
 
-		if (map_remove(mtmap, (void *)i) == -1)
+		if (map_remove(mtmap, (void *)(long)i) == -1)
 		{
 			++errors, printf("Test%d: map_remove(mtmap, %d), failed\n", test, i);
 			break;
@@ -2556,7 +2560,7 @@ void *iterate_builtin(void *arg)
 
 		while (map_has_next(mtmap) == 1)
 		{
-			int val = (int)map_next(mtmap);
+			int val = (int)(long)map_next(mtmap);
 
 			if (debug)
 				printf("i%d: loop %d/%d val %d\n", t, i, lim / 10, val);
@@ -2590,7 +2594,7 @@ void *iterate_rdlocked(void *arg)
 
 		while (mapper_has_next(mapper) == 1)
 		{
-			int val = (int)mapper_next(mapper);
+			int val = (int)(long)mapper_next(mapper);
 
 			if (debug)
 				printf("j%d: loop %d/%d val %d\n", t, i, lim / 10, val);
@@ -2617,7 +2621,7 @@ void *iterate_wrlocked(void *arg)
 
 		while (mapper_has_next(mapper) == 1)
 		{
-			int val = (int)mapper_next(mapper);
+			int val = (int)(long)mapper_next(mapper);
 
 			if (debug)
 				printf("k%d: loop %d/%d val %d\n", t, i, lim / 10, val);
@@ -2651,14 +2655,14 @@ void *reader(void *arg)
 
 		map_rdlock(mtmap);
 		key = 1 + (int)((double)(map_size_unlocked(mtmap) - 1) * r / (RAND_MAX + 1.0));
-		value = (int)map_get_unlocked(mtmap, (void *)key);
+		value = (int)(long)map_get_unlocked(mtmap, (void *)(long)key);
 		map_unlock(mtmap);
 
 		keys = map_keys(mtmap);
 		values = map_values(mtmap);
 
 		if (debug)
-			printf("r%d: loop %d/%d key/val %d/%d, #keys %d, #values %d\n", t, i, lim / 10, key, value, list_length(keys), list_length(values));
+			printf("r%d: loop %d/%d key/val %d/%d, #keys %d, #values %d\n", t, i, lim / 10, key, value, (int)list_length(keys), (int)list_length(values));
 
 		list_destroy(&keys);
 		list_destroy(&values);
@@ -2748,7 +2752,7 @@ void mt_test(int test, Locker *locker)
 
 #define CHECK_LIST(i, desc, list) \
 	if (list_length(list) != 4) \
-		++errors, printf("Test%d: %s failed (%d items, not 4)\n", (i), (desc), list_length(list)); \
+		++errors, printf("Test%d: %s failed (%d items, not 4)\n", (i), (desc), (int)list_length(list)); \
 	else \
 	{ \
 		TEST_ACT((i), list_sort((list), (list_cmp_t *)sort_cmp)); \
@@ -3099,31 +3103,31 @@ int main(int ac, char **av)
 		TEST_ACT(130, map_add(map, (void *)25, (void *)25) != 0)
 		TEST_EQ(130, map_size(map), 25)
 
-		TEST_EQ(131, (int)map_get(map, (void *)1), 1)
-		TEST_EQ(132, (int)map_get(map, (void *)2), 2)
-		TEST_EQ(133, (int)map_get(map, (void *)3), 3)
-		TEST_EQ(134, (int)map_get(map, (void *)4), 4)
-		TEST_EQ(135, (int)map_get(map, (void *)5), 5)
-		TEST_EQ(136, (int)map_get(map, (void *)6), 6)
-		TEST_EQ(137, (int)map_get(map, (void *)7), 7)
-		TEST_EQ(138, (int)map_get(map, (void *)8), 8)
-		TEST_EQ(139, (int)map_get(map, (void *)9), 9)
-		TEST_EQ(140, (int)map_get(map, (void *)10), 10)
-		TEST_EQ(141, (int)map_get(map, (void *)11), 11)
-		TEST_EQ(142, (int)map_get(map, (void *)12), 12)
-		TEST_EQ(143, (int)map_get(map, (void *)13), 13)
-		TEST_EQ(144, (int)map_get(map, (void *)14), 14)
-		TEST_EQ(145, (int)map_get(map, (void *)15), 15)
-		TEST_EQ(146, (int)map_get(map, (void *)16), 16)
-		TEST_EQ(147, (int)map_get(map, (void *)17), 17)
-		TEST_EQ(148, (int)map_get(map, (void *)18), 18)
-		TEST_EQ(149, (int)map_get(map, (void *)19), 19)
-		TEST_EQ(150, (int)map_get(map, (void *)20), 20)
-		TEST_EQ(151, (int)map_get(map, (void *)21), 21)
-		TEST_EQ(152, (int)map_get(map, (void *)22), 22)
-		TEST_EQ(153, (int)map_get(map, (void *)23), 23)
-		TEST_EQ(154, (int)map_get(map, (void *)24), 24)
-		TEST_EQ(155, (int)map_get(map, (void *)25), 25)
+		TEST_EQ(131, (int)(long)map_get(map, (void *)1), 1)
+		TEST_EQ(132, (int)(long)map_get(map, (void *)2), 2)
+		TEST_EQ(133, (int)(long)map_get(map, (void *)3), 3)
+		TEST_EQ(134, (int)(long)map_get(map, (void *)4), 4)
+		TEST_EQ(135, (int)(long)map_get(map, (void *)5), 5)
+		TEST_EQ(136, (int)(long)map_get(map, (void *)6), 6)
+		TEST_EQ(137, (int)(long)map_get(map, (void *)7), 7)
+		TEST_EQ(138, (int)(long)map_get(map, (void *)8), 8)
+		TEST_EQ(139, (int)(long)map_get(map, (void *)9), 9)
+		TEST_EQ(140, (int)(long)map_get(map, (void *)10), 10)
+		TEST_EQ(141, (int)(long)map_get(map, (void *)11), 11)
+		TEST_EQ(142, (int)(long)map_get(map, (void *)12), 12)
+		TEST_EQ(143, (int)(long)map_get(map, (void *)13), 13)
+		TEST_EQ(144, (int)(long)map_get(map, (void *)14), 14)
+		TEST_EQ(145, (int)(long)map_get(map, (void *)15), 15)
+		TEST_EQ(146, (int)(long)map_get(map, (void *)16), 16)
+		TEST_EQ(147, (int)(long)map_get(map, (void *)17), 17)
+		TEST_EQ(148, (int)(long)map_get(map, (void *)18), 18)
+		TEST_EQ(149, (int)(long)map_get(map, (void *)19), 19)
+		TEST_EQ(150, (int)(long)map_get(map, (void *)20), 20)
+		TEST_EQ(151, (int)(long)map_get(map, (void *)21), 21)
+		TEST_EQ(152, (int)(long)map_get(map, (void *)22), 22)
+		TEST_EQ(153, (int)(long)map_get(map, (void *)23), 23)
+		TEST_EQ(154, (int)(long)map_get(map, (void *)24), 24)
+		TEST_EQ(155, (int)(long)map_get(map, (void *)25), 25)
 		map_destroy(&map);
 	}
 

@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2004 raf <raf@raf.org>
+* Copyright (C) 1999-2010 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20040806 raf <raf@raf.org>
+* 20100612 raf <raf@raf.org>
 */
 
 /*
@@ -58,6 +58,7 @@ I<libslack(err)> - message/error/debug/verbosity/alert messaging module
     void valertsys(int priority, const char *format, va_list args);
     int set_errno(int errnum);
     void *set_errnull(int errnum);
+    void (*(set_errnullf)(int errnum))();
 
     #define debug(args)
     #define vdebug(args)
@@ -67,14 +68,14 @@ I<libslack(err)> - message/error/debug/verbosity/alert messaging module
 
 =head1 DESCRIPTION
 
-This module works with the L<prog(3)|prog(3)> and L<msg(3)|msg(3)> modules
-to provide functions for emitting various types of message with simple call
-syntax and flexible behaviour. The message types catered for are: normal,
-verbose, debug, error, fatal error, dump and alert messages. All messages
-are created and sent with I<printf(3)>-like syntax. The destinations for
-these messages are configurable by the client. Calling I<prog_init(3)>
-causes normal and verbose messages to be sent to standard output; debug,
-error, fatal error, dump and alert messages to be sent to standard error.
+This module works with the I<prog(3)> and I<msg(3)> modules to provide
+functions for emitting various types of message with simple call syntax and
+flexible behaviour. The message types catered for are: normal, verbose,
+debug, error, fatal error, dump and alert messages. All messages are created
+and sent with I<printf(3)>-like syntax. The destinations for these messages
+are configurable by the client. Calling I<prog_init(3)> causes normal and
+verbose messages to be sent to standard output; debug, error, fatal error,
+dump and alert messages to be sent to standard error.
 
 Calls to I<prog_set_out(3)>, I<prog_out_fd(3)>, I<prog_out_stdout(3)>,
 I<prog_out_file(3)>, I<prog_out_syslog(3)> and I<prog_out_none(3)> cause
@@ -98,14 +99,18 @@ destination.
 Calls to the generic functions I<prog_set_out(3)>, I<prog_set_err(3)>,
 I<prog_set_dbg(3)> and I<prog_set_alert(3)> cause their respective message
 types to be sent to the specified destination or destinations (multiplexing
-messages is only possible via these functions). See L<msg(3)|msg(3)> for
-more details.
+messages is only possible via these functions). See I<msg(3)> for more
+details.
 
 =over 4
 
 =cut
 
 */
+
+#ifndef _BSD_SOURCE
+#define _BSD_SOURCE /* For snprintf() on OpenBSD-4.7 */
+#endif
 
 #include "config.h"
 #include "std.h"
@@ -172,8 +177,8 @@ void vmsg(const char *format, va_list args)
 Outputs a verbose message to the program's normal message destination if
 C<level> is less than or equal to the program's current verbosity level. If
 the program's name has been supplied using I<prog_set_name(3)>, the message
-will be preceeded by the name, a colon and a space. The message is also
-preceeded by as many spaces as the message level. This indents messages
+will be preceded by the name, a colon and a space. The message is also
+preceded by as many spaces as the message level. This indents messages
 according to their verbosity. C<format> is a I<printf(3)>-like format string
 and processes any remaining arguments in the same way as I<printf(3)>. The
 message is followed by a newline.
@@ -232,8 +237,8 @@ debug level are emitted. As a convenience, if the program's current debug
 section is zero, debug messages with a sufficiently small level are emitted
 regardless of the message section. See I<prog_set_debug_level(3)> for
 examples. If the program's name has been supplied using I<prog_set_name(3)>,
-the message will be preceeded by the name, a colon and a space. The message
-is also preceeded by as many spaces as the debug level. This indents debug
+the message will be preceded by the name, a colon and a space. The message
+is also preceded by as many spaces as the debug level. This indents debug
 messages according to their debug level. C<format> is a I<printf(3)>-like
 format string and processes any remaining arguments in the same way as
 I<printf(3)>. The message is followed by a newline.
@@ -300,7 +305,7 @@ void vdebugf(size_t level, const char *format, va_list args)
 
 Outputs an error message to the program's error message destination. If the
 program's name has been supplied using I<prog_set_name(3)>, the message will
-be preceeded by the name, a colon and a space. C<format> is a
+be preceded by the name, a colon and a space. C<format> is a
 I<printf(3)>-like format string and processes any remaining arguments in the
 same way as I<printf(3)>. The message is followed by a newline. Returns -1.
 
@@ -348,11 +353,11 @@ int verror(const char *format, va_list args)
 
 Outputs an error message to the program's error message destination and then
 calls I<exit(3)> with a return code of C<EXIT_FAILURE>. If the program's
-name was supplied using I<prog_set_name(3)>, the message will be preceeded
-by the name, a colon and a space. This is followed by the string C<"fatal:
-">. C<format> is a I<printf(3)>-like format string and processes any
-remaining arguments in the same way as I<printf(3)>. The message is followed
-by a newline. B<Note:> Never use this in a library. Only an application can
+name was supplied using I<prog_set_name(3)>, the message will be preceded
+by the name, a colon and a space. This is followed by the string C<"fatal: ">.
+C<format> is a I<printf(3)>-like format string and processes any remaining
+arguments in the same way as I<printf(3)>. The message is followed by a
+newline. B<Note:> Never use this in a library. Only an application can
 decide which errors are fatal.
 
 =cut
@@ -392,7 +397,7 @@ void vfatal(const char *format, va_list args)
 
 Outputs an error message to the program's error message destination and then
 calls I<abort(3)>. If the program's name was supplied using
-I<prog_set_name(3)>, the message will be preceeded by the name, a colon and
+I<prog_set_name(3)>, the message will be preceded by the name, a colon and
 a space. This is followed by the string C<"dump: ">. C<format> is a
 I<printf(3)>-like format string and processes any remaining arguments in the
 same way as I<printf(3)>. The message is followed by a newline. B<Note:>
@@ -436,7 +441,7 @@ void vdump(const char *format, va_list args)
 
 Outputs an alert message of the given C<priority> to the program's alert
 message destination. If the program's name has been supplied using
-I<prog_set_name(3)>, the message will be preceeded by the name, a colon and
+I<prog_set_name(3)>, the message will be preceded by the name, a colon and
 a space. C<format> is a I<printf(3)>-like format string and processes any
 remaining arguments in the same way as I<printf(3)>. The message is followed
 by a newline. Note that this only works when the program's alert message
@@ -730,6 +735,24 @@ void *(set_errnull)(int errnum)
 
 /*
 
+=item C<void (*set_errnullf(int errnum))()>
+
+Sets C<errno> to C<errnum> and returns C<null> as a function pointer.
+This is useful because ISO C doesn't like casting normal pointers
+into function pointers.
+
+=cut
+
+*/
+
+void (*(set_errnullf)(int errnum))()
+{
+	errno = errnum;
+	return NULL;
+}
+
+/*
+
 =item C< #define debug(args)>
 
 Calls I<debugf(3)> unless C<NDEBUG> is defined. C<args> must be supplied
@@ -805,14 +828,14 @@ Send a range of messages to default locations:
 
 =head1 SEE ALSO
 
-L<libslack(3)|libslack(3)>,
-L<msg(3)|msg(3)>,
-L<prog(3)|prog(3)>,
-L<printf(3)|printf(3)>
+I<libslack(3)>,
+I<msg(3)>,
+I<prog(3)>,
+I<printf(3)>
 
 =head1 AUTHOR
 
-20040806 raf <raf@raf.org>
+20100612 raf <raf@raf.org>
 
 =cut
 
@@ -880,6 +903,7 @@ int main(int ac, char **av)
 	char buf[BUFSIZ];
 	int rci;
 	void *rcp;
+	void (*rcfp)();
 
 	const char *results[12] =
 	{
@@ -1255,7 +1279,7 @@ int main(int ac, char **av)
 	prog_dbg_none();
 	prog_alert_none();
 
-	/* Test set_errno() and set_errnull() */
+	/* Test set_errno() and set_errnull() and set_errnullf() */
 
 	errno = 0;
 	if ((rci = set_errno(EINVAL)) != -1)
@@ -1269,8 +1293,15 @@ int main(int ac, char **av)
 	else if (errno != EINVAL)
 		++errors, printf("Test16: set_errnull(EINVAL) failed (errno = %s, not %s)\n", strerror(errno), strerror(EINVAL));
 
+	errno = 0;
+	if ((rcfp = set_errnullf(EINVAL)) != NULL)
+		/* ++errors, printf("Test17: set_errnullf(EINVAL) failed (returned %p, not %p)\n", rcfp, (void *)NULL); */
+		++errors, printf("Test17: set_errnullf(EINVAL) failed (returned something other than null)\n");
+	else if (errno != EINVAL)
+		++errors, printf("Test17: set_errnullf(EINVAL) failed (errno = %s, not %s)\n", strerror(errno), strerror(EINVAL));
+
 	if (errors)
-		printf("%d/16 tests failed\n", errors);
+		printf("%d/17 tests failed\n", errors);
 	else
 		printf("All tests passed\n");
 

@@ -1,7 +1,7 @@
 #
 # libslack - http://libslack.org/
 #
-# Copyright (C) 1999-2004 raf <raf@raf.org>
+# Copyright (C) 1999-2010 raf <raf@raf.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
-# 20040806 raf <raf@raf.org>
+# 20100612 raf <raf@raf.org>
 
 ifneq ($(SLACK_TARGET),./$(SLACK_NAME))
 
@@ -60,8 +60,7 @@ install-slack-config: $(SLACK_CONFIG)
 	mkdir -p $(APP_INSDIR)
 	install -m 755 $(SLACK_CONFIG) $(APP_INSDIR)
 
-$(SLACK_CONFIG): $(SLACK_CONFIG).t
-	@perl -e ' \
+SLACK_CONFIG_CODE := perl -e ' \
 		my %arg = \
 		( \
 			URL       => "$(SLACK_URL)", \
@@ -79,7 +78,10 @@ $(SLACK_CONFIG): $(SLACK_CONFIG).t
 			s/\@\@$$arg\@\@/$$arg{$$arg}/g; \
 		} \
 		print; \
-	' < $< > $@
+	'
+
+$(SLACK_CONFIG): $(SLACK_CONFIG).t
+	@$(SLACK_CONFIG_CODE) < $< > $@
 
 install-slack-h:
 	mkdir -p $(HDR_INSDIR)/$(SLACK_NAME)
@@ -126,7 +128,7 @@ uninstall-slack-man:
 uninstall-slack-html:
 	@rm -f $(patsubst %, $(SLACK_HTMLDIR)/%, $(notdir $(SLACK_APP_HTMLFILES) $(SLACK_LIB_HTMLFILES)))
 
-.PHONY: dist-slack dist-html-slack rpm-slack deb-slack sol-slack obsd-slack fbsd-slack osx-slack
+.PHONY: dist-slack dist-html-slack rpm-slack deb-slack sol-slack obsd-slack fbsd-slack nbsd-slack osx-slack
 
 dist-slack: distclean
 	@set -e; \
@@ -154,26 +156,32 @@ dist-html-slack: html-slack
 	tar tzfv $$up/$(SLACK_HTML_DIST); \
 	ls -l $$up/$(SLACK_HTML_DIST)
 
-REDHAT := /usr/src/redhat
+#RPMDIR := /usr/src/redhat
+RPMDIR := $(HOME)/rpmbuild
 #RPMBUILD := rpm     # rpm 3.x
 RPMBUILD := rpmbuild # rpm 4.x
 
 rpm-slack: $(SLACK_SRCDIR)/libslack.spec
 	@set -e; \
 	up="`pwd`/.."; \
-	cp $$up/$(SLACK_DIST) $(REDHAT)/SOURCES; \
-	$(RPMBUILD) --buildroot "/tmp/$(SLACK_NAME)" -ba $(SLACK_SRCDIR)/libslack.spec; \
+	[ -d $(RPMDIR) ] || mkdir -p $(RPMDIR); \
+	[ -d $(RPMDIR)/BUILD ] || mkdir -p $(RPMDIR)/BUILD; \
+	[ -d $(RPMDIR)/BUILDROOT ] || mkdir -p $(RPMDIR)/BUILDROOT; \
+	[ -d $(RPMDIR)/RPMS ] || mkdir -p $(RPMDIR)/RPMS; \
+	[ -d $(RPMDIR)/SOURCES ] || mkdir -p $(RPMDIR)/SOURCES; \
+	[ -d $(RPMDIR)/SPECS ] || mkdir -p $(RPMDIR)/SPECS; \
+	[ -d $(RPMDIR)/SRPMS ] || mkdir -p $(RPMDIR)/SRPMS; \
+	cp $$up/$(SLACK_DIST) $(RPMDIR)/SOURCES; \
+	$(RPMBUILD) --buildroot "/tmp/$(SLACK_NAME)" -ba --target "`uname -m`" $(SLACK_SRCDIR)/libslack.spec; \
 	rm -rf $(SLACK_SRCDIR)/libslack.spec "/tmp/$(SLACK_NAME)"; \
-	mv $(REDHAT)/SRPMS/$(SLACK_ID)-*.src.rpm $$up; \
-	mv $(REDHAT)/RPMS/*/$(SLACK_ID)-*.*.rpm $$up; \
-	rm -rf $(REDHAT)/BUILD/$(SLACK_ID); \
-	rm -f $(REDHAT)/SOURCES/$(SLACK_DIST); \
-	rm -f $(REDHAT)/SPECS/libslack.spec; \
+	mv $(RPMDIR)/SRPMS/$(SLACK_ID)-*.src.rpm $$up; \
+	mv $(RPMDIR)/RPMS/*/$(SLACK_ID)-*.*.rpm $$up; \
+	rm -rf $(RPMDIR)/BUILD/$(SLACK_ID); \
+	rm -f $(RPMDIR)/SOURCES/$(SLACK_DIST); \
+	rm -f $(RPMDIR)/SPECS/libslack.spec; \
 	rpm -qlpv $$up/$(SLACK_ID)-*.*.rpm
 
-$(SLACK_SRCDIR)/libslack.spec:
-	@set -e; \
-	perl -ne ' \
+SLACK_SPEC_CODE := perl -ne ' \
 		next if /^~+$$/; \
 		chop($$section = $$_), next if /^[A-Z]+$$/; \
 		$$summary = $$_ if $$section eq "README" && /^\w/; \
@@ -187,7 +195,7 @@ $(SLACK_SRCDIR)/libslack.spec:
 			print "Group: Development/Libraries\n"; \
 			print "Source: $(SLACK_URL)download/$(SLACK_DIST)\n"; \
 			print "URL: $(SLACK_URL)\n"; \
-			print "Copyright: GPL\n"; \
+			print "License: GPL\n"; \
 			print "Prefix: $(PREFIX)\n"; \
 			print "%description\n"; \
 			print $$description; \
@@ -199,8 +207,11 @@ $(SLACK_SRCDIR)/libslack.spec:
 			print "make PREFIX=\"\$${RPM_BUILD_ROOT}$(PREFIX)\" FINAL_PREFIX=\"$(PREFIX)\" install-slack\n"; \
 			print "%files\n"; \
 			exit; \
-		} \
-	' < $(SLACK_SRCDIR)/README > $(SLACK_SRCDIR)/libslack.spec; \
+		}'
+
+$(SLACK_SRCDIR)/libslack.spec:
+	@set -e; \
+	$(SLACK_SPEC_CODE) < $(SLACK_SRCDIR)/README > $(SLACK_SRCDIR)/libslack.spec; \
 	for file in $(SLACK_RPM_FILES); do echo $$file >> $(SLACK_SRCDIR)/libslack.spec; done; \
 	for file in $(sort $(SLACK_RPM_DOCFILES)); do echo %doc $$file >> $(SLACK_SRCDIR)/libslack.spec; done
 
@@ -223,10 +234,7 @@ deb-slack: $(SLACK_SRCDIR)/libslack.control
 	dpkg --info $$up/lib$(SLACK_NAME)_$(SLACK_VERSION)_$$DEB_BUILD_ARCH.deb; \
 	dpkg --contents $$up/lib$(SLACK_NAME)_$(SLACK_VERSION)_$$DEB_BUILD_ARCH.deb
 
-$(SLACK_SRCDIR)/libslack.control:
-	@set -e; \
-	eval "`dpkg-architecture 2>/dev/null`"; \
-	perl -ne ' \
+SLACK_CONTROL_CODE := perl -ne ' \
 		next if /^~+$$/; \
 		chop($$section = $$_), next if /^[A-Z]+$$/; \
 		$$summary = $$_ if $$section eq "README" && /^\w/; \
@@ -244,8 +252,12 @@ $(SLACK_SRCDIR)/libslack.control:
 			print "Description: $$summary"; \
 			print $$description; \
 			exit; \
-		} \
-	' < $(SLACK_SRCDIR)/README > $(SLACK_SRCDIR)/libslack.control
+		}'
+
+$(SLACK_SRCDIR)/libslack.control:
+	@set -e; \
+	eval "`dpkg-architecture 2>/dev/null`"; \
+	$(SLACK_CONTROL_CODE) < $(SLACK_SRCDIR)/README > $(SLACK_SRCDIR)/libslack.control
 
 sol-slack: $(SLACK_SRCDIR)/libslack.pkginfo
 	@set -e; \
@@ -255,10 +267,10 @@ sol-slack: $(SLACK_SRCDIR)/libslack.pkginfo
 	mkdir -p $(SLACK_SRCDIR)/solaris/build; \
 	mkdir -p $(SLACK_SRCDIR)/solaris/info; \
 	cd $(SLACK_SRCDIR)/solaris/build; \
-	tar xzf $$up/$(SLACK_DIST); \
+	gzip -dc $$up/$(SLACK_DIST) | tar xf -; \
 	cd $(SLACK_ID); \
 	./config; \
-	make PREFIX=../../install FINAL_PREFIX="$(PREFIX)" all install-slack; \
+	gmake PREFIX=../../install FINAL_PREFIX="$(PREFIX)" all install-slack; \
 	cd "$$base"; \
 	mv $(SLACK_SRCDIR)/libslack.pkginfo $(SLACK_SRCDIR)/solaris/info/pkginfo; \
 	cd $(SLACK_SRCDIR)/solaris/install; \
@@ -268,15 +280,13 @@ sol-slack: $(SLACK_SRCDIR)/libslack.pkginfo
 	pkgmk -o -b ../install -r ../install $(SLACK_SOL); \
 	cd "$$base"; \
 	rm -rf $(SLACK_SRCDIR)/solaris; \
-	arch="`uname -m`"; \
+	arch="`isainfo -k`"; \
 	pkgtrans /var/spool/pkg $(SLACK_ID).$$arch.pkg $(SLACK_SOL); \
 	rm -rf /var/spool/pkg/$(SLACK_SOL); \
-	mv /var/spool/pkg/$(SLACK_ID).$$arch.pkg $$up; \
-	gzip $$up/$(SLACK_ID).$$arch.pkg
+	mv /var/spool/pkg/$(SLACK_ID).$$arch.pkg $$up/$(SLACK_ID)-solaris-$$arch.pkg; \
+	gzip $$up/$(SLACK_ID)-solaris-$$arch.pkg
 
-$(SLACK_SRCDIR)/libslack.pkginfo:
-	@set -e; \
-	perl -ne ' \
+SLACK_PKGINFO_CODE := perl -ne ' \
 		next if /^~+$$/; \
 		chop($$section = $$_), next if /^[A-Z]+$$/; \
 		chop($$description = $$_) if $$section eq "README" && /^\w/; \
@@ -288,8 +298,11 @@ $(SLACK_SRCDIR)/libslack.pkginfo:
 			print "CATEGORY=\"application\"\n"; \
 			print "BASEDIR=\"$(FINAL_PREFIX)\"\n"; \
 			exit; \
-		} \
-	' < $(SLACK_SRCDIR)/README > $(SLACK_SRCDIR)/libslack.pkginfo
+		}'
+
+$(SLACK_SRCDIR)/libslack.pkginfo:
+	@set -e; \
+	$(SLACK_PKGINFO_CODE) < $(SLACK_SRCDIR)/README > $(SLACK_SRCDIR)/libslack.pkginfo
 
 obsd-slack: $(SLACK_SRCDIR)/obsd-slack-oneline $(SLACK_SRCDIR)/obsd-slack-description
 	@set -e; \
@@ -300,21 +313,17 @@ obsd-slack: $(SLACK_SRCDIR)/obsd-slack-oneline $(SLACK_SRCDIR)/obsd-slack-descri
 	cd "$$base/obsd-$(SLACK_NAME)/build"; \
 	tar xzf "$$up/$(SLACK_DIST)"; \
 	cd ./$(SLACK_ID); \
-	conf/openbsd; \
-	make PREFIX=../../install FINAL_PREFIX="$(PREFIX)" all install-slack; \
+	./config; \
+	gmake PREFIX=../../install FINAL_PREFIX="$(PREFIX)" all install-slack; \
 	cd "$$base"; \
-	echo "@name $(SLACK_ID)" > $(SLACK_SRCDIR)/obsd-slack-packinglist; \
 	echo "@cwd $(PREFIX)" >> $(SLACK_SRCDIR)/obsd-slack-packinglist; \
-	echo "@src $$base/obsd-$(SLACK_NAME)/install" >> $(SLACK_SRCDIR)/obsd-slack-packinglist; \
 	for file in $(patsubst $(PREFIX)/%, %, $(sort $(SLACK_RPM_FILES) $(SLACK_RPM_DOCFILES))); do echo $$file >> $(SLACK_SRCDIR)/obsd-slack-packinglist; done; \
-	echo "@dirrm include/slack" >> $(SLACK_SRCDIR)/obsd-slack-packinglist; \
-	pkg_create -f $(SLACK_SRCDIR)/obsd-slack-packinglist -c $(SLACK_SRCDIR)/obsd-slack-oneline -d $(SLACK_SRCDIR)/obsd-slack-description -v $(SLACK_NAME); \
 	arch="`uname -m`"; \
-	mv $(SLACK_NAME).tgz "$$up/$(SLACK_ID)-obsd-$$arch.tar.gz"; \
+	pkg_create -A "$$arch" -f $(SLACK_SRCDIR)/obsd-slack-packinglist -D COMMENT="`cat $(SLACK_SRCDIR)/obsd-slack-oneline`" -d $(SLACK_SRCDIR)/obsd-slack-description -p / -v $(SLACK_ID).tgz; \
+	mv $(SLACK_ID).tgz "$$up/$(SLACK_ID)-openbsd-$$arch.tgz"; \
 	rm -rf "$$base/obsd-$(SLACK_NAME)" $(SLACK_SRCDIR)/obsd-slack-packinglist $(SLACK_SRCDIR)/obsd-slack-oneline $(SLACK_SRCDIR)/obsd-slack-description
 
-$(SLACK_SRCDIR)/obsd-slack-oneline:
-	@perl -ne ' \
+SLACK_OBSD_ONLINE_CODE := perl -ne ' \
 		next if /^~+$$/; \
 		chop($$section = $$_), next if /^[A-Z]+$$/; \
 		chop($$description = $$_) if $$section eq "README" && /^\w/; \
@@ -324,11 +333,12 @@ $(SLACK_SRCDIR)/obsd-slack-oneline:
 			$$desc =~ s/general //; \
 			print "$$desc\n"; \
 			exit; \
-		} \
-	' < $(SLACK_SRCDIR)/README > $(SLACK_SRCDIR)/obsd-slack-oneline
+		}'
 
-$(SLACK_SRCDIR)/obsd-slack-description:
-	@perl -ne ' \
+$(SLACK_SRCDIR)/obsd-slack-oneline:
+	@$(SLACK_OBSD_ONLINE_CODE) < $(SLACK_SRCDIR)/README > $(SLACK_SRCDIR)/obsd-slack-oneline
+
+SLACK_OBSD_DESCRIPTION_CODE := perl -ne ' \
 		next if /^~+$$/; \
 		chop($$section = $$_), next if /^[A-Z]+$$/; \
 		$$description .= $$_ if $$section eq "DESCRIPTION"; \
@@ -336,8 +346,10 @@ $(SLACK_SRCDIR)/obsd-slack-description:
 		{ \
 			print $$description; \
 			exit; \
-		} \
-	' < $(SLACK_SRCDIR)/README > $(SLACK_SRCDIR)/obsd-slack-description
+		}'
+
+$(SLACK_SRCDIR)/obsd-slack-description:
+	@$(SLACK_OBSD_DESCRIPTION_CODE) < $(SLACK_SRCDIR)/README > $(SLACK_SRCDIR)/obsd-slack-description
 
 fbsd-slack: $(SLACK_SRCDIR)/fbsd-slack-oneline $(SLACK_SRCDIR)/fbsd-slack-description
 	@set -e; \
@@ -348,8 +360,8 @@ fbsd-slack: $(SLACK_SRCDIR)/fbsd-slack-oneline $(SLACK_SRCDIR)/fbsd-slack-descri
 	cd "$$base/fbsd-$(SLACK_NAME)/build"; \
 	tar xzf "$$up/$(SLACK_DIST)"; \
 	cd ./$(SLACK_ID); \
-	conf/freebsd; \
-	make PREFIX=../../install FINAL_PREFIX="$(PREFIX)" all install-slack; \
+	./config; \
+	gmake PREFIX=../../install FINAL_PREFIX="$(PREFIX)" all install-slack; \
 	cd "$$base"; \
 	echo "@name $(SLACK_ID)" > $(SLACK_SRCDIR)/fbsd-slack-packinglist; \
 	echo "@cwd $(PREFIX)" >> $(SLACK_SRCDIR)/fbsd-slack-packinglist; \
@@ -358,11 +370,10 @@ fbsd-slack: $(SLACK_SRCDIR)/fbsd-slack-oneline $(SLACK_SRCDIR)/fbsd-slack-descri
 	echo "@dirrm include/slack" >> $(SLACK_SRCDIR)/fbsd-slack-packinglist; \
 	pkg_create -f $(SLACK_SRCDIR)/fbsd-slack-packinglist -c $(SLACK_SRCDIR)/fbsd-slack-oneline -d $(SLACK_SRCDIR)/fbsd-slack-description -v $(SLACK_NAME); \
 	arch="`uname -m`"; \
-	mv $(SLACK_NAME).tgz "$$up/$(SLACK_ID)-fbsd-$$arch.tar.gz"; \
+	mv $(SLACK_NAME).tbz "$$up/$(SLACK_ID)-freebsd-$$arch.tbz"; \
 	rm -rf "$$base/fbsd-$(SLACK_NAME)" $(SLACK_SRCDIR)/fbsd-slack-packinglist $(SLACK_SRCDIR)/fbsd-slack-oneline $(SLACK_SRCDIR)/fbsd-slack-description
 
-$(SLACK_SRCDIR)/fbsd-slack-oneline:
-	@perl -ne ' \
+SLACK_FBSD_ONELINE_CODE := perl -ne ' \
 		next if /^~+$$/; \
 		chop($$section = $$_), next if /^[A-Z]+$$/; \
 		chop($$description = $$_) if $$section eq "README" && /^\w/; \
@@ -372,11 +383,12 @@ $(SLACK_SRCDIR)/fbsd-slack-oneline:
 			$$desc =~ s/general //; \
 			print "$$desc\n"; \
 			exit; \
-		} \
-	' < $(SLACK_SRCDIR)/README > $(SLACK_SRCDIR)/fbsd-slack-oneline
+		}'
 
-$(SLACK_SRCDIR)/fbsd-slack-description:
-	@perl -ne ' \
+$(SLACK_SRCDIR)/fbsd-slack-oneline:
+	@$(SLACK_FBSD_ONELINE_CODE) < $(SLACK_SRCDIR)/README > $(SLACK_SRCDIR)/fbsd-slack-oneline
+
+SLACK_FBSD_DESCRIPTION_CODE := perl -ne ' \
 		next if /^~+$$/; \
 		chop($$section = $$_), next if /^[A-Z]+$$/; \
 		$$description .= $$_ if $$section eq "DESCRIPTION"; \
@@ -384,8 +396,64 @@ $(SLACK_SRCDIR)/fbsd-slack-description:
 		{ \
 			print $$description; \
 			exit; \
-		} \
-	' < $(SLACK_SRCDIR)/README > $(SLACK_SRCDIR)/fbsd-slack-description
+		}'
+
+$(SLACK_SRCDIR)/fbsd-slack-description:
+	@$(SLACK_FBSD_DESCRIPTION_CODE) < $(SLACK_SRCDIR)/README > $(SLACK_SRCDIR)/fbsd-slack-description
+
+nbsd-slack: $(SLACK_SRCDIR)/nbsd-slack-oneline $(SLACK_SRCDIR)/nbsd-slack-description $(SLACK_SRCDIR)/nbsd-slack-buildinfo
+	@set -e; \
+	base="`pwd`"; \
+	up="$$base/.."; \
+	mkdir -p "$$base/nbsd-$(SLACK_NAME)/build"; \
+	mkdir -p "$$base/nbsd-$(SLACK_NAME)/install"; \
+	cd "$$base/nbsd-$(SLACK_NAME)/build"; \
+	tar xzf "$$up/$(SLACK_DIST)"; \
+	cd ./$(SLACK_ID); \
+	./config; \
+	gmake PREFIX=../../install FINAL_PREFIX="$(PREFIX)" all install-slack; \
+	cd "$$base"; \
+	echo "@name $(SLACK_ID)" > $(SLACK_SRCDIR)/nbsd-slack-packinglist; \
+	echo "@cwd $(PREFIX)" >> $(SLACK_SRCDIR)/nbsd-slack-packinglist; \
+	echo "@src $$base/nbsd-$(SLACK_NAME)/install" >> $(SLACK_SRCDIR)/nbsd-slack-packinglist; \
+	for file in $(patsubst $(PREFIX)/%, %, $(sort $(SLACK_RPM_FILES) $(SLACK_RPM_DOCFILES))); do echo $$file >> $(SLACK_SRCDIR)/nbsd-slack-packinglist; done; \
+	pkg_create -f $(SLACK_SRCDIR)/nbsd-slack-packinglist -c $(SLACK_SRCDIR)/nbsd-slack-oneline -d $(SLACK_SRCDIR)/nbsd-slack-description -B $(SLACK_SRCDIR)/nbsd-slack-buildinfo -v $(SLACK_NAME); \
+	arch="`uname -m`"; \
+	mv $(SLACK_NAME).tgz "$$up/$(SLACK_ID)-netbsd-$$arch.tgz"; \
+	rm -rf "$$base/nbsd-$(SLACK_NAME)" $(SLACK_SRCDIR)/nbsd-slack-packinglist $(SLACK_SRCDIR)/nbsd-slack-oneline $(SLACK_SRCDIR)/nbsd-slack-description $(SLACK_SRCDIR)/nbsd-slack-buildinfo
+
+SLACK_NBSD_ONELINE_CODE := perl -ne ' \
+		next if /^~+$$/; \
+		chop($$section = $$_), next if /^[A-Z]+$$/; \
+		chop($$description = $$_) if $$section eq "README" && /^\w/; \
+		if ($$section ne "README") \
+		{ \
+			my ($$name, $$desc) = $$description =~ /^(\w+) - (.*)$$/; \
+			$$desc =~ s/general //; \
+			print "$$desc\n"; \
+			exit; \
+		}'
+
+$(SLACK_SRCDIR)/nbsd-slack-oneline:
+	@$(SLACK_NBSD_ONELINE_CODE) < $(SLACK_SRCDIR)/README > $(SLACK_SRCDIR)/nbsd-slack-oneline
+
+SLACK_NBSD_DESCRIPTION_CODE := perl -ne ' \
+		next if /^~+$$/; \
+		chop($$section = $$_), next if /^[A-Z]+$$/; \
+		$$description .= $$_ if $$section eq "DESCRIPTION"; \
+		if ($$section ne "README" && $$section ne "DESCRIPTION") \
+		{ \
+			print $$description; \
+			exit; \
+		}'
+
+$(SLACK_SRCDIR)/nbsd-slack-description:
+	@$(SLACK_NBSD_DESCRIPTION_CODE) < $(SLACK_SRCDIR)/README > $(SLACK_SRCDIR)/nbsd-slack-description
+
+$(SLACK_SRCDIR)/nbsd-slack-buildinfo:
+	@echo "MACHINE_ARCH=`uname -p`" > $(SLACK_SRCDIR)/nbsd-slack-buildinfo; \
+	echo "OPSYS=`uname -s`" >> $(SLACK_SRCDIR)/nbsd-slack-buildinfo; \
+	echo "OS_VERSION=`uname -r`" >> $(SLACK_SRCDIR)/nbsd-slack-buildinfo
 
 osx-slack:
 	@set -e; \
@@ -396,11 +464,11 @@ osx-slack:
 	cd "./osx-$(SLACK_NAME)/build"; \
 	tar xzf "$$up/$(SLACK_DIST)"; \
 	cd ./$(SLACK_ID); \
-	./conf/macosx; \
+	./config; \
 	make PREFIX=../../install FINAL_PREFIX="$(PREFIX)" all install-slack; \
 	cd ../../install; \
-	arch="`uname -p`"; \
-	tar czf "$$up/$(SLACK_ID)-osx-$$arch.tar.gz" .; \
+	arch="`uname -m`"; \
+	tar czf "$$up/$(SLACK_ID)-macosx-$$arch.tar.gz" .; \
 	cd "$$base"; \
 	rm -rf "$$base/osx-$(SLACK_NAME)"
 
@@ -438,6 +506,7 @@ help::
 	echo " sol-slack             -- makes a binary solaris pkg for libslack"; \
 	echo " obsd-slack            -- makes a binary openbsd pkg for libslack"; \
 	echo " fbsd-slack            -- makes a binary freebsd pkg for libslack"; \
+	echo " nbsd-slack            -- makes a binary netbsd pkg for libslack"; \
 	echo " osx-slack             -- makes a binary macosx pkg for libslack"; \
 	echo " slack.swig            -- makes a SWIG input file for libslack"; \
 	echo
@@ -523,21 +592,22 @@ $(SLACK_SRCDIR)/%.$(LIB_MANSECT).html: $(SLACK_SRCDIR)/%.pod
 $(SLACK_SRCDIR)/%.$(APP_MANSECT).html: $(SLACK_SRCDIR)/%.pod
 	$(POD2HTML) --noindex < $< > $@ 2>/dev/null
 
-$(SLACK_SWIGFILE): $(SLACK_HFILES)
-	@perl -e ' \
+SLACK_SWIGFILE_CODE := perl -e ' \
 		print "%module slack\n"; \
 		print "%{\n"; \
-		print "#include \"$(PREFIX)/include/slack/lib.h\"\n"; \
+		print "\#include \"$(PREFIX)/include/slack/lib.h\"\n"; \
 		print "%}\n\n"; \
 		for (split /\s+/, "$(SLACK_CLIENT_CFLAGS)") \
 		{ \
 			s/^-D//; s/=/ /; \
-			print "#define $$_\n"; \
+			print "\#define $$_\n"; \
 		} \
 		print "\n%import $(PREFIX)/include/slack/hdr.h\n\n"; \
 		for (@ARGV) \
 		{ \
 			print "%include $(PREFIX)/include/slack/$$_.h\n"; \
-		} \
-	' $(SLACK_MODULES) > $(SLACK_SWIGFILE)
+		}'
+
+$(SLACK_SWIGFILE): $(SLACK_HFILES)
+	@$(SLACK_SWIGFILE_CODE) $(SLACK_MODULES) > $(SLACK_SWIGFILE)
 

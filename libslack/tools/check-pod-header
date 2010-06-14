@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-$^W = 1;
+use warnings;
 use strict;
 
 # Compares the function prototypes in each module's header file against the

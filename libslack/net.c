@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2004 raf <raf@raf.org>
+* Copyright (C) 1999-2010 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20040806 raf <raf@raf.org>
+* 20100612 raf <raf@raf.org>
 */
 
 /*
@@ -142,9 +142,28 @@ descriptors via UNIX domain sockets from one process to another.
 
 */
 
-#define _BSD_SOURCE /* for gethostbyname_r() under Linux */
-
 #include "config.h"
+
+#ifndef NO_POSIX_SOURCE
+#define NO_POSIX_SOURCE /* For EINPROGRESS, EPROTONOSUPPORT, ETIMEDOUT on FreeBSD-8.0 */
+#endif
+
+#ifndef _BSD_SOURCE
+#define _BSD_SOURCE /* For gethostbyname_r() on Linux */
+#endif
+
+#ifndef __BSD_VISIBLE
+#define __BSD_VISIBLE 1 /* For htons(), htonl(), ntohl() on FreeBSD-8.0 */
+#endif
+
+#ifndef _NETBSD_SOURCE
+#define _NETBSD_SOURCE  /* So <netinet/ip.h> won't be broken on NetBSD-5.0.2 */
+#endif
+
+#ifndef _XOPEN_SOURCE_EXTENDED
+#define _XOPEN_SOURCE_EXTENDED 1  /* For msghdr.msg_control[len], CMSG_FIRSTHDR, CMSG_DATA on Solaris-10 10/09 and OpenSolaris 200906 */
+#endif
+
 #include "std.h"
 
 #include <sys/time.h>
@@ -153,7 +172,7 @@ descriptors via UNIX domain sockets from one process to another.
 #include <sys/uio.h>
 #include <netdb.h>
 #include <net/if.h>
-#define BSD_COMP /* for SIOCGIF... under Solaris */
+#define BSD_COMP /* for SIOCGIF... on Solaris */
 #include <sys/ioctl.h>
 #include <netinet/in_systm.h>
 #include <netinet/in.h> /* needed by <netinet/ip.h> under OpenBSD */
@@ -195,7 +214,7 @@ descriptors via UNIX domain sockets from one process to another.
 #define ifr_ifindex ifr_index
 #endif
 #ifndef HAVE_IFREQ_IFR_MTU
-#define ifr_mtu ifr_ifindex
+#define ifr_mtu ifr_ifindex /* ? */
 #endif
 
 struct rudp_t
@@ -421,7 +440,7 @@ static sockaddr_t *net_unaddr(sockaddr_un_t *un, size_t family, const char *path
 {
 	memset(un, 0, sizeof(sockaddr_un_t));
 	un->sun_family = family;
-	strcpy(un->sun_path, path);
+	strlcpy(un->sun_path, path, sizeof(un->sun_path));
 	return (sockaddr_t *)un;
 }
 
@@ -536,11 +555,15 @@ static sockport_t service_port(const char *service, int type, int port)
 static int is_multicast(sockaddr_t *address)
 {
 	sockaddr_any_t *addr = (sockaddr_any_t *)address;
+	long *longptr;
 
 	switch (addr->any.sa_family)
 	{
 		case AF_INET:
-			return IN_MULTICAST(ntohl(*(long *)&addr->in.sin_addr));
+			/*return IN_MULTICAST(ntohl(*(long *)&addr->in.sin_addr));*/
+			/* Avoid dereferencing type-punned pointer to avoid gcc warning */
+			longptr = (long *)&addr->in.sin_addr;
+			return IN_MULTICAST(ntohl(*longptr));
 
 #ifdef AF_INET6
 		case AF_INET6:
@@ -1011,7 +1034,7 @@ If C<addr> and C<addrsize> are not C<null>, the multicast group's address is
 stored in the buffer pointed to by C<addr>. C<*addrsize> specifies the size
 of the buffer pointed to by C<addr>. If there is insufficient space, the
 address is not stored in C<addr>. If C<addrsize> is not C<null>, the size of
-the addres is stored there.
+the address is stored there.
 
 If I<ifname> is not C<null>, it specifies the name of the interface on which
 to receive multicast packets. Otherwise, if C<ifindex> is not zero, it
@@ -2916,7 +2939,7 @@ C<format> can contain the following type specifiers:
     d   A double-precision float (length byte + text + nul)
     v   A short in "VAX" (little-endian) order (16 bits)
     w   An int in "VAX" (little-endian) order (32 bits)
-    p   A pointer (32 bits)
+    p   A pointer (32 or 64 bits)
     x   A nul byte
     X   Back up a byte
     @   Null fill to absolute position
@@ -3000,7 +3023,7 @@ as for I<vprintf(3)>.
 #define GET_COUNT() \
 	count = 1; \
 	if (*format == '*') \
-		++format, count = va_arg(args, size_t); \
+		++format, count = (size_t)va_arg(args, int); \
 	else if (isdigit((int)(unsigned int)*format)) \
 		for (count = 0; isdigit((int)(unsigned int)*format); ++format) \
 			count *= 10, count += *format - '0'; \
@@ -3023,7 +3046,11 @@ ssize_t vpack(void *buf, size_t size, const char *format, va_list args)
 
 	while (*format)
 	{
-		switch (*format++)
+		char f = *format++;
+		if (f == 'p' && sizeof(void *) == 8)
+			f = 'P';
+
+		switch (f)
 		{
 			case 'a': /* A string with arbitrary binary data */
 			{
@@ -3175,6 +3202,7 @@ ssize_t vpack(void *buf, size_t size, const char *format, va_list args)
 
 #ifdef HAVE_LONG_LONG
 			case 'l': /* A long (64 bits - only on some systems) */
+			case 'P': /* A pointer (64 bits) */
 			{
 				GET_COUNT()
 				CHECK_SPACE(count << 3)
@@ -3195,6 +3223,7 @@ ssize_t vpack(void *buf, size_t size, const char *format, va_list args)
 			}
 #else
 			case 'l': /* A long (64 bits - only on some systems) */
+			case 'P': /* A pointer (64 bits) */
 			{
 				return set_errno(ENOSYS);
 			}
@@ -3340,7 +3369,7 @@ directly as for I<vprintf(3)>.
 #define GET_COUNT_LIMIT() \
 	limit = count = 1; \
 	if (*format == '*') \
-		++format, limit = count = va_arg(args, size_t); \
+		++format, limit = count = (size_t)va_arg(args, int); \
 	else if (*format == '?') \
 	{ \
 		size_t *countp = va_arg(args, size_t *); \
@@ -3379,7 +3408,11 @@ ssize_t vunpack(void *buf, size_t size, const char *format, va_list args)
 
 	while (*format)
 	{
-		switch (*format++)
+		char f = *format++;
+		if (f == 'p' && sizeof(void *) == 8)
+			f = 'P';
+
+		switch (f)
 		{
 			case 'a': /* A string with arbitrary binary data */
 			{
@@ -3491,12 +3524,12 @@ ssize_t vunpack(void *buf, size_t size, const char *format, va_list args)
 				CHECK_SPACE(count << 2)
 				while (count--)
 				{
-					signed long *data = va_arg(args, signed long *);
+					signed int *data = va_arg(args, signed int *);
 					CHECK_SKIP(4, continue)
-					*data = (signed long)*p++ << 24;
-					*data |= (signed long)*p++ << 16;
-					*data |= (signed long)*p++ << 8;
-					*data |= (signed long)*p++;
+					*data = (signed int)*p++ << 24;
+					*data |= (signed int)*p++ << 16;
+					*data |= (signed int)*p++ << 8;
+					*data |= (signed int)*p++;
 				}
 
 				break;
@@ -3535,6 +3568,7 @@ ssize_t vunpack(void *buf, size_t size, const char *format, va_list args)
 
 #ifdef HAVE_LONG_LONG
 			case 'l': /* A long (64 bits - only on some systems) */
+			case 'P': /* A pointer (64 bits) */
 			{
 				GET_COUNT()
 				CHECK_SPACE(count << 3)
@@ -3555,7 +3589,8 @@ ssize_t vunpack(void *buf, size_t size, const char *format, va_list args)
 				break;
 			}
 #else
-			case 'l':
+			case 'l': /* A long (64 bits - only on some systems) */
+			case 'P': /* A pointer (64 bits) */
 			{
 				return set_errno(ENOSYS);
 			}
@@ -3864,6 +3899,9 @@ ssize_t sendfd(int sockfd, const void *buf, size_t nbytes, int flags, int fd)
 
 	struct cmsghdr *cmsg;
 
+	if (sockfd < 0 || fd < 0)
+		return set_errno(EINVAL);
+
 	mesg->msg_control = control.control;
 	mesg->msg_controllen = sizeof control.control;
 
@@ -3948,7 +3986,7 @@ ssize_t recvfd(int sockfd, void *buf, size_t nbytes, int flags, int *fd)
 
 #endif
 
-	if (!fd)
+	if (sockfd < 0 || !fd)
 		return set_errno(EINVAL);
 
 	mesg->msg_name = NULL;
@@ -4554,19 +4592,19 @@ calls. See their manual pages.
 
 =over 4
 
-=item ENOENT
+=item C<ENOENT>
 
 I<gethostbyname(3)> failed to identify the C<host> or C<interface> argument
 passed to one of the socket functions.
 
-=item ENOSYS
+=item C<ENOSYS>
 
 I<gethostbyname(3)> returned an address from an unsupported address family.
 
 The C<"l"> format was used with I<pack(3)> or I<unpack(3)> when the system
 doesn't support it or it wasn't compiled into I<libslack>.
 
-=item EINVAL
+=item C<EINVAL>
 
 A string argument is C<null>.
 
@@ -4595,7 +4633,7 @@ character.
 
 An unpack C<?> indirect count argument is C<null>.
 
-=item ENOSPC
+=item C<ENOSPC>
 
 A message was too large to be sent with I<net_send(3)>.
 
@@ -4604,11 +4642,11 @@ A packet was too small to store all of the data to be packed or unpacked.
 An unpack C<?> indirect count argument points to a number greater than the
 subsequent limit argument (not enough space in the target buffer).
 
-=item ETIMEDOUT
+=item C<ETIMEDOUT>
 
 I<net_expect(3)> or I<net_send(3)> timed out.
 
-=item EPROTO (or EPROTOTYPE on Mac OS X)
+=item C<EPROTO> (or C<EPROTOTYPE> on I<Mac OS X>)
 
 I<mail(3)> encountered an error in the dialogue with the SMTP server. This
 most likely cause of this is a missing or inadequate domain name for the
@@ -4656,7 +4694,7 @@ A TCP client:
     #include <slack/std.h>
     #include <slack/net.h>
 
-    void request_service(int fd) {} // Do aomething here
+    void request_service(int fd) {} // Do something here
     void process_response(int fd) {} // Do something here
 
     int main()
@@ -4951,33 +4989,33 @@ sockets.
 
 =head1 SEE ALSO
 
-L<libslack(3)|libslack(3)>,
-L<socket(2)|socket(2)>,
-L<bind(2)|bind(2)>,
-L<listen(2)|listen(2)>,
-L<accept(2)|accept(2)>,
-L<connect(2)|connect(2)>,
-L<shutdown(2)|shutdown(2)>,
-L<select(2)|select(2)>,
-L<read(2)|read(2)>,
-L<write(2)|write(2)>,
-L<readv(2)|readv(2)>,
-L<writev(2)|writev(2)>,
-L<close(2)|close(2)>,
-L<send(2)|send(2)>,
-L<sendto(2)|sendto(2)>,
-L<recv(2)|recv(2)>,
-L<recvfrom(2)|recvfrom(2)>,
-L<gethostbyname(3)|gethostbyname(3)>,
-L<getservbyname(3)|getservbyname(3)>,
-L<perlfunc(1)|perlfunc(1)>,
-L<fdopen(3)|fdopen(3)>,
-L<scanf(3)|scanf(3)>,
-L<printf(3)|printf(3)>
+I<libslack(3)>,
+I<socket(2)>,
+I<bind(2)>,
+I<listen(2)>,
+I<accept(2)>,
+I<connect(2)>,
+I<shutdown(2)>,
+I<select(2)>,
+I<read(2)>,
+I<write(2)>,
+I<readv(2)>,
+I<writev(2)>,
+I<close(2)>,
+I<send(2)>,
+I<sendto(2)>,
+I<recv(2)>,
+I<recvfrom(2)>,
+I<gethostbyname(3)>,
+I<getservbyname(3)>,
+I<perlfunc(1)>,
+I<fdopen(3)>,
+I<scanf(3)>,
+I<printf(3)>
 
 =head1 AUTHOR
 
-20040806 raf <raf@raf.org>
+20100612 raf <raf@raf.org>
 
 =cut
 
@@ -5184,7 +5222,7 @@ int main(int ac, char **av)
 		0x06, 0x31, 0x32, 0x2e, 0x33, 0x34, 0x00, 0x07, 0x2d, 0x31,
 		0x32, 0x2e, 0x33, 0x34, 0x00, 0x08, 0x31, 0x2e, 0x35, 0x65,
 		0x2b, 0x31, 0x30, 0x00, 0x09, 0x2d, 0x35, 0x2e, 0x31, 0x65,
-		0x2d, 0x31, 0x30, 0x00, 0x08, 0x06, 0x1e, 0xdf
+		0x2d, 0x31, 0x30, 0x00
 	};
 
 #ifdef HAVE_LONG_LONG
@@ -5480,22 +5518,13 @@ int main(int ac, char **av)
 	z = "hello world";
 	b = "001001001001001001";
 	h = "0123456789abcdef";
-	sc = -3;
-	uc = 3;
-	ss = -3;
-	us = 3;
-	si = -3;
-	uia = 3;
-	uib = 6;
-	sv1 = -3;
-	uv1 = 3;
-	sw1 = -3;
-	uw1 = 3;
+	sc = -3; uc = 3;
+	ss = -3; us = 3;
+	si = -3; uia = 3; uib = 6;
+	sv1 = -3; uv1 = 3;
+	sw1 = -3; uw1 = 3;
 	f = 43.21;
-	da = 12.34;
-	db = -12.34;
-	dc = 1.5e10;
-	dd = -5.1e-10;
+	da = 12.34; db = -12.34; dc = 1.5e10; dd = -5.1e-10;
 	p = a;
 
 	pkt_len = pack(pkt, 1024, format,
@@ -5515,7 +5544,7 @@ int main(int ac, char **av)
 	if (pkt_len == -1)
 		++errors, printf("Test45: pack(\"%s\") failed (%s)\n", format, strerror(errno));
 	else if (pkt_len != 1024)
-		++errors, printf("Test45: pack(\"%s\") failed (returned %d, not %d)\n", format, pkt_len, 1024);
+		++errors, printf("Test45: pack(\"%s\") failed (returned %d, not %d)\n", format, (int)pkt_len, 1024);
 	else
 	{
 		a2 = malloc(10);
@@ -5542,7 +5571,7 @@ int main(int ac, char **av)
 			if (pkt_len == -1)
 				++errors, printf("Test46: unpack(\"%s\") failed (%s)\n", format, strerror(errno));
 			else if (pkt_len != 1024)
-				++errors, printf("Test46: unpack(\"%s\") failed (returned %d, not %d)\n", format, pkt_len, 1024);
+				++errors, printf("Test46: unpack(\"%s\") failed (returned %d, not %d)\n", format, (int)pkt_len, 1024);
 			else
 			{
 				if (memcmp(a, a2, 10))
@@ -5618,7 +5647,7 @@ int main(int ac, char **av)
 			if (pkt_len == -1)
 				++errors, printf("Test68: unpack(\"%s\", NULL) failed (%s)\n", format, strerror(errno));
 			else if (pkt_len != 1024)
-				++errors, printf("Test68: unpack(\"%s\", NULL) failed (returned %d, not %d)\n", format, pkt_len, 1024);
+				++errors, printf("Test68: unpack(\"%s\", NULL) failed (returned %d, not %d)\n", format, (int)pkt_len, 1024);
 			else
 			{
 				if (strcmp(z, z2))
@@ -5651,7 +5680,7 @@ int main(int ac, char **av)
 
 		/* Test binary compatibility (ignoring the packed pointer) */
 
-		if (memcmp(pkt, pkt_cmp, 104) || memcmp(pkt + 108, pkt_cmp + 108, 1024 - 108))
+		if (memcmp(pkt, pkt_cmp, 104) || memcmp(pkt + 104 + sizeof(void *), pkt_cmp + 104 + sizeof(void *), 1024 - (104 + sizeof(void *))))
 		{
 			++errors, printf("Test78: pack(\"%s\") failed (packed data looks wrong)\n", format);
 			print_pkt("good packet", pkt_cmp, 1024);
@@ -5668,7 +5697,7 @@ int main(int ac, char **av)
 	if (pkt_len == -1)
 		++errors, printf("Test79: pack(\"l2\") failed (%s)\n", strerror(errno));
 	else if (pkt_len != 16)
-		++errors, printf("Test79: pack(\"l2\") failed (returned %d, not %d)\n", pkt_len, 16);
+		++errors, printf("Test79: pack(\"l2\") failed (returned %d, not %d)\n", (int)pkt_len, 16);
 	else
 	{
 		pkt_len = unpack(pkt, 16, "l2", &sl2, &ul2);
@@ -5676,7 +5705,7 @@ int main(int ac, char **av)
 		if (pkt_len == -1)
 			++errors, printf("Test80: unpack(\"l2\") failed (%s)\n", strerror(errno));
 		else if (pkt_len != 16)
-			++errors, printf("Test80: unpack(\"l2\") failed (returned %d, not %d)\n", pkt_len, 16);
+			++errors, printf("Test80: unpack(\"l2\") failed (returned %d, not %d)\n", (int)pkt_len, 16);
 		else
 		{
 			if (sl != sl2)
@@ -5703,14 +5732,14 @@ int main(int ac, char **av)
 	if (pkt_len == -1) \
 		++errors, printf("Test%d: pack(%d, \"%s\") failed (%s)\n", (i), (size), (format), strerror(errno)); \
 	else if ((size) && pkt_len != (size)) \
-		++errors, printf("Test%d: pack(%d, \"%s\") failed (size = %d, not %d)\n", (i), (size), (format), pkt_len, (size)); \
+		++errors, printf("Test%d: pack(%d, \"%s\") failed (size = %d, not %d)\n", (i), (size), (format), (int)pkt_len, (size)); \
 	else \
 	{ \
 		pkt_len = unpack(pkt, (size), (format), (data2ref)); \
 		if (pkt_len == -1) \
 			++errors, printf("Test%d: unpack(%d, \"%s\") failed (%s)\n", (i), (size), (format), strerror(errno)); \
 		else if ((size) && pkt_len != (size)) \
-			++errors, printf("Test%d: unpack(%d, \"%s\") failed (size = %d, not %d)\n", (i), (size), (format), pkt_len, (size)); \
+			++errors, printf("Test%d: unpack(%d, \"%s\") failed (size = %d, not %d)\n", (i), (size), (format), (int)pkt_len, (size)); \
 		else if (test) \
 		{ \
 			char a[128], b[128]; \
@@ -5775,14 +5804,14 @@ int main(int ac, char **av)
 	if (pkt_len == -1) \
 		++errors, printf("Test%d: pack(%d, \"%s\") failed (%s)\n", (i), (size), (pformat), strerror(errno)); \
 	else if ((size) && pkt_len != (size)) \
-		++errors, printf("Test%d: pack(%d, \"%s\") failed (size = %d, not %d)\n", (i), (size), (pformat), pkt_len, (size)); \
+		++errors, printf("Test%d: pack(%d, \"%s\") failed (size = %d, not %d)\n", (i), (size), (pformat), (int)pkt_len, (size)); \
 	else \
 	{ \
 		pkt_len = unpack(pkt, (size), (uformat), (len2ref), (len2ref), (len1), (data2)); \
 		if (pkt_len == -1) \
 			++errors, printf("Test%d: unpack(%d, \"%s\") failed (%s)\n", (i), (size), (uformat), strerror(errno)); \
 		else if ((size) && pkt_len != (size)) \
-			++errors, printf("Test%d: unpack(%d, \"%s\") failed (size = %d, not %d)\n", (i), (size), (uformat), pkt_len, (size)); \
+			++errors, printf("Test%d: unpack(%d, \"%s\") failed (size = %d, not %d)\n", (i), (size), (uformat), (int)pkt_len, (size)); \
 		else if (*(len2ref) != (len1)) \
 			++errors, printf("Test%d: unpack(%d, \"%s\") failed (unpacked length field = %d, not %d\n", (i), (size), (pformat), *(len2ref), (len1)); \
 		else if (memcmp((data1), (data2), (len1))) \
@@ -5807,7 +5836,7 @@ int main(int ac, char **av)
 #define TEST_FAILURE(i, test, error) \
 	pkt_len = test; \
 	if (pkt_len != -1) \
-		++errors, printf("Test%d: %s error failed (size %d, no error, not %s)\n", (i), #test, pkt_len, strerror(error)); \
+		++errors, printf("Test%d: %s error failed (size %d, no error, not %s)\n", (i), #test, (int)pkt_len, strerror(error)); \
 	else if (errno != error) \
 		++errors, printf("Test%d: %s error failed (%s, not %s)\n", (i), #test, strerror(errno), strerror(error));
 
@@ -6134,7 +6163,11 @@ int main(int ac, char **av)
 	TEST_FAILURE(406, unpack(pkt, 3, "p", &p), ENOSPC)
 	TEST_FAILURE(407, unpack(pkt, 4, "p2", &p, &p2), ENOSPC)
 	TEST_FAILURE(408, unpack(pkt, 5, "p*", 2, &p, &p2), ENOSPC)
+#ifndef HAVE_LONG_LONG
 	TEST_FAILURE(409, unpack(pkt, 4, "p?", &length, 1, &p), EINVAL)
+#else
+	TEST_FAILURE(409, unpack(pkt, 8, "p?", &length, 1, &p), EINVAL)
+#endif
 
 #ifdef HAVE_LONG_LONG
 	TEST_FAILURE(410, unpack(pkt, 1, "l0", &sl), EINVAL)
@@ -6353,7 +6386,7 @@ int main(int ac, char **av)
 				else
 				{
 					int neti;
-					char netz[4];
+					char netz[5];
 
 					if (net_pack(client, 5, 0, "iz4", 37, "HELO") == -1)
 						++errors, printf("Test508: net_pack(client, \"iz4\", 37, HELO) failed (%s)\n", strerror(errno));
@@ -6583,7 +6616,7 @@ int main(int ac, char **av)
 							else if (read_timeout(client, 5, 0) == -1 || (bytes = recvfrom(client, test, BUFSIZ, 0, &addr->any, (void *)&addrsize)) == -1)
 								++errors, printf("Test539: recvfrom(multicast) failed (%s)\n", strerror(errno));
 							else if (bytes != 5)
-								++errors, printf("Test540: recvfrom(multicast) failed (read %d bytes, not %d)\n", bytes, 5);
+								++errors, printf("Test540: recvfrom(multicast) failed (read %d bytes, not %d)\n", (int)bytes, 5);
 							else if (memcmp(test, "MCAST", 5))
 								++errors, printf("Test541: recvfrom(multicast) failed (recv \"%5.5s\", not \"%5.5s\")\n", test, "MCAST");
 							if (close(client) == -1)

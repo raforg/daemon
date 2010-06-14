@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2004 raf <raf@raf.org>
+* Copyright (C) 1999-2010 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20040806 raf <raf@raf.org>
+* 20100612 raf <raf@raf.org>
 */
 
 /*
@@ -101,8 +101,8 @@ is appropriate for each application on a case by case basis.
 
 I<MT-Disciplined> means that the application developer has a mechanism for
 specifying the synchronisation requirements to be applied to library code.
-For more details, see L<MT-Disciplined - decoupling thread safety
-(http://raf.org/papers/mt-disciplined.html)|http://raf.org/papers/mt-disciplined.html>.
+For more details, see I<MT-Disciplined - decoupling thread safety>
+(C<http://raf.org/papers/mt-disciplined.html>).
 
 This module also provides an implementation of readers/writer locks which
 are defined in recent standards but may not be on your system yet. The
@@ -892,7 +892,7 @@ On error, C<errno> is set either by an underlying function, or as follows:
 
 =over 4
 
-=item EINVAL
+=item C<EINVAL>
 
 Arguments are C<null> or invalid.
 
@@ -1024,12 +1024,12 @@ A non-locking example:
 
 =head1 SEE ALSO
 
-L<libslack(3)|libslack(3)>,
-L<http://raf.org/papers/mt-disciplined.html|http://raf.org/papers/mt-disciplined.html>
+I<libslack(3)>,
+C<http://raf.org/papers/mt-disciplined.html>
 
 =head1 AUTHOR
 
-20040806 raf <raf@raf.org>
+20100612 raf <raf@raf.org>
 
 =cut
 

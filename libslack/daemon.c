@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2004 raf <raf@raf.org>
+* Copyright (C) 1999-2010 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20040806 raf <raf@raf.org>
+* 20100612 raf <raf@raf.org>
 */
 
 /*
@@ -61,11 +61,24 @@ tedious. These functions perform these tasks for you.
 
 */
 
+#include "config.h"
+
+#ifndef NO_POSIX_SOURCE
+#define NO_POSIX_SOURCE /* For ELOOP on FreeBSD-8.0 */
+#endif
+
 #ifndef _BSD_SOURCE
 #define _BSD_SOURCE /* For setgroups(2) and S_ISLNK(2) on Linux */
 #endif
 
-#include "config.h"
+#ifndef __BSD_VISIBLE
+#define __BSD_VISIBLE 1 /* For setgroups(2) and initgroups(2) on FreeBSD-8.0 */
+#endif
+
+#ifndef _NETBSD_SOURCE
+#define _NETBSD_SOURCE /* For endpwent, endgrent, setgroups, initgroups, lstat, readlink on NetBSD-5.0.2 */
+#endif
+
 #include "std.h"
 
 #include <fcntl.h>
@@ -552,7 +565,7 @@ void *daemon_parse_config(const char *path, void *obj, daemon_config_parser_t *p
 			--end;
 
 		length = strlen(line);
-		rc = snprintf(line + length, BUFSIZ - length, "%*.*s", end - start, end - start, start);
+		rc = snprintf(line + length, BUFSIZ - length, "%*.*s", (int)(end - start), (int)(end - start), start);
 		if (rc == -1 || rc >= BUFSIZ - length)
 			return NULL;
 
@@ -572,10 +585,13 @@ void *daemon_parse_config(const char *path, void *obj, daemon_config_parser_t *p
 
 /*
 
-C<int daemon_construct_pidfile(const char *name, char **buf)>
+C<int daemon_construct_pidfile(const char *name, char **pidfile)>
 
-Constructs the pidfile for the given name in g.pidfile. On success, returns
-C<0>. On error, returns C<-1> with C<errno> set appropriately.
+Constructs the pidfile for the given C<name> in C<pidfile>. If C<name> is
+already an absolute path, it is just copied into the new buffer directly. On
+success, returns C<0> and the resulting buffer in C<pidfile> must be
+deallocated by the caller. On error, returns C<-1> with C<errno> set
+appropriately.
 
 */
 
@@ -617,7 +633,9 @@ C<errno> set appropriately.
 static int daemon_lock_pidfile(char *pidfile)
 {
 	mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+	struct stat statbuf_fd[1], statbuf_fs[1];
 	int pid_fd;
+	start:
 
 	/* This is broken over NFS (Linux). So pidfiles must reside locally. */
 
@@ -634,11 +652,66 @@ static int daemon_lock_pidfile(char *pidfile)
 		*/
 
 		if ((pid_fd = open(pidfile, O_RDWR)) == -1)
+		{
+			/*
+			** We couldn't open the file. That means that it existed
+			** a moment ago but has been since been deleted. Maybe if
+			** we try again now, it'll work (unless another process is
+			** about to re-create it before we do, that is).
+			*/
+
+			if (errno == ENOENT)
+				goto start;
+
 			return -1;
+		}
 	}
 
 	if (fcntl_lock(pid_fd, F_SETLK, F_WRLCK, SEEK_SET, 0, 0) == -1)
+	{
+		close(pid_fd);
 		return -1;
+	}
+
+	/*
+	** The pidfile may have been unlinked, after we opened, it by another daemon
+	** process that was dying between the last open() and the fcntl(). There's
+	** no use hanging on to a locked file that doesn't exist (and there's
+	** nothing to stop another daemon process from creating and locking a
+	** new instance of the file. So, if the pidfile has been deleted, we
+	** abandon this lock and start again. Note that it may have been deleted
+	** and subsequently re-created by yet another daemon process just starting
+	** up so check that that hasn't happened as well by comparing inode
+	** numbers. If it has, we also abandon this lock and start again.
+	*/
+
+	if (fstat(pid_fd, statbuf_fd) == -1)
+	{
+		/* This shouldn't happen */
+		close(pid_fd);
+		return -1;
+	}
+
+	if (stat(pidfile, statbuf_fs) == -1)
+	{
+		/* The pidfile has been unlinked so we start again */
+
+		if (errno == ENOENT)
+		{
+			close(pid_fd);
+			goto start;
+		}
+
+		close(pid_fd);
+		return -1;
+	}
+	else if (statbuf_fd->st_ino != statbuf_fs->st_ino)
+	{
+		/* The pidfile has been unlinked and re-created so we start again */
+
+		close(pid_fd);
+		goto start;
+	}
 
 	return pid_fd;
 }
@@ -700,15 +773,15 @@ static int daemon_pidfile_unlocked(const char *name)
 
 Creates a pid file for a daemon and locks it. The file has one line
 containing the process id of the daemon. The well-known locations for the
-file is defined in C<ROOT_PID_DIR> for root (by default, C<"/var/run"> on
-Linux and C<"/etc"> on Solaris) and C<USER_PID_DIR> for all other users
-(C<"/tmp"> by default). The name of the file is the name of the daemon
-(given by the name argument) followed by C<".pid"> (If I<name> is an
-absolute file path, it is used as is). The presence of this file will
-prevent two daemons with the same name from running at the same time. On
-success, returns C<0>. On error, returns C<-1> with C<errno> set
-appropriately. B<Note:> This is called by I<daemon_init(3)> so there is
-usually no need to call this function directly.
+file is defined in C<ROOT_PID_DIR> for root (C<"/var/run"> by default) and
+C<USER_PID_DIR> for all other users (C<"/tmp"> by default). The name of the
+file is the name of the daemon (given by the I<name> argument) followed by
+C<".pid"> (If I<name> is an absolute file path, it is used as is). The
+presence of this file will prevent two daemons with the same name from
+running at the same time. On success, returns C<0>. On error, returns C<-1>
+with C<errno> set appropriately. B<Note:> This is called by
+I<daemon_init(3)> so there is usually no need to call this function
+directly.
 
 =cut
 
@@ -788,8 +861,8 @@ invoked by I<inetd(8)>.
 If C<name> is non-null, create and lock a file containing the process id of
 the process. The presence of this locked file prevents two instances of a
 daemon with the same name from running at the same time. The default
-location of the pidfile is C</var/run> on Linux and C</etc> on Solaris for
-I<root> or C</tmp> for ordinary users.
+location of the pidfile is C</var/run> for I<root> or C</tmp> for ordinary
+users.
 
 =back
 
@@ -832,10 +905,10 @@ int daemon_init(const char *name)
 #ifndef NO_EXTRA_SVR4_FORK
 #ifdef SVR4
 		/*
-		** Ignore SIGHUP because when the sesson leader terminates (which is
+		** Ignore SIGHUP because when the session leader terminates (which is
 		** about to happen), all processes in the foreground process group
 		** are sent the SIGHUP signal (apparently). It is expected that
-		** client's will set their own SIGHUP handler after the call to
+		** clients will set their own SIGHUP handler after the call to
 		** daemon_init() if necessary.
 		*/
 
@@ -926,7 +999,7 @@ int daemon_init(const char *name)
 		/*
 		** This is only needed for very strange (hypothetical)
 		** POSIX implementations where STDIN_FILENO != 0 or
-		** STDOUT_FILE != 1 or STERR_FILENO != 2 (yeah, right).
+		** STDOUT_FILE != 1 or STDERR_FILENO != 2 (yeah, right).
 		*/
 
 		if (fd != STDIN_FILENO)
@@ -1011,7 +1084,7 @@ pid_t daemon_getpid(const char *name)
 	if (daemon_construct_pidfile(name, &pidfile) == -1)
 		return -1;
 
-	/* Open it and read it */
+	/* Open the pidfile */
 
 	pid_fd = open(pidfile, O_RDONLY);
 	mem_release(pidfile);
@@ -1019,10 +1092,13 @@ pid_t daemon_getpid(const char *name)
 	if (pid_fd == -1)
 		return -1;
 
-	if ((bytes = read(pid_fd, buf, BUFSIZ)) == -1)
-		return -1;
+	/* Read it */
 
+	bytes = read(pid_fd, buf, BUFSIZ);
 	close(pid_fd);
+
+	if (bytes == -1)
+		return -1;
 
 	if (sscanf(buf, "%d", &pid) != 1)
 		return -1;
@@ -1037,11 +1113,11 @@ pid_t daemon_getpid(const char *name)
 Checks whether or not a daemon with the given C<name> is running. If the
 daemon in question is owned by I<root>, then this function must be invoked
 by I<root>. Similarly, if the daemon in question is owned by an ordinary
-user, then this function must be invoked by an ordinary user. If C<name> is
-the absolute path to the pidfile (rather than just the daemon name), then
-any user may call this function. On success, returns C<1> if the daemon is
-running or C<0> if it is not. On error, returns C<-1> with C<errno> set
-appropriately.
+user, then this function must be invoked by an ordinary user. However, if
+C<name> is the absolute path to the pidfile (rather than just the daemon
+name), then any user may call this function. On success, returns C<1> if the
+daemon is running or C<0> if it is not. On error, returns C<-1> with
+C<errno> set appropriately.
 
 =cut
 
@@ -1062,25 +1138,37 @@ int daemon_is_running(const char *name)
 	if (daemon_construct_pidfile(name, &pidfile) == -1)
 		return -1;
 
-	/* Open it and lock it (if possible) */
+	/* Open the pidfile to see if it exists */
 
-	if ((pid_fd = daemon_lock_pidfile(pidfile)) == -1)
+	if ((pid_fd = open(pidfile, O_RDONLY)) == -1)
 	{
 		mem_release(pidfile);
 
-		/* Already locked - daemon is running */
+		if (errno != ENOENT)
+			return -1;
 
-		if (errno == EACCES || errno == EAGAIN)
-			return 1;
+		/* The pidfile doesn't exist, so the daemon probably isn't running */
 
-		return -1;
+		return 0;
 	}
 
-	/* Not locked - daemon is not running */
+	/* Is the pidfile write-locked? If so, the following will fail */
 
-	close(pid_fd);
-	unlink(pidfile);
+	if (fcntl_lock(pid_fd, F_SETLK, F_RDLCK, SEEK_SET, 0, 0) == -1)
+	{
+		mem_release(pidfile);
+		close(pid_fd);
+
+		if (errno != EACCES && errno != EAGAIN)
+			return -1;
+
+		return 1;
+	}
+
 	mem_release(pidfile);
+	close(pid_fd);
+
+	/* Not write-locked - daemon is not running */
 
 	return 0;
 }
@@ -1096,7 +1184,7 @@ an ordinary user, then this function must be invoked by that user. Note that
 I<root> can't use this function to stop a daemon started by another user
 just by passing the name of the daemon (because the pidfiles for I<root>
 daemons and user daemons are stored in different directories). In order for
-I<root> to stop an ordinary user's daemon process, I<name> has to be the
+I<root> to stop an ordinary user's daemon process, C<name> has to be the
 absolute path to the daemon's pidfile. On success, returns C<0>. On error,
 returns C<-1> with C<errno> set appropriately.
 
@@ -1181,20 +1269,20 @@ calls. See their manual pages.
 
 =over 4
 
-=item EINVAL
+=item C<EINVAL>
 
 An argument was invalid (e.g. C<null>).
 
-=item ENAMETOOLONG
+=item C<ENAMETOOLONG>
 
 The C<name> passed to I<daemon_init(3)> or I<daemon_path_is_safe(3)>
 resulted in a path name that is too long for the intended filesystem.
 
-=item ELOOP
+=item C<ELOOP>
 
 I<daemon_path_is_safe(3)> recursed too deeply (16 levels).
 
-=item I<ESRCH>
+=item C<ESRCH>
 
 I<daemon_stop(3)> found that there was no daemon running with the given
 name.
@@ -1207,8 +1295,8 @@ MT-Safe
 
 =head1 EXAMPLE
 
-This example reads and prints C</etc/services> with I<daemon_parse_config(3)>,
-becomes and daemon and then sends a I<syslog(3)> message and then terminates.
+This example reads and prints C</etc/fstab> with I<daemon_parse_config(3)>,
+becomes a daemon and then sends a I<syslog(3)> message and then terminates.
 
     #include <slack/lib.h>
 
@@ -1280,12 +1368,13 @@ I<libslack> is compiled). If anything calls I<open(2)> on a terminal device
 without the C<O_NOCTTY> flag, the process doing so will obtain a controlling
 terminal.
 
-Because I<root>'s pidfiles are created in a different directory (C</var/run>
-on Linux, C</etc> on Solaris) to those of ordinary users (C</tmp>), it is
-possible for I<root> and another user to use the same name for a daemon
-client. This shouldn't be a problem but if it is, recompile I<libslack> and
-relink I<daemon> so that all pidfiles are created in C</tmp> by defining
-C<ROOT_PID_DIR> and C<USER_PID_DIR> to both be C</tmp>.
+Because I<root>'s pidfiles are created in a different directory
+(C</var/run>) to those of ordinary users (C</tmp>), it is possible for
+I<root> and another user to use the same name for a daemon client. This
+shouldn't be a problem. It's probably desirable. But if it is a problem,
+recompile I<libslack> and relink I<daemon> so that all pidfiles are created
+in C</tmp> by defining C<ROOT_PID_DIR> and C<USER_PID_DIR> to both be
+C</tmp>.
 
 The exclusive creation and locking of the pidfile doesn't work correctly
 over NFS on Linux so pidfiles must reside locally.
@@ -1302,26 +1391,26 @@ general than just in daemons.
 
 =head1 SEE ALSO
 
-L<libslack(3)|libslack(3)>,
-L<daemon(1)|daemon(1)>,
-L<init(8)|init(8)>,
-L<inetd(8)|inetd(8)>,
-L<fork(2)|fork(2)>,
-L<umask(2)|umask(2)>,
-L<setsid(2)|setsid(2)>,
-L<chdir(2)|chdir(2)>,
-L<setrlimit(2)|setrlimit(2)>,
-L<setgid(2)|setgid(2)>,
-L<setuid(2)|setuid(2)>,
-L<setgroups(2)|setgroups(2)>,
-L<initgroups(3)|initgroups(3)>,
-L<endpwent(3)|endpwent(3)>,
-L<endgrent(3)|endgrent(3)>,
-L<kill(2)|kill(2))>
+I<libslack(3)>,
+I<daemon(1)>,
+I<init(8)>,
+I<inetd(8)>,
+I<fork(2)>,
+I<umask(2)>,
+I<setsid(2)>,
+I<chdir(2)>,
+I<setrlimit(2)>,
+I<setgid(2)>,
+I<setuid(2)>,
+I<setgroups(2)>,
+I<initgroups(3)>,
+I<endpwent(3)>,
+I<endgrent(3)>,
+I<kill(2))>
 
 =head1 AUTHOR
 
-20040806 raf <raf@raf.org>
+20100612 raf <raf@raf.org>
 
 =cut
 

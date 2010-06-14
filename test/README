@@ -274,7 +274,7 @@ test30
 This test shows what happens when the --attempts option is given without the
 --respawn option. It prints a usage message starting with:
 
-  Missing option: --respawn (required for --attemtps)
+  Missing option: --respawn (required for --attempts)
 
 test31
 ~~~~~~
@@ -401,7 +401,7 @@ the pidfile in the current directory is shown using ls(1).
 test49
 ~~~~~~
 This test shows what happens when the argument to the --pidfile option
-includes a non existent directory.
+includes a non-existent directory.
 
   Invalid --pidfile argument: '/i-am-not-a-directory/i-am-an-invalid-argument/test47.pid' (Parent directory does not exist)
 

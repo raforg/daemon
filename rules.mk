@@ -1,7 +1,7 @@
 
 # daemon - http://libslack.org/daemon/
 #
-# Copyright (C) 1999-2004 raf <raf@raf.org>
+# Copyright (C) 1999-2010 raf <raf@raf.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
 
-# 20040806 raf <raf@raf.org>
+# 20100612 raf <raf@raf.org>
 
 ifneq ($(DAEMON_TARGET),./$(DAEMON_NAME))
 
@@ -45,7 +45,7 @@ install-daemon: install-daemon-bin install-daemon-man
 install-daemon-bin:
 	mkdir -p $(APP_INSDIR)
 	install -m 755 $(DAEMON_TARGET) $(APP_INSDIR)
-	strip $(patsubst %, $(APP_INSDIR)/%, $(notdir $(DAEMON_TARGET)))
+	case "$$DEB_BUILD_OPTIONS" in *nostrip*);; *) strip $(patsubst %, $(APP_INSDIR)/%, $(notdir $(DAEMON_TARGET)));; esac
 
 install-daemon-man: man-daemon
 	@mkdir -p $(APP_MANDIR); \
@@ -79,7 +79,7 @@ uninstall-daemon-html:
 uninstall-daemon-conf:
 	@rm -f $(DAEMON_CONFDIR)/$(DAEMON_CONFFILE)
 
-.PHONY: dist-daemon dist-html-daemon rpm-daemon deb-daemon sol-daemon obsd-daemon fbsd-daemon osx-daemon
+.PHONY: dist-daemon dist-html-daemon rpm-daemon deb-daemon sol-daemon obsd-daemon fbsd-daemon nbsd-daemon osx-daemon
 
 dist-daemon: distclean
 	@set -e; \
@@ -107,26 +107,32 @@ dist-html-daemon: html-daemon
 	tar tzfv $$up/$(DAEMON_HTML_DIST); \
 	ls -l $$up/$(DAEMON_HTML_DIST)
 
-REDHAT := /usr/src/redhat
+#RPMDIR := /usr/src/redhat
+RPMDIR := $(HOME)/rpmbuild
 #RPMBUILD := rpm     # rpm 3.x
 RPMBUILD := rpmbuild # rpm 4.x
 
 rpm-daemon: $(DAEMON_SRCDIR)/daemon.spec
 	@set -e; \
 	up="`pwd`/.."; \
-	cp $$up/$(DAEMON_DIST) $(REDHAT)/SOURCES; \
-	$(RPMBUILD) --buildroot "/tmp/$(DAEMON_ID)" -ba $(DAEMON_SRCDIR)/daemon.spec; \
+	[ -d $(RPMDIR) ] || mkdir -p $(RPMDIR); \
+	[ -d $(RPMDIR)/BUILD ] || mkdir -p $(RPMDIR)/BUILD; \
+	[ -d $(RPMDIR)/BUILDROOT ] || mkdir -p $(RPMDIR)/BUILDROOT; \
+	[ -d $(RPMDIR)/RPMS ] || mkdir -p $(RPMDIR)/RPMS; \
+	[ -d $(RPMDIR)/SOURCES ] || mkdir -p $(RPMDIR)/SOURCES; \
+	[ -d $(RPMDIR)/SPECS ] || mkdir -p $(RPMDIR)/SPECS; \
+	[ -d $(RPMDIR)/SRPMS ] || mkdir -p $(RPMDIR)/SRPMS; \
+	cp $$up/$(DAEMON_DIST) $(RPMDIR)/SOURCES; \
+	$(RPMBUILD) --buildroot "/tmp/$(DAEMON_ID)" -ba --target "`uname -m`" $(DAEMON_SRCDIR)/daemon.spec; \
 	rm -rf $(DAEMON_SRCDIR)/daemon.spec "/tmp/$(DAEMON_ID)"; \
-	mv $(REDHAT)/SRPMS/$(DAEMON_ID)-*.src.rpm $$up; \
-	mv $(REDHAT)/RPMS/*/$(DAEMON_ID)-*.*.rpm $$up; \
-	rm -rf $(REDHAT)/BUILD/$(DAEMON_ID); \
-	rm -f $(REDHAT)/SOURCES/$(DAEMON_DIST); \
-	rm -f $(REDHAT)/SPECS/daemon.spec; \
+	mv $(RPMDIR)/SRPMS/$(DAEMON_ID)-*.src.rpm $$up; \
+	mv $(RPMDIR)/RPMS/*/$(DAEMON_ID)-*.*.rpm $$up; \
+	rm -rf $(RPMDIR)/BUILD/$(DAEMON_ID); \
+	rm -f $(RPMDIR)/SOURCES/$(DAEMON_DIST); \
+	rm -f $(RPMDIR)/SPECS/daemon.spec; \
 	rpm -qlpv $$up/$(DAEMON_ID)-*.*.rpm
 
-$(DAEMON_SRCDIR)/daemon.spec:
-	@set -e; \
-	perl -ne ' \
+DAEMON_SPEC_CODE := perl -ne ' \
 		next if /^~+$$/; \
 		chop($$section = $$_), next if /^[A-Z]+$$/; \
 		$$summary = $$_ if $$section eq "README" && /^\w/; \
@@ -140,7 +146,7 @@ $(DAEMON_SRCDIR)/daemon.spec:
 			print "Group: System Environment/Daemons\n"; \
 			print "Source: $(DAEMON_URL)download/$(DAEMON_DIST)\n"; \
 			print "URL: $(DAEMON_URL)\n"; \
-			print "Copyright: GPL\n"; \
+			print "License: GPL\n"; \
 			print "Prefix: $(PREFIX)\n"; \
 			print "%description\n"; \
 			print $$description; \
@@ -152,8 +158,11 @@ $(DAEMON_SRCDIR)/daemon.spec:
 			print "make PREFIX=\"\$${RPM_BUILD_ROOT}$(PREFIX)\" install-daemon\n"; \
 			print "%files\n"; \
 			exit; \
-		} \
-	' < $(DAEMON_SRCDIR)/README > $(DAEMON_SRCDIR)/daemon.spec; \
+		}'
+
+$(DAEMON_SRCDIR)/daemon.spec:
+	@set -e; \
+	$(DAEMON_SPEC_CODE) < $(DAEMON_SRCDIR)/README > $(DAEMON_SRCDIR)/daemon.spec; \
 	for file in $(DAEMON_RPM_FILES); do echo $$file >> $(DAEMON_SRCDIR)/daemon.spec; done; \
 	for file in $(sort $(DAEMON_RPM_DOCFILES)); do echo %doc $$file >> $(DAEMON_SRCDIR)/daemon.spec; done
 
@@ -170,7 +179,7 @@ deb-daemon: $(DAEMON_SRCDIR)/debian
 	case "`pwd`" in \
 		*/$(DAEMON_NAME)) \
 			cd ..; \
-			[ -d $(DAEMON_NAME)-$(DAEMON_VERSION) ] && exit 1; \
+			[ -d $(DAEMON_NAME)-$(DAEMON_VERSION) ] && echo "error: ../$(DAEMON_NAME)-$(DAEMON_VERSION) exists but we're not in it" && exit 1; \
 			mv $(DAEMON_NAME) $(DAEMON_NAME)-$(DAEMON_VERSION); \
 			cd $(DAEMON_NAME)-$(DAEMON_VERSION); \
 			DAEMON_RENAMED="yes";; \
@@ -183,29 +192,7 @@ deb-daemon: $(DAEMON_SRCDIR)/debian
 	dpkg --info ../$(DAEMON_NAME)_$(DAEMON_VERSION)-*_*.deb; \
 	dpkg --contents ../$(DAEMON_NAME)_$(DAEMON_VERSION)-*_*.deb
 
-$(DAEMON_SRCDIR)/debian:
-	@set -e; \
-	CDPATH=""; \
-	DAEMON_RENAMED=""; \
-	case "`pwd`" in \
-		*/$(DAEMON_NAME)) \
-			cd ..; \
-			[ -d $(DAEMON_NAME)-$(DAEMON_VERSION) ] && exit 1; \
-			mv $(DAEMON_NAME) $(DAEMON_NAME)-$(DAEMON_VERSION); \
-			cd $(DAEMON_NAME)-$(DAEMON_VERSION); \
-			DAEMON_RENAMED="yes"; \
-			;; \
-	esac; \
-	echo "Creating debian directory."; \
-	echo | dh_make -s -e raf@raf.org; \
-	[ "$$DAEMON_RENAMED" = "yes" ] && cd .. && mv $(DAEMON_NAME)-$(DAEMON_VERSION) $(DAEMON_NAME) && cd $(DAEMON_NAME); \
-	cd $(DAEMON_SRCDIR)/debian; \
-	echo "Cleaning up debian directory."; \
-	rm -f README.Debian dirs *.ex ex.*; \
-	echo "Creating debian/conffiles."; \
-	echo /etc/daemon.conf > conffiles; \
-	echo "Completing debian/control."; \
-	perl -p -i -e ' \
+DAEMON_DEBIAN_CONTROL_CODE := perl -p -i -e ' \
 		BEGIN { \
 			open(README, "../README") or die("failed to open ../README\n"); \
 			while (<README>) \
@@ -228,45 +215,76 @@ $(DAEMON_SRCDIR)/debian:
 			close(README); \
 		} \
 		s/^Section: unknown$$/Section: utils/; \
+		s/^(Build-Depends: .*)/$$1, perl/; \
+		s/^Homepage: <.*>$$/Homepage: http:\/\/libslack.org\/daemon\//; \
+		s/, \$${misc:Depends}//; \
 		s/^Description: <insert up to 60 chars description>$$/Description: $$summary/; \
-		s/^ <insert long description, indented with spaces>$$/$$description/; \
-		s/^Priority: optional$$/Priority: optional\nBuild-Depends: debhelper, perl/; \
-	' control; \
-	echo "Completing debian/copyright."; \
-	perl -p -i -e ' \
-		s/<fill in ftp site>/http:\/\/libslack.org\/daemon\//; \
+		s/^ <insert long description, indented with spaces>$$/$$description/'
+
+DAEMON_DEBIAN_COPYRIGHT_CODE := perl -p -i -e ' \
+		s/<url:\/\/example\.com>/<http:\/\/libslack.org\/daemon\/>/; \
 		s/Upstream Author\(s\):/Upstream Author:/; \
-		s/<put author\(s\) name and email here>/raf <raf\@raf.org>/; \
-		s/^Copyright:$$/Copyright (C) 1999-2004 raf <raf\@raf.org>/; \
-		s/<Must follow here>/This software is released under the terms of the GNU General Public License:\n\n    http:\/\/www.gnu.org\/copyleft\/gpl.html (on the Web)\n    file:\/usr\/share\/common-licenses\/GPL  (on Debian systems)\n/; \
-	' copyright; \
-	echo "Completing up debian/changelog."; \
+		s/<put author.s name and email here>/raf <raf\@raf.org>/; \
+		s/\s+<likewise for another author>//; \
+		s/<Copyright \(C\) YYYY Name OfAuthor>/Copyright (C) 1999-2010 raf <raf\@raf.org>/; \
+		s/<Put the license of the package here indented by 4 spaces>/This software is released under the terms of the GNU General Public License:\n\n    http:\/\/www.gnu.org\/copyleft\/gpl.html (on the Web)\n    file:\/usr\/share\/common-licenses\/GPL  (on Debian systems)\n/; \
+		s/\#.*//'
+
+DAEMON_DEBIAN_RULES_CODE := perl -p -i -e ' \
+		s/^\t(.*)\$$\(MAKE\) \S*clean$$/\t$$1\$$(MAKE) debian-clobber/; \
+		s/^\t\$$\(MAKE\)$$/\t\$$(MAKE) all daemon.conf man-daemon html-daemon/; \
+		s/^\t\$$\(MAKE\) .*install.*$$/\t\$$(MAKE) PREFIX=debian\/$(DAEMON_NAME)\/usr install-daemon-bin\n\t\$$(MAKE) PREFIX=debian\/$(DAEMON_NAME)\/usr\/share install-daemon-man\n\t\$$(MAKE) DAEMON_HTMLDIR=debian\/$(DAEMON_NAME)\/usr\/share\/doc\/daemon\/html install-daemon-html\n\t\$$(MAKE) DAEMON_CONFDIR=debian\/$(DAEMON_NAME)\/etc install-daemon-conf/; \
+		s/^\tdh_installexamples$$/\#\tdh_installexamples/; \
+		s/^\tdh_installmenu$$/\#\tdh_installmenu/; \
+		s/^\tdh_installcron$$/\#\tdh_installcron/; \
+		s/^\tdh_installman$$/\#\tdh_installman/; \
+		s/^\tdh_installinfo$$/\#\tdh_installinfo/; \
+		s/^\tdh_suidregister$$/\#\tdh_suidregister/; \
+		s/[ \t]+$$//;'
+
+$(DAEMON_SRCDIR)/debian:
+	@set -e; \
+	CDPATH=""; \
+	DAEMON_RENAMED=""; \
+	case "`pwd`" in \
+		*/$(DAEMON_NAME)) \
+			cd ..; \
+			[ -d $(DAEMON_NAME)-$(DAEMON_VERSION) ] && echo "error: ../$(DAEMON_NAME)-$(DAEMON_VERSION) exists but we're not in it" && exit 1; \
+			mv $(DAEMON_NAME) $(DAEMON_NAME)-$(DAEMON_VERSION); \
+			cd $(DAEMON_NAME)-$(DAEMON_VERSION); \
+			DAEMON_RENAMED="yes"; \
+			;; \
+	esac; \
+	echo "Creating debian directory."; \
+	dh_make -h | grep createorig >/dev/null && createorig=--createorig; \
+	echo | dh_make $$createorig -s -e raf@raf.org; \
+	[ "$$DAEMON_RENAMED" = "yes" ] && cd .. && mv $(DAEMON_NAME)-$(DAEMON_VERSION) $(DAEMON_NAME) && cd $(DAEMON_NAME); \
+	cd $(DAEMON_SRCDIR)/debian; \
+	echo "Cleaning up debian directory."; \
+	rm -f README.Debian README.source *.ex *.EX ex.*; \
+	echo "Creating debian/conffiles."; \
+	echo /etc/daemon.conf > conffiles; \
+	echo "Completing debian/control."; \
+	$(DAEMON_DEBIAN_CONTROL_CODE) control; \
+	echo "Completing debian/copyright."; \
+	$(DAEMON_DEBIAN_COPYRIGHT_CODE) copyright; \
+	echo "Completing debian/changelog."; \
 	perl -p -i -e 'last if /^Local variables:/' changelog; \
+	perl -p -i -e 's/ \(Closes.*//' changelog; \
 	perl -p -i -e 's/-1/-0/' changelog; \
 	echo "Creating debian/doc-base."; \
 	echo "Document: $(DAEMON_NAME)" > doc-base; \
 	echo "Title: $(DAEMON_NAME) manual" >> doc-base; \
 	echo "Author: raf <raf@raf.org>" >> doc-base; \
 	echo "Abstract: $(DAEMON_NAME)(1) - turns other processes into daemons" >> doc-base; \
-	echo "Section: Apps/Tools" >> doc-base; \
+	echo "Section: Applications/System" >> doc-base; \
 	echo "" >> doc-base; \
 	echo "Format: HTML" >> doc-base; \
 	echo "Index: /usr/share/doc/$(DAEMON_NAME)/html/" >> doc-base; \
 	echo "Files: /usr/share/doc/$(DAEMON_NAME)/html/*.html" >> doc-base; \
 	echo "" >> doc-base; \
 	echo "Completing debian/rules."; \
-	perl -p -i -e ' \
-		s/^\t-\$$\(MAKE\) clean$$/\t\-\$$(MAKE) debian-clobber/; \
-		s/^\t\$$\(MAKE\)$$/\t\$$(MAKE) all daemon.conf man-daemon html-daemon/; \
-		s/^\t\$$\(MAKE\) install .*$$/\t\$$(MAKE) PREFIX=debian\/$(DAEMON_NAME)\/usr install-daemon-bin\n\t\$$(MAKE) PREFIX=debian\/$(DAEMON_NAME)\/usr\/share install-daemon-man\n\t\$$(MAKE) DAEMON_HTMLDIR=debian\/$(DAEMON_NAME)\/usr\/share\/doc\/daemon\/html install-daemon-html\n\t\$$(MAKE) DAEMON_CONFDIR=debian\/$(DAEMON_NAME)\/etc install-daemon-conf/; \
-		s/^\tdh_installexamples$$/#\tdh_installexamples/; \
-		s/^\tdh_installmenu$$/#\tdh_installmenu/; \
-		s/^\tdh_installcron$$/#\tdh_installcron/; \
-		s/^\tdh_installman$$/#\tdh_installman/; \
-		s/^\tdh_installinfo$$/#\tdh_installinfo/; \
-		s/^\tdh_suidregister$$/#\tdh_suidregister/; \
-		s/[ \t]+$$//; \
-	' rules; \
+	$(DAEMON_DEBIAN_RULES_CODE) rules
 
 .PHONY: debian-clobber
 
@@ -288,10 +306,10 @@ sol-daemon: $(DAEMON_SRCDIR)/daemon.pkginfo
 	mkdir -p $(DAEMON_SRCDIR)/solaris/build; \
 	mkdir -p $(DAEMON_SRCDIR)/solaris/info; \
 	cd $(DAEMON_SRCDIR)/solaris/build; \
-	tar xzf $$up/$(DAEMON_DIST); \
+	gzip -dc $$up/$(DAEMON_DIST) | tar xf -; \
 	cd $(DAEMON_ID); \
 	./config; \
-	make PREFIX=../../install FINAL_PREFIX="$(PREFIX)" all install-daemon; \
+	gmake PREFIX=../../install FINAL_PREFIX="$(PREFIX)" all install-daemon; \
 	cd "$$base"; \
 	mv $(DAEMON_SRCDIR)/daemon.pkginfo $(DAEMON_SRCDIR)/solaris/info/pkginfo; \
 	cd $(DAEMON_SRCDIR)/solaris/install; \
@@ -301,15 +319,13 @@ sol-daemon: $(DAEMON_SRCDIR)/daemon.pkginfo
 	pkgmk -o -b ../install -r ../install $(DAEMON_SOL); \
 	cd "$$base"; \
 	rm -rf $(DAEMON_SRCDIR)/solaris; \
-	arch="`uname -m`"; \
+	arch="`isainfo -k`"; \
 	pkgtrans /var/spool/pkg $(DAEMON_ID).$$arch.pkg $(DAEMON_SOL); \
 	rm -rf /var/spool/pkg/$(DAEMON_SOL); \
-	mv /var/spool/pkg/$(DAEMON_ID).$$arch.pkg $$up; \
-	gzip $$up/$(DAEMON_ID).$$arch.pkg
+	mv /var/spool/pkg/$(DAEMON_ID).$$arch.pkg $$up/$(DAEMON_ID)-solaris-$$arch.pkg; \
+	gzip $$up/$(DAEMON_ID)-solaris-$$arch.pkg
 
-$(DAEMON_SRCDIR)/daemon.pkginfo:
-	@set -e; \
-	perl -ne ' \
+DAEMON_PKGINFO_CODE := perl -ne ' \
 		next if /^~+$$/; \
 		chop($$section = $$_), next if /^[A-Z]+$$/; \
 		chop($$description = $$_) if $$section eq "README" && /^\w/; \
@@ -321,8 +337,11 @@ $(DAEMON_SRCDIR)/daemon.pkginfo:
 			print "CATEGORY=\"application\"\n"; \
 			print "BASEDIR=\"$(FINAL_PREFIX)\"\n"; \
 			exit; \
-		} \
-	' < $(DAEMON_SRCDIR)/README > $(DAEMON_SRCDIR)/daemon.pkginfo
+		}'
+
+$(DAEMON_SRCDIR)/daemon.pkginfo:
+	@set -e; \
+	$(DAEMON_PKGINFO_CODE) < $(DAEMON_SRCDIR)/README > $(DAEMON_SRCDIR)/daemon.pkginfo
 
 obsd-daemon: $(DAEMON_SRCDIR)/obsd-daemon-oneline $(DAEMON_SRCDIR)/obsd-daemon-description
 	@set -e; \
@@ -333,20 +352,17 @@ obsd-daemon: $(DAEMON_SRCDIR)/obsd-daemon-oneline $(DAEMON_SRCDIR)/obsd-daemon-d
 	cd "$$base/obsd-$(DAEMON_NAME)/build"; \
 	tar xzf "$$up/$(DAEMON_DIST)"; \
 	cd ./$(DAEMON_ID); \
-	conf/openbsd; \
-	make PREFIX=../../install FINAL_PREFIX="$(PREFIX)" all install-daemon; \
+	./config; \
+	gmake PREFIX=../../install FINAL_PREFIX="$(PREFIX)" all install-daemon; \
 	cd "$$base"; \
-	echo "@name $(DAEMON_ID)" > $(DAEMON_SRCDIR)/obsd-daemon-packinglist; \
 	echo "@cwd $(PREFIX)" >> $(DAEMON_SRCDIR)/obsd-daemon-packinglist; \
-	echo "@src $$base/obsd-$(DAEMON_NAME)/install" >> $(DAEMON_SRCDIR)/obsd-daemon-packinglist; \
 	for file in $(patsubst $(PREFIX)/%, %, $(sort $(DAEMON_RPM_FILES) $(DAEMON_RPM_DOCFILES))); do echo $$file >> $(DAEMON_SRCDIR)/obsd-daemon-packinglist; done; \
-	pkg_create -f $(DAEMON_SRCDIR)/obsd-daemon-packinglist -c $(DAEMON_SRCDIR)/obsd-daemon-oneline -d $(DAEMON_SRCDIR)/obsd-daemon-description -v $(DAEMON_NAME); \
 	arch="`uname -m`"; \
-	mv $(DAEMON_NAME).tgz "$$up/$(DAEMON_ID)-obsd-$$arch.tar.gz"; \
+	pkg_create -A "$$arch" -f $(DAEMON_SRCDIR)/obsd-daemon-packinglist -D COMMENT="`cat $(DAEMON_SRCDIR)/obsd-daemon-oneline`" -d $(DAEMON_SRCDIR)/obsd-daemon-description -p / -v $(DAEMON_ID).tgz; \
+	mv $(DAEMON_ID).tgz "$$up/$(DAEMON_ID)-openbsd-$$arch.tgz"; \
 	rm -rf "$$base/obsd-$(DAEMON_NAME)" $(DAEMON_SRCDIR)/obsd-daemon-packinglist $(DAEMON_SRCDIR)/obsd-daemon-oneline $(DAEMON_SRCDIR)/obsd-daemon-description
 
-$(DAEMON_SRCDIR)/obsd-daemon-oneline:
-	@perl -ne ' \
+DAEMON_OBSD_ONELINE_CODE := perl -ne ' \
 		next if /^~+$$/; \
 		chop($$section = $$_), next if /^[A-Z]+$$/; \
 		chop($$description = $$_) if $$section eq "README" && /^\w/; \
@@ -355,11 +371,12 @@ $(DAEMON_SRCDIR)/obsd-daemon-oneline:
 			my ($$name, $$desc) = $$description =~ /^(\w+) - (.*)$$/; \
 			print "$$desc\n"; \
 			exit; \
-		} \
-	' < $(DAEMON_SRCDIR)/README > $(DAEMON_SRCDIR)/obsd-daemon-oneline
+		}'
 
-$(DAEMON_SRCDIR)/obsd-daemon-description:
-	@perl -ne ' \
+$(DAEMON_SRCDIR)/obsd-daemon-oneline:
+	@$(DAEMON_OBSD_ONELINE_CODE) < $(DAEMON_SRCDIR)/README > $(DAEMON_SRCDIR)/obsd-daemon-oneline
+
+DAEMON_OBSD_DESCRIPTION_CODE := perl -ne ' \
 		next if /^~+$$/; \
 		chop($$section = $$_), next if /^[A-Z]+$$/; \
 		$$description .= $$_ if $$section eq "DESCRIPTION"; \
@@ -367,8 +384,10 @@ $(DAEMON_SRCDIR)/obsd-daemon-description:
 		{ \
 			print $$description; \
 			exit; \
-		} \
-	' < $(DAEMON_SRCDIR)/README > $(DAEMON_SRCDIR)/obsd-daemon-description
+		}'
+
+$(DAEMON_SRCDIR)/obsd-daemon-description:
+	@$(DAEMON_OBSD_DESCRIPTION_CODE) < $(DAEMON_SRCDIR)/README > $(DAEMON_SRCDIR)/obsd-daemon-description
 
 fbsd-daemon: $(DAEMON_SRCDIR)/fbsd-daemon-oneline $(DAEMON_SRCDIR)/fbsd-daemon-description
 	@set -e; \
@@ -379,8 +398,8 @@ fbsd-daemon: $(DAEMON_SRCDIR)/fbsd-daemon-oneline $(DAEMON_SRCDIR)/fbsd-daemon-d
 	cd "$$base/fbsd-$(DAEMON_NAME)/build"; \
 	tar xzf "$$up/$(DAEMON_DIST)"; \
 	cd ./$(DAEMON_ID); \
-	conf/freebsd; \
-	make PREFIX=../../install FINAL_PREFIX="$(PREFIX)" all install-daemon; \
+	./config; \
+	gmake PREFIX=../../install FINAL_PREFIX="$(PREFIX)" all install-daemon; \
 	cd "$$base"; \
 	echo "@name $(DAEMON_ID)" > $(DAEMON_SRCDIR)/fbsd-daemon-packinglist; \
 	echo "@cwd $(PREFIX)" >> $(DAEMON_SRCDIR)/fbsd-daemon-packinglist; \
@@ -388,11 +407,10 @@ fbsd-daemon: $(DAEMON_SRCDIR)/fbsd-daemon-oneline $(DAEMON_SRCDIR)/fbsd-daemon-d
 	for file in $(patsubst $(PREFIX)/%, %, $(sort $(DAEMON_RPM_FILES) $(DAEMON_RPM_DOCFILES))); do echo $$file >> $(DAEMON_SRCDIR)/fbsd-daemon-packinglist; done; \
 	pkg_create -f $(DAEMON_SRCDIR)/fbsd-daemon-packinglist -c $(DAEMON_SRCDIR)/fbsd-daemon-oneline -d $(DAEMON_SRCDIR)/fbsd-daemon-description -v $(DAEMON_NAME); \
 	arch="`uname -m`"; \
-	mv $(DAEMON_NAME).tgz "$$up/$(DAEMON_ID)-fbsd-$$arch.tar.gz"; \
+	mv $(DAEMON_NAME).tbz "$$up/$(DAEMON_ID)-freebsd-$$arch.tbz"; \
 	rm -rf "$$base/fbsd-$(DAEMON_NAME)" $(DAEMON_SRCDIR)/fbsd-daemon-packinglist $(DAEMON_SRCDIR)/fbsd-daemon-oneline $(DAEMON_SRCDIR)/fbsd-daemon-description
 
-$(DAEMON_SRCDIR)/fbsd-daemon-oneline:
-	@perl -ne ' \
+DAEMON_FBSD_ONELINE_CODE := perl -ne ' \
 		next if /^~+$$/; \
 		chop($$section = $$_), next if /^[A-Z]+$$/; \
 		chop($$description = $$_) if $$section eq "README" && /^\w/; \
@@ -401,11 +419,12 @@ $(DAEMON_SRCDIR)/fbsd-daemon-oneline:
 			my ($$name, $$desc) = $$description =~ /^(\w+) - (.*)$$/; \
 			print "$$desc\n"; \
 			exit; \
-		} \
-	' < $(DAEMON_SRCDIR)/README > $(DAEMON_SRCDIR)/fbsd-daemon-oneline
+		}'
 
-$(DAEMON_SRCDIR)/fbsd-daemon-description:
-	@perl -ne ' \
+$(DAEMON_SRCDIR)/fbsd-daemon-oneline:
+	@$(DAEMON_FBSD_ONELINE_CODE) < $(DAEMON_SRCDIR)/README > $(DAEMON_SRCDIR)/fbsd-daemon-oneline
+
+DAEMON_FBSD_DESCRIPTION_CODE := perl -ne ' \
 		next if /^~+$$/; \
 		chop($$section = $$_), next if /^[A-Z]+$$/; \
 		$$description .= $$_ if $$section eq "DESCRIPTION"; \
@@ -413,8 +432,64 @@ $(DAEMON_SRCDIR)/fbsd-daemon-description:
 		{ \
 			print $$description; \
 			exit; \
-		} \
-	' < $(DAEMON_SRCDIR)/README > $(DAEMON_SRCDIR)/fbsd-daemon-description
+		}'
+
+$(DAEMON_SRCDIR)/fbsd-daemon-description:
+	@$(DAEMON_FBSD_DESCRIPTION_CODE) < $(DAEMON_SRCDIR)/README > $(DAEMON_SRCDIR)/fbsd-daemon-description
+
+nbsd-daemon: $(DAEMON_SRCDIR)/nbsd-daemon-oneline $(DAEMON_SRCDIR)/nbsd-daemon-description $(DAEMON_SRCDIR)/nbsd-daemon-buildinfo
+	@set -e; \
+	base="`pwd`"; \
+	up="$$base/.."; \
+	mkdir -p "$$base/nbsd-$(DAEMON_NAME)/build"; \
+	mkdir -p "$$base/nbsd-$(DAEMON_NAME)/install"; \
+	cd "$$base/nbsd-$(DAEMON_NAME)/build"; \
+	tar xzf "$$up/$(DAEMON_DIST)"; \
+	cd ./$(DAEMON_ID); \
+	./config; \
+	gmake PREFIX=../../install FINAL_PREFIX="$(PREFIX)" all install-daemon; \
+	cd "$$base"; \
+	echo "@name $(DAEMON_ID)" > $(DAEMON_SRCDIR)/nbsd-daemon-packinglist; \
+	echo "@cwd $(PREFIX)" >> $(DAEMON_SRCDIR)/nbsd-daemon-packinglist; \
+	echo "@src $$base/nbsd-$(DAEMON_NAME)/install" >> $(DAEMON_SRCDIR)/nbsd-daemon-packinglist; \
+	for file in $(patsubst $(PREFIX)/%, %, $(sort $(DAEMON_RPM_FILES) $(DAEMON_RPM_DOCFILES))); do echo $$file >> $(DAEMON_SRCDIR)/nbsd-daemon-packinglist; done; \
+	pkg_create -f $(DAEMON_SRCDIR)/nbsd-daemon-packinglist -c $(DAEMON_SRCDIR)/nbsd-daemon-oneline -d $(DAEMON_SRCDIR)/nbsd-daemon-description -B $(DAEMON_SRCDIR)/nbsd-daemon-buildinfo -v $(DAEMON_NAME); \
+	arch="`uname -m`"; \
+	mv $(DAEMON_NAME).tgz "$$up/$(DAEMON_ID)-netbsd-$$arch.tgz"; \
+	cat $(DAEMON_SRCDIR)/nbsd-daemon-packinglist; \
+	rm -rf "$$base/nbsd-$(DAEMON_NAME)" $(DAEMON_SRCDIR)/nbsd-daemon-packinglist $(DAEMON_SRCDIR)/nbsd-daemon-oneline $(DAEMON_SRCDIR)/nbsd-daemon-description $(DAEMON_SRCDIR)/nbsd-daemon-buildinfo
+
+DAEMON_NBSD_ONELINE_CODE := perl -ne ' \
+		next if /^~+$$/; \
+		chop($$section = $$_), next if /^[A-Z]+$$/; \
+		chop($$description = $$_) if $$section eq "README" && /^\w/; \
+		if ($$section ne "README") \
+		{ \
+			my ($$name, $$desc) = $$description =~ /^(\w+) - (.*)$$/; \
+			print "$$desc\n"; \
+			exit; \
+		}'
+
+$(DAEMON_SRCDIR)/nbsd-daemon-oneline:
+	@$(DAEMON_NBSD_ONELINE_CODE) < $(DAEMON_SRCDIR)/README > $(DAEMON_SRCDIR)/nbsd-daemon-oneline
+
+DAEMON_NBSD_DESCRIPTION_CODE := perl -ne ' \
+		next if /^~+$$/; \
+		chop($$section = $$_), next if /^[A-Z]+$$/; \
+		$$description .= $$_ if $$section eq "DESCRIPTION"; \
+		if ($$section ne "README" && $$section ne "DESCRIPTION") \
+		{ \
+			print $$description; \
+			exit; \
+		}'
+
+$(DAEMON_SRCDIR)/nbsd-daemon-description:
+	@$(DAEMON_NBSD_DESCRIPTION_CODE) < $(DAEMON_SRCDIR)/README > $(DAEMON_SRCDIR)/nbsd-daemon-description
+
+$(DAEMON_SRCDIR)/nbsd-daemon-buildinfo:
+	@echo "MACHINE_ARCH=`uname -p`" > $(DAEMON_SRCDIR)/nbsd-daemon-buildinfo; \
+	echo "OPSYS=`uname -s`" >> $(DAEMON_SRCDIR)/nbsd-daemon-buildinfo; \
+	echo "OS_VERSION=`uname -r`" >> $(DAEMON_SRCDIR)/nbsd-daemon-buildinfo
 
 osx-daemon:
 	@set -e; \
@@ -425,11 +500,11 @@ osx-daemon:
 	cd "./osx-$(DAEMON_NAME)/build"; \
 	tar xzf "$$up/$(DAEMON_DIST)"; \
 	cd ./$(DAEMON_ID); \
-	./conf/macosx; \
+	./config; \
 	make PREFIX=../../install FINAL_PREFIX="$(PREFIX)" all install-daemon; \
 	cd ../../install; \
-	arch="`uname -p`"; \
-	tar czf "$$up/$(DAEMON_ID)-osx-$$arch.tar.gz" .; \
+	arch="`uname -m`"; \
+	tar czf "$$up/$(DAEMON_ID)-macosx-$$arch.tar.gz" .; \
 	cd "$$base"; \
 	rm -rf "$$base/osx-$(DAEMON_NAME)"
 
@@ -465,6 +540,7 @@ help::
 	echo " sol-daemon            -- makes a binary solaris package for daemon"; \
 	echo " obsd-daemon           -- makes a binary openbsd package for daemon"; \
 	echo " fbsd-daemon           -- makes a binary freebsd package for daemon"; \
+	echo " nbsd-daemon           -- makes a binary netbsd package for daemon"; \
 	echo " osx-daemon            -- makes a binary macosx package for daemon"; \
 	echo
 endif

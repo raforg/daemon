@@ -10,3 +10,4 @@ PATH="`pwd`:$PATH"
 export PATH
 
 ../daemon -C "`pwd`/daemon.conf" -n test11 "`pwd`/test11.client"
+rm test11.interpreter

@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2004 raf <raf@raf.org>
+* Copyright (C) 1999-2010 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20040806 raf <raf@raf.org>
+* 20100612 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_ERR_H
@@ -82,12 +82,14 @@ void alertsys(int priority, const char *format, ...);
 void valertsys(int priority, const char *format, va_list args);
 int set_errno(int errnum);
 void *set_errnull(int errnum);
+void (*set_errnullf(int errnum))();
 _end_decls
 
 /* Don't look below here - optimisations only */
+/* And they produce lots of warnings with gcc-4.1 */
 
-#define set_errno(errnum) (errno = (errnum), -1)
-#define set_errnull(errnum) ((void *)((void *)(errno = (errnum)), NULL))
+/* #define set_errno(errnum) (errno = (errnum), -1) */
+/* #define set_errnull(errnum) ((void *)((void *)(errno = (errnum)), NULL)) */
 
 #endif
 

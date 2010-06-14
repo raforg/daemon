@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2004 raf <raf@raf.org>
+* Copyright (C) 1999-2010 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20040806 raf <raf@raf.org>
+* 20100612 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_PROG_H
@@ -48,6 +48,7 @@ typedef void opt_action_optional_int_t(int *arg);
 typedef void opt_action_string_t(const char *arg);
 typedef void opt_action_optional_string_t(const char *arg);
 typedef void opt_action_none_t(void);
+typedef void func_t(void);
 
 enum OptionArgument
 {
@@ -76,6 +77,7 @@ struct Option
     OptionArgument arg_type;
     OptionAction action;
     void *object;
+    func_t *function;
 };
 
 struct Options

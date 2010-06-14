@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2004 raf <raf@raf.org>
+* Copyright (C) 1999-2010 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20040806 raf <raf@raf.org>
+* 20100612 raf <raf@raf.org>
 */
 
 /*
@@ -111,7 +111,13 @@ scalable (See the SCALABILITY section for details).
 
 */
 
-#define _BSD_SOURCE /* for timercmp() under Redhat7(?) */
+#ifndef _BSD_SOURCE
+#define _BSD_SOURCE /* For timercmp() in glibc and snprintf() on OpenBSD-4.7 */
+#endif
+
+#ifndef _NETBSD_SOURCE
+#define _NETBSD_SOURCE /* For timercmp() on NetBSD-5.0.2 */
+#endif
 
 #include "config.h"
 #include "std.h"
@@ -533,13 +539,13 @@ void *agent_destroy(Agent **agent)
 =item C<int agent_rdlock(const Agent *agent)>
 
 Claims a read lock on C<agent> (if C<agent> was created with a I<Locker>).
-This is needed when multiple read only L<agent(3)|agent(3)> module functions
-need to be called atomically. It is the caller's responsibility to call
+This is needed when multiple read only I<agent(3)> module functions need to
+be called atomically. It is the caller's responsibility to call
 I<agent_unlock(3)> after the atomic operation. The only functions that may
 be called on C<agent> between calls to I<agent_rdlock(3)> and
-I<agent_unlock(3)> are any read only L<agent(3)|agent(3)> module functions
-whose name ends with C<_unlocked>. On success, returns C<0>. On error,
-returns an error code.
+I<agent_unlock(3)> are any read only I<agent(3)> module functions whose name
+ends with C<_unlocked>. On success, returns C<0>. On error, returns an error
+code.
 
 =cut
 
@@ -559,13 +565,12 @@ int (agent_rdlock)(const Agent *agent)
 =item C<int agent_wrlock(const Agent *agent)>
 
 Claims a write lock on C<agent> (if C<agent> was created with a I<Locker>).
-This is needed when multiple read/write L<agent(3)|agent(3)> module
-functions need to be called atomically. It is the caller's responsibility to
-call I<agent_unlock(3)> after the atomic operation. The only functions that
-may be called on C<agent> between calls to I<agent_wrlock(3)> and
-I<agent_unlock(3)> are any L<agent(3)|agent(3)> module functions whose name
-ends with C<_unlocked>. On success, returns C<0>. On error, returns an error
-code.
+This is needed when multiple read/write I<agent(3)> module functions need to
+be called atomically. It is the caller's responsibility to call
+I<agent_unlock(3)> after the atomic operation. The only functions that may
+be called on C<agent> between calls to I<agent_wrlock(3)> and
+I<agent_unlock(3)> are any I<agent(3)> module functions whose name ends with
+C<_unlocked>. On success, returns C<0>. On error, returns an error code.
 
 =cut
 
@@ -1097,7 +1102,7 @@ int agent_recv(Agent *agent, int sockfd, agent_reaction_t *reaction, void *arg)
 {
 	int ret, err;
 
-	if (!agent)
+	if (!agent || sockfd < 0 || !reaction)
 		return set_errno(EINVAL);
 
 	if ((err = agent_wrlock(agent)))
@@ -1129,7 +1134,7 @@ int agent_recv_unlocked(Agent *agent, int sockfd, agent_reaction_t *reaction, vo
 
 	/* Check the arguments */
 
-	if (!agent || fd < 0 || sockfd < 0)
+	if (!agent || sockfd < 0 || !reaction)
 		return set_errno(EINVAL);
 
 	/* Receive the connection and its reaction data and activity data */
@@ -2332,7 +2337,7 @@ On error, C<errno> is set either by an underlying function, or as follows:
 
 =over 4
 
-=item EINVAL
+=item C<EINVAL>
 
 When arguments to any of the functions is invalid.
 
@@ -2540,13 +2545,13 @@ cause problems.
 
 =head1 SEE ALSO
 
-L<libslack(3)|libslack(3)>,
-L<poll(2)|poll(2)>,
-L<select(2)|select(2)>
+I<libslack(3)>,
+I<poll(2)>,
+I<select(2)>
 
 =head1 AUTHOR
 
-20040806 raf <raf@raf.org>
+20100612 raf <raf@raf.org>
 
 =cut
 

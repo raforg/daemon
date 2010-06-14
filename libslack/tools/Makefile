@@ -1,7 +1,7 @@
 #
 # libslack - http://libslack.org/
 #
-# Copyright (C) 1999-2004 raf <raf@raf.org>
+# Copyright (C) 1999-2010 raf <raf@raf.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
 
-# 20040806 raf <raf@raf.org>
+# 20100612 raf <raf@raf.org>
 
 prefix := /usr/local
 
@@ -74,4 +74,4 @@ uninstall-prefix-h:
 uninstall-remove-prefix-h:
 	rm -f $(prefix)/include/slack/remove_prefix.h
 
-# vi:set ts=4 sw=4
+# vi:set ts=4 sw=4:

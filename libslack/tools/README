@@ -21,6 +21,12 @@ check-pod            # check source = description = header = synopsis
 	typedefs and function prototypes in the manpages match the header files
 	and the source code. The fourth combines the above checks.
 
+check-examples # check the examples in the manpages
+
+	This script extracts the example programs in the module manpages
+	and compiles and executes them to make sure that they are correct.
+	It asks the user for command line arguments for each example.
+
 Html.pm [not included in the distribution (43KB) - available on request]
 
 	There's a butchered version of Html.pm that I use to generate the HTML

@@ -1,7 +1,7 @@
 /*
 # libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2004 raf <raf@raf.org>
+* Copyright (C) 1999-2010 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20040806 raf <raf@raf.org>
+* 20100612 raf <raf@raf.org>
 */
 
 /*
@@ -62,10 +62,19 @@ shorthand functions for manipulating file flags and locks.
 */
 
 #include "config.h"
+
+#ifndef NO_POSIX_SOURCE
+#define NO_POSIX_SOURCE /* For ETIMEDOUT, EADDRINUSE, EOPNOTSUPP on FreeBSD-8.0 */
+#endif
+
 #include "std.h"
 
 #include <fcntl.h>
 
+#include <sys/types.h>
+#if HAVE_SYS_SELECT_H
+#include <sys/select.h>
+#endif
 #include <sys/time.h>
 #include <sys/stat.h>
 
@@ -661,7 +670,11 @@ int fifo_open(const char *path, mode_t mode, int lock, int *writefd)
 	** Note: some systems (e.g. FreeBSD, Mac OS X) can't lock fifos :(
 	*/
 
-	if (lock && fcntl_lock(wfd, F_SETLK, F_WRLCK, SEEK_SET, 0, 0) == -1 && errno != EOPNOTSUPP && errno != EBADF)
+/* On MacOSX-10.6 these are different numbers */
+#ifndef ENOTSUP
+#define ENOTSUP EOPNOTSUPP
+#endif
+	if (lock && fcntl_lock(wfd, F_SETLK, F_WRLCK, SEEK_SET, 0, 0) == -1 && errno != EOPNOTSUPP && errno != ENOTSUP && errno != EBADF)
 	{
 		if (mine)
 			unlink(path);
@@ -884,18 +897,18 @@ guarantee.
 
 =head1 SEE ALSO
 
-L<libslack(3)|libslack(3)>,
-L<fcntl(2)|fcntl(2)>,
-L<stat(2)|stat(2)>,
-L<fstat(2)|fstat(2)>,
-L<open(2)|open(2)>,
-L<write(2)|write(2)>,
-L<read(2)|read(2)>,
-L<mkfifo(2)|mkfifo(2)>
+I<libslack(3)>,
+I<fcntl(2)>,
+I<stat(2)>,
+I<fstat(2)>,
+I<open(2)>,
+I<write(2)>,
+I<read(2)>,
+I<mkfifo(2)>
 
 =head1 AUTHOR
 
-20040806 raf <raf@raf.org>
+20100612 raf <raf@raf.org>
 
 =cut
 
@@ -962,8 +975,8 @@ int main(int ac, char **av)
 #define CHECK_FGETLINE(i, size, expected) \
 	if ((expected) && !fgetline(line, (size), file)) \
 		++errors, printf("Test%d: fgetline() failed\n", (i)); \
-	else if ((expected) && strcmp(line, (expected))) \
-		++errors, printf("Test%d: fgetline() read \"%s\", not \"%s\"\n", (i), line, (expected));
+	else if ((expected) && strcmp(line, ((expected) ? (expected) : ""))) \
+		++errors, printf("Test%d: fgetline() read \"%s\", not \"%s\"\n", (i), line, (expected ? expected : "(null)"));
 
 #define TEST_FGETLINE(i, buf, size, contents, line1, line2, line3) \
 	if (!(file = fopen(filename, "wb"))) \

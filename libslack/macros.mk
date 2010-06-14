@@ -1,7 +1,7 @@
 #
 # libslack - http://libslack.org/
 #
-# Copyright (C) 1999-2004 raf <raf@raf.org>
+# Copyright (C) 1999-2010 raf <raf@raf.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 # or visit http://www.gnu.org/copyleft/gpl.html
 #
-# 20040806 raf <raf@raf.org>
+# 20100612 raf <raf@raf.org>
 
 # Uncomment these to override the defines in daemon.h and prog.h
 #
@@ -73,10 +73,31 @@ SLACK_CLIENT_CFLAGS += -DHAVE_PTHREAD_RWLOCK=1
 #
 # SLACK_DEFINES += -DMEM_MAX_DIM=32
 
+# Uncomment these if necessary (Needed on MacOSX 10.4)
+#
+# SLACK_DEFINES += -DNO_POSIX_C_SOURCE=1
+# SLACK_TEST_DEFINES += -DNO_POSIX_C_SOURCE=1
+
+# Uncomment these on MacOSX to create universal binaries
+#
+# SLACK_CCFLAGS += -arch x86_64 -arch i386 -arch ppc # -arch ppc64
+# SLACK_TEST_LDFLAGS += -arch x86_64 -arch i386 -arch ppc # -arch ppc64
+
+# Uncomment these on 64-bit OpenSolaris or Solaris to compile for 64-bit
+#
+# SLACK_CCFLAGS += -m64
+# SLACK_TEST_CCFLAGS += -m64
+# SLACK_TEST_LDFLAGS += -m64
+# SLACK_CLIENT_LDFLAGS += -m64
+
 # Uncomment these if your system has the "long long int" type.
 #
 SLACK_CCFLAGS += -Wno-long-long
 SLACK_TEST_CCFLAGS += -Wno-long-long
+
+# Uncomment this if your gcc supports it
+#
+SLACK_TEST_CCFLAGS += -Wno-overlength-strings
 
 # Uncomment this to exclude compilation of the debug locker functions.
 # These functions shamefully assume that pthread_self() can be cast into
@@ -86,7 +107,7 @@ SLACK_TEST_CCFLAGS += -Wno-long-long
 # SLACK_DEFINES += -DNO_DEBUG_LOCKERS=1
 
 SLACK_NAME := slack
-SLACK_VERSION := 0.5.2
+SLACK_VERSION := 0.6
 SLACK_URL := http://libslack.org/
 SLACK_ID := lib$(SLACK_NAME)-$(SLACK_VERSION)
 SLACK_DIST := $(SLACK_ID).tar.gz
@@ -97,7 +118,7 @@ SLACK_INSTALL := $(SLACK_ID).a
 SLACK_INSTALL_LINK := lib$(SLACK_NAME).a
 SLACK_CONFIG := $(SLACK_SRCDIR)/lib$(SLACK_NAME)-config
 SLACK_MODULES := agent coproc daemon err fio $(GETOPT) hsort lim link list locker map mem msg net prog prop pseudo sig $(SNPRINTF) str $(VSSCANF)
-SLACK_HEADERS := std lib hdr config socks
+SLACK_HEADERS := std lib hdr socks
 SLACK_LIB_PODS := libslack
 SLACK_APP_PODS := libslack-config
 
@@ -155,6 +176,7 @@ DEB_TARGETS +=
 SOL_TARGETS += sol-slack
 OBSD_TARGETS += obsd-slack
 FBSD_TARGETS += fbsd-slack
+NBSD_TARGETS += nbsd-slack
 OSX_TARGETS += osx-slack
 
 CLEAN_FILES += $(SLACK_OFILES) $(SLACK_CONFIG) $(SLACK_LIB_MANFILES) $(SLACK_APP_MANFILES) $(SLACK_LIB_HTMLFILES) $(SLACK_APP_HTMLFILES) $(SLACK_SRCDIR)/pod2html-* $(SLACK_SWIGFILE)
@@ -187,7 +209,7 @@ SLACK_CLIENT_LIBS += $(SLACK_NAME)
 SLACK_CLIENT_LIBS += pthread
 SLACK_CLIENT_LIBS += util
 
-# Uncomment this on Solaris for sockets (used by the daemon and net modules)
+# Uncomment these on Solaris for sockets (used by the daemon and net modules)
 #
 # SLACK_TEST_LIBS += xnet
 # SLACK_TEST_LIBS += socket
@@ -196,7 +218,7 @@ SLACK_CLIENT_LIBS += util
 # SLACK_CLIENT_LIBS += socket
 # SLACK_CLIENT_LIBS += nsl
 
-# Uncomment this on Solaris if you are using Sun's C compiler
+# Uncomment these on Solaris if you are using Sun's C compiler
 #
 # SLACK_CLIENT_LIBS += m
 # SLACK_TEST_LIBS += m

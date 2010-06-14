@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2004 raf <raf@raf.org>
+* Copyright (C) 1999-2010 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20040806 raf <raf@raf.org>
+* 20100612 raf <raf@raf.org>
 */
 
 /* Define if defining _POSIX_SOURCE breaks things */
@@ -184,7 +184,7 @@
 #define HAVE_UNIX_DOMAIN_WILDCARD 1
 
 /* Define on SVR4 */
-/* #undef SVR4 */
+#define SVR4 1
 
 /* Define if we have socks */
 /* #undef SOCKS */

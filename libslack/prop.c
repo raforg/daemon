@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2004 raf <raf@raf.org>
+* Copyright (C) 1999-2010 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20040806 raf <raf@raf.org>
+* 20100612 raf <raf@raf.org>
 */
 
 /*
@@ -87,6 +87,10 @@ C<false>, C<yes> or C<no>, C<on> or C<off> (case insensitive).
 =cut
 
 */
+
+#ifndef _BSD_SOURCE
+#define _BSD_SOURCE /* For snprintf() on OpenBSD-4.7 */
+#endif
 
 #include "config.h"
 #include "std.h"
@@ -412,7 +416,7 @@ static Prop *prop_load(const char *path, Prop *defaults)
 
 C<int prop_init(void)>
 
-Initialises the L<prop(3)|prop(3)> module. Loads properties from the following locations:
+Initialises the I<prop(3)> module. Loads properties from the following locations:
 
     /etc/properties/app             - system-wide, generic properties
     $HOME/.properties/app           - user-defined, generic properties
@@ -1047,7 +1051,7 @@ int prop_save(void)
 
 		/* Quote any trailing space in the key */
 
-		if (is_space(cstr(lhs)[str_length(lhs) - 1]))
+		if (str_length(lhs) && is_space(cstr(lhs)[str_length(lhs) - 1]))
 		{
 			if (!str_insert(lhs, str_length(lhs) - 1, "\\"))
 			{
@@ -1136,9 +1140,9 @@ int prop_clear(void)
 
 =item C<int prop_locker(Locker *locker)>
 
-Sets the locking strategy for the L<prop(3)|prop(3)> module to C<locker>.
-This is only needed in multi threaded programs. It must only be called once,
-from the main thread. On success, returns C<0>. On error, returns C<-1> with
+Sets the locking strategy for the I<prop(3)> module to C<locker>. This is
+only needed in multi threaded programs. It must only be called once, from
+the main thread. On success, returns C<0>. On error, returns C<-1> with
 C<errno> set appropriately.
 
 =cut
@@ -1165,7 +1169,7 @@ On error, C<errno> is set either by an underlying function, or as follows:
 
 =over 4
 
-=item EINVAL
+=item C<EINVAL>
 
 When there is no prog_name or home directory or when there is a parse error
 in a properties file or if the F<~/.properties> exists but is not a
@@ -1217,19 +1221,19 @@ MT-Disciplined
 
 =head1 BUGS
 
-This only provides coarse grained persistence. If multiple instances of the
+This only provides coarse-grained persistence. If multiple instances of the
 same program are setting properties, the last to exit wins. This can be
-ovecome by calling I<prop_save()> after setting any property and
+overcome by calling I<prop_save()> after setting any property and
 I<prop_clear()> before getting any property.
 
 =head1 SEE ALSO
 
-L<libslack(3)|libslack(3)>,
-L<prog(3)|prog(3)>
+I<libslack(3)>,
+I<prog(3)>
 
 =head1 AUTHOR
 
-20040806 raf <raf@raf.org>
+20100612 raf <raf@raf.org>
 
 =cut
 

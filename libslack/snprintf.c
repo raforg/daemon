@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 2001-2003 raf <raf@raf.org>
+* Copyright (C) 2001-2010 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20040806 raf <raf@raf.org>
+* 20100612 raf <raf@raf.org>
 */
 
 /*
@@ -95,6 +95,9 @@
  *
  *  raf (raf@raf.org) Dec 2003
  *    added examples to the manpage
+ *
+ *  raf (raf@raf.org) Jun 2010
+ *    fixed for 64-bit systems
  *
  **************************************************************/
 
@@ -838,7 +841,7 @@ int vsnprintf(char *str, size_t size, const char *format, va_list args)
 						if (cflags == SIZE_SHORT)
 							value = (short)va_arg(args, int);
 						else if (cflags == SIZE_LONG)
-							value = (long)va_arg(args, int);
+							value = (long)va_arg(args, long);
 						else
 							value = (int)va_arg(args, int);
 
@@ -850,7 +853,7 @@ int vsnprintf(char *str, size_t size, const char *format, va_list args)
 						if (cflags == SIZE_SHORT)
 							value = (unsigned short)va_arg(args, int);
 						else if (cflags == SIZE_LONG)
-							value = (unsigned long)va_arg(args, int);
+							value = (unsigned long)va_arg(args, long);
 						else
 							value = (unsigned int)va_arg(args, int);
 
@@ -862,7 +865,7 @@ int vsnprintf(char *str, size_t size, const char *format, va_list args)
 						if (cflags == SIZE_SHORT)
 							value = (unsigned short)va_arg(args, int);
 						else if (cflags == SIZE_LONG)
-							value = (unsigned long)va_arg(args, int);
+							value = (unsigned long)va_arg(args, long);
 						else
 							value = (unsigned int)va_arg(args, int);
 
@@ -876,7 +879,7 @@ int vsnprintf(char *str, size_t size, const char *format, va_list args)
 						if (cflags == SIZE_SHORT)
 							value = (unsigned short)va_arg(args, int);
 						else if (cflags == SIZE_LONG)
-							value = (unsigned long)va_arg(args, int);
+							value = (unsigned long)va_arg(args, long);
 						else
 							value = (unsigned int)va_arg(args, int);
 
@@ -1108,13 +1111,13 @@ width larger than the useful output serves no purpose.
 
 =head1 SEE ALSO
 
-L<printf(3)|printf(3)>,
-L<sprintf(3)|sprintf(3)>,
-L<vsprintf(3)|vsprintf(3)>
+I<printf(3)>,
+I<sprintf(3)>,
+I<vsprintf(3)>
 
 =head1 AUTHOR
 
-20020916 raf <raf@raf.org>,
+2002-2010 raf <raf@raf.org>,
 1998 Andrew Tridgell <tridge@samba.org>,
 1998 Michael Elkins <me@cs.hmc.edu>,
 1998 Thomas Roessler <roessler@guug.de>,

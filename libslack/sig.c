@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2004 raf <raf@raf.org>
+* Copyright (C) 1999-2010 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20040806 raf <raf@raf.org>
+* 20100612 raf <raf@raf.org>
 */
 
 /*
@@ -306,7 +306,7 @@ void signal_handle_all(void)
 
 =over 4
 
-=item EINVAL
+=item C<EINVAL>
 
 When a signal number argument is out of range.
 
@@ -354,12 +354,12 @@ Unsafe
 
 =head1 SEE ALSO
 
-L<libslack(3)|libslack(3)>,
-L<prog(3)|prog(3)>
+I<libslack(3)>,
+I<prog(3)>
 
 =head1 AUTHOR
 
-20040806 raf <raf@raf.org>
+20100612 raf <raf@raf.org>
 
 =cut
 
@@ -382,12 +382,12 @@ const char * const results[2] =
 
 static void hup(int signo)
 {
-	printf(results[0]);
+	printf("%s", results[0]);
 }
 
 static void term(int signo)
 {
-	printf(results[1]);
+	printf("%s", results[1]);
 	exit(EXIT_SUCCESS);
 }
 
@@ -405,7 +405,7 @@ static void child(void)
 		/* Signals arriving here are lost */
 
 		while ((n = read(STDIN_FILENO, mesg, BUFSIZ)) > 0)
-			fprintf(stderr, "%*.*s", n, n, mesg);
+			fprintf(stderr, "%*.*s", (int)n, (int)n, mesg);
 
 		switch (n)
 		{
@@ -423,7 +423,7 @@ static void child(void)
 
 			default:
 			{
-				fprintf(stderr, "read = %d\n", n);
+				fprintf(stderr, "read = %d\n", (int)n);
 				exit(EXIT_FAILURE);
 			}
 		}

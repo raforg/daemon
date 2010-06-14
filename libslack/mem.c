@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2004 raf <raf@raf.org>
+* Copyright (C) 1999-2010 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20040806 raf <raf@raf.org>
+* 20100612 raf <raf@raf.org>
 */
 
 /*
@@ -992,16 +992,16 @@ On error, C<errno> is set by underlying functions or as follows:
 
 =over 4
 
-=item EINVAL
+=item C<EINVAL>
 
 When arguments are invalid.
 
-=item ENOSPC
+=item C<ENOSPC>
 
 When there is insufficient available space in a pool for I<pool_alloc(3)> to
 satisfy a request.
 
-=item ENOSYS
+=item C<ENOSYS>
 
 Returned by I<mem_create_secure(3)> and I<pool_create_secure(3)> when
 I<mlock(2)> is not supported (e.g. Mac OS X).
@@ -1012,7 +1012,7 @@ I<mlock(2)> is not supported (e.g. Mac OS X).
 
 MT-Safe (mem)
 
-MT-Disciplined (pool) man L<locker(3)|locker(3)> for details.
+MT-Disciplined (pool) man I<locker(3)> for details.
 
 =head1 EXAMPLES
 
@@ -1081,18 +1081,18 @@ Secure memory pool:
 
 =head1 SEE ALSO
 
-L<libslack(3)|libslack(3)>,
-L<malloc(3)|malloc(3)>,
-L<realloc(3)|realloc(3)>,
-L<calloc(3)|calloc(3)>,
-L<free(3)|free(3)>,
-L<mlock(2)|mlock(2)>,
-L<munlock(2)|munlock(2)>,
-L<locker(3)|locker(3)>
+I<libslack(3)>,
+I<malloc(3)>,
+I<realloc(3)>,
+I<calloc(3)>,
+I<free(3)>,
+I<mlock(2)>,
+I<munlock(2)>,
+I<locker(3)>
 
 =head1 AUTHOR
 
-20040806 raf <raf@raf.org>
+20100612 raf <raf@raf.org>
 
 =cut
 
@@ -1215,7 +1215,7 @@ int main(int ac, char **av)
 
 	/* Test 2D space allocation and deallocation */
 
-	if (!(space2 = mem_create_space(sizeof(int), 1, 1, 0)))
+	if (!(space2 = mem_create_space(sizeof(int), (size_t)1, (size_t)1, (size_t)0)))
 		++errors, printf("Test13: mem_create_space(1, 1) failed (returned NULL)\n");
 	else
 	{
@@ -1228,7 +1228,7 @@ int main(int ac, char **av)
 			++errors, printf("Test15: mem_destroy_space(1, 1) failed\n");
 	}
 
-	if (!(space2 = mem_create_space(sizeof(int), 10, 10, 0)))
+	if (!(space2 = mem_create_space(sizeof(int), (size_t)10, (size_t)10, (size_t)0)))
 		++errors, printf("Test16: mem_create_space(10, 10) failed (returned NULL)\n");
 	else
 	{
@@ -1253,7 +1253,7 @@ int main(int ac, char **av)
 
 	/* Test 3D space allocation and deallocation */
 
-	if (!(space3 = mem_create_space(sizeof(int), 1, 1, 1, 0)))
+	if (!(space3 = mem_create_space(sizeof(int), (size_t)1, (size_t)1, (size_t)1, (size_t)0)))
 		++errors, printf("Test19: mem_create_space(1, 1, 1) failed (returned NULL)\n");
 	else
 	{
@@ -1266,7 +1266,7 @@ int main(int ac, char **av)
 			++errors, printf("Test21: mem_destroy_space(1, 1, 1) failed\n");
 	}
 
-	if (!(space3 = mem_create_space(sizeof(int), 10, 10, 10, 0)))
+	if (!(space3 = mem_create_space(sizeof(int), (size_t)10, (size_t)10, (size_t)10, (size_t)0)))
 		++errors, printf("Test22: mem_create_space(10, 10, 10) failed (returned NULL)\n");
 	else
 	{
@@ -1293,7 +1293,7 @@ int main(int ac, char **av)
 
 	/* Test 4D space allocation and deallocation */
 
-	if (!(space4 = mem_create_space(sizeof(int), 1, 1, 1, 1, 0)))
+	if (!(space4 = mem_create_space(sizeof(int), (size_t)1, (size_t)1, (size_t)1, (size_t)1, (size_t)0)))
 		++errors, printf("Test25: mem_create_space(1, 1, 1, 1) failed (returned NULL)\n");
 	else
 	{
@@ -1306,7 +1306,7 @@ int main(int ac, char **av)
 			++errors, printf("Test27: mem_destroy_space(1, 1, 1, 1) failed\n");
 	}
 
-	if (!(space4 = mem_create_space(sizeof(int), 10, 10, 10, 10, 0)))
+	if (!(space4 = mem_create_space(sizeof(int), (size_t)10, (size_t)10, (size_t)10, (size_t)10, (size_t)0)))
 		++errors, printf("Test28: mem_create_space(10, 10, 10, 10) failed (returned NULL)\n");
 	else
 	{
@@ -1335,7 +1335,7 @@ int main(int ac, char **av)
 
 	/* Test 5D space allocation and deallocation */
 
-	if (!(space5 = mem_create_space(sizeof(int), 1, 1, 1, 1, 1, 0)))
+	if (!(space5 = mem_create_space(sizeof(int), (size_t)1, (size_t)1, (size_t)1, (size_t)1, (size_t)1, (size_t)0)))
 		++errors, printf("Test31: mem_create_space(1, 1, 1, 1, 1) failed (returned NULL)\n");
 	else
 	{
@@ -1348,7 +1348,7 @@ int main(int ac, char **av)
 			++errors, printf("Test33: mem_destroy_space(1, 1, 1, 1, 1) failed\n");
 	}
 
-	if (!(space5 = mem_create_space(sizeof(int), 10, 10, 10, 10, 10, 0)))
+	if (!(space5 = mem_create_space(sizeof(int), (size_t)10, (size_t)10, (size_t)10, (size_t)10, (size_t)10, (size_t)0)))
 		++errors, printf("Test34: mem_create_space(10, 10, 10, 10, 10) failed (returned NULL)\n");
 	else
 	{
@@ -1379,7 +1379,7 @@ int main(int ac, char **av)
 
 	/* Test element sizes smaller than sizeof(void *) */
 
-	if (!(space2d = mem_create_space(sizeof(char), 1, 1, 0)))
+	if (!(space2d = mem_create_space(sizeof(char), (size_t)1, (size_t)1, (size_t)0)))
 		++errors, printf("Test37: mem_create_space(char, 1, 1) failed (returned NULL)\n");
 	else
 	{
@@ -1392,7 +1392,7 @@ int main(int ac, char **av)
 			++errors, printf("Test39: mem_destroy_space(char, 1, 1) failed\n");
 	}
 
-	if (!(space2d = mem_create_space(sizeof(char), 10, 10, 0)))
+	if (!(space2d = mem_create_space(sizeof(char), (size_t)10, (size_t)10, (size_t)0)))
 		++errors, printf("Test40: mem_create_space(char, 10, 10) failed (returned NULL)\n");
 	else
 	{
@@ -1417,7 +1417,7 @@ int main(int ac, char **av)
 
 	/* Test element sizes larger than sizeof(void *) */
 
-	if (!(space3d = mem_create_space(sizeof(double), 1, 1, 1, 0)))
+	if (!(space3d = mem_create_space(sizeof(double), (size_t)1, (size_t)1, (size_t)1, (size_t)0)))
 		++errors, printf("Test43: mem_create_space(double, 1, 1, 1) failed (returned NULL)\n");
 	else
 	{
@@ -1430,7 +1430,7 @@ int main(int ac, char **av)
 			++errors, printf("Test45: mem_destroy_space(double, 1, 1, 1) failed\n");
 	}
 
-	if (!(space3d = mem_create_space(sizeof(double), 10, 10, 10, 0)))
+	if (!(space3d = mem_create_space(sizeof(double), (size_t)10, (size_t)10, (size_t)10, (size_t)0)))
 		++errors, printf("Test46: mem_create_space(double, 10, 10, 10) failed (returned NULL)\n");
 	else
 	{
@@ -1457,7 +1457,7 @@ int main(int ac, char **av)
 
 	/* Test mem_space_start() */
 
-	if (!(space4 = mem_create_space(sizeof(int), 2, 3, 4, 5, 0)))
+	if (!(space4 = mem_create_space(sizeof(int), (size_t)2, (size_t)3, (size_t)4, (size_t)5, (size_t)0)))
 		++errors, printf("Test49: mem_create_space(int, 2, 3, 4, 5) failed (returned NULL)\n");
 	else
 	{
@@ -1480,7 +1480,7 @@ int main(int ac, char **av)
 		if (error)
 			++errors;
 
-		start = mem_space_start(sizeof(int), 2, 3, 4, 5, 0);
+		start = mem_space_start(sizeof(int), (size_t)2, (size_t)3, (size_t)4, (size_t)5, (size_t)0);
 		memset((char *)space4 + start, 0, sizeof(int) * 2 * 3 * 4 * 5);
 
 		for (i = 0; i < 2; ++i)

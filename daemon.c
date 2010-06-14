@@ -1,7 +1,7 @@
 /*
 * daemon - http://libslack.org/daemon/
 *
-* Copyright (C) 1999-2004 raf <raf@raf.org>
+* Copyright (C) 1999-2010 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 * or visit http://www.gnu.org/copyleft/gpl.html
 *
-* 20040806 raf <raf@raf.org>
+* 20100612 raf <raf@raf.org>
 */
 
 /*
@@ -32,46 +32,47 @@ I<daemon> - turns other processes into daemons
  usage: daemon [options] [--] [cmd arg...]
  options:
 
-   -h, --help              - Print a help message then exit
-   -V, --version           - Print a version message then exit
-   -v, --verbose[=level]   - Set the verbosity level
-   -d, --debug[=level]     - Set the debugging level
+ -h, --help                - Print a help message then exit
+ -V, --version             - Print a version message then exit
+ -v, --verbose[=level]     - Set the verbosity level
+ -d, --debug[=level]       - Set the debugging level
 
-   -C, --config=path       - Specify the system configuration file
-   -N, --noconfig          - Bypass the system configuration file
-   -n, --name=name         - Guarantee a single named instance
-   -X, --command=cmd       - Specify the client command as an option
-   -P, --pidfiles=/dir     - Override standard pidfile location
-   -F, --pidfile=/path     - Override standard pidfile name and location
+ -C, --config=path         - Specify the system configuration file
+ -N, --noconfig            - Bypass the system configuration file
+ -n, --name=name           - Guarantee a single named instance
+ -X, --command=cmd         - Specify the client command as an option
+ -P, --pidfiles=/dir       - Override standard pidfile location
+ -F, --pidfile=/path       - Override standard pidfile name and location
 
-   -u, --user=user[.group] - Run the client as user[.group]
-   -R, --chroot=path       - Run the client with path as root
-   -D, --chdir=path        - Run the client in directory path
-   -m, --umask=umask       - Run the client with the given umask
-   -e, --env="var=val"     - Set a client environment variable
-   -i, --inherit           - Inherit environment variables
-   -U, --unsafe            - Allow execution of unsafe executable
-   -S, --safe              - Deny execution of unsafe executable
-   -c, --core              - Allow core file generation
+ -u, --user=user[:[group]] - Run the client as user[:group]
+ -R, --chroot=path         - Run the client with path as root
+ -D, --chdir=path          - Run the client in directory path
+ -m, --umask=umask         - Run the client with the given umask
+ -e, --env="var=val"       - Set a client environment variable
+ -i, --inherit             - Inherit environment variables
+ -U, --unsafe              - Allow execution of unsafe executable
+ -S, --safe                - Deny execution of unsafe executable
+ -c, --core                - Allow core file generation
 
-   -r, --respawn           - Respawn the client when it terminates
-   -a, --acceptable=#      - Minimum acceptable client duration
-   -A, --attempts=#        - Respawn # times on error before delay
-   -L, --delay=#           - Delay between spawn attempt bursts (seconds)
-   -M, --limit=#           - Maximum number of spawn attempt bursts
+ -r, --respawn             - Respawn the client when it terminates
+ -a, --acceptable=#        - Minimum acceptable client duration (seconds)
+ -A, --attempts=#          - Respawn # times on error before delay
+ -L, --delay=#             - Delay between spawn attempt bursts (seconds)
+ -M, --limit=#             - Maximum number of spawn attempt bursts
+     --idiot               - Idiot mode (trust root with the above)
 
-   -f, --foreground        - Run the client in the foreground
-   -p, --pty[=noecho]      - Allocate a pseudo terminal for the client
+ -f, --foreground          - Run the client in the foreground
+ -p, --pty[=noecho]        - Allocate a pseudo terminal for the client
 
-   -l, --errlog=spec       - Send daemon's error output to syslog or file
-   -b, --dbglog=spec       - Send daemon's debug output to syslog or file
-   -o, --output=spec       - Send client's output to syslog or file
-   -O, --stdout=spec       - Send client's stdout to syslog or file
-   -E, --stderr=spec       - Send client's stderr to syslog or file
+ -l, --errlog=spec         - Send daemon's error output to syslog or file
+ -b, --dbglog=spec         - Send daemon's debug output to syslog or file
+ -o, --output=spec         - Send client's output to syslog or file
+ -O, --stdout=spec         - Send client's stdout to syslog or file
+ -E, --stderr=spec         - Send client's stderr to syslog or file
 
-       --running           - Check if a named daemon is running
-       --restart           - Restart a named daemon client
-       --stop              - Terminate a named daemon process
+     --running             - Check if a named daemon is running
+     --restart             - Restart a named daemon client
+     --stop                - Terminate a named daemon process
 
 =head1 DESCRIPTION
 
@@ -99,8 +100,8 @@ Change the root directory if the C<--chroot> option was supplied.
 =item *
 
 Change the process uid and gid if the C<--user> option was supplied. Only
-root can use this option. Note that the uid of I<daemon> itself is changed,
-rather than just changing the uid of the client process.
+I<root> can use this option. Note that the uid of I<daemon> itself is
+changed, rather than just changing the uid of the client process.
 
 =item *
 
@@ -109,13 +110,13 @@ specified by the C<--config> option) unless the C<--noconfig> option was
 supplied. Then read the user's configuration file (C<~/.daemonrc>), if any.
 Generic options are processed first, then options specific to the daemon
 with the given name. B<Note: The root directory and the user must be set
-before access to the configuration file can be attempted so neither --chroot
-nor --user options may appear in the configuration file.>
+before access to the configuration file can be attempted so neither C<--chroot>
+nor C<--user> options may appear in the configuration file.>
 
 =item *
 
 Disable core file generation to prevent leaking sensitive information in
-daemons run by root (unless the C<--core> option was supplied).
+daemons run by I<root> (unless the C<--core> option was supplied).
 
 =item *
 
@@ -178,12 +179,11 @@ invoked by I<inetd(8)>.
 If the C<--name> option was supplied, create and lock a file containing the
 process id of the I<daemon> process. The presence of this locked file
 prevents two instances of a daemon with the same name from running at the
-same time. The standard location of the pidfile is C</var/run> on Linux and
-C</etc> on Solaris for root or C</tmp> for ordinary users. If the
-C<--pidfiles> option was supplied, its argument specifies the directory in
-which the pidfile will be placed. If the C<--pidfile> option was supplied,
-its argument specifies the name of the pidfile and the directory in which
-it will be placed.
+same time. The standard location of the pidfile is C</var/run> for I<root>
+or C</tmp> for ordinary users. If the C<--pidfiles> option was supplied,
+its argument specifies the directory in which the pidfile will be placed.
+If the C<--pidfile> option was supplied, its argument specifies the name
+of the pidfile and the directory in which it will be placed.
 
 =back
 
@@ -261,20 +261,22 @@ Display a help message and exit.
 
 Display a version message and exit.
 
-=item C<-v>I<[=level]>, C<--verbose>I<[=level]>
+=item C<-v>I<[level]>, C<--verbose>I<[=level]>
 
 Set the message verbosity level to I<level> (or 1 if I<level> is not
 supplied). I<daemon> does not have any verbose messages so this has no
 effect unless the C<--running> option is supplied.
 
-=item C<-d>I<[=level]>, C<--debug>I<[=level]>
+=item C<-d>I<[level]>, C<--debug>I<[=level]>
 
 Set the debug message level to I<level> (or 1 if I<level> is not supplied).
-Set to level 1 for a trace of all functions called. Set to level 2 for more
-detail. Debug messages are sent to the I<syslog(3)> facility,
-C<daemon.debug>.
+Level 1 traces high level function calls. Level 2 traces lower level
+function calls and shows configuration information. Level 3 adds environment
+variables. Level 9 adds every return value from I<select(2)> to the output.
+Debug messages are sent to the destination specified by the C<--dbglog>
+option (by default, the I<syslog(3)> facility, C<daemon.debug>).
 
-=item C<-C=>I<path>, C<--config=>I<path>
+=item C<-C> I<path>, C<--config=>I<path>
 
 Specify the configuration file to use. By default, C</etc/daemon.conf> is
 the configuration file if it exists and is not group or world writable and
@@ -287,12 +289,12 @@ specifically named clients.
 Bypass the system configuration file, C</etc/daemon.conf>. Only the user's
 C<~/.daemonrc> configuration file will be read (if it exists).
 
-=item C<-n=>I<name>, C<--name=>I<name>
+=item C<-n> I<name>, C<--name=>I<name>
 
 Create and lock a pid file (C</var/run/>I<name>C<.pid>), ensuring that only
 one daemon with the given I<name> is active at the same time.
 
-=item C<-X=>I<cmd>, C<--command=>I<cmd>
+=item C<-X> I<cmd>, C<--command=>I<cmd>
 
 Specify the client command as an option. If a command is specified along
 with its name in the configuration file, then daemons can be started merely
@@ -303,17 +305,16 @@ by mentioning their name:
 B<Note:> Specifying the client command in the configuration file means that
 no shell features are available (i.e. no meta characters).
 
-=item C<-P=>I</dir>, C<--pidfiles=>I</dir>
+=item C<-P> I</dir>, C<--pidfiles=>I</dir>
 
 Override the standard pidfile location. The standard pidfile location is
-system and user dependent: root's pidfiles live in C</var/run> on Linux and
-in C</etc> on Solaris. Normal users' pidfiles live in </tmp>. This option
-can only be used with the C<--name> option. Use this option if these
-locations are unacceptable but make sure you don't forget where you put your
-pidfiles. This option should only be used in configuration files or in shell
-scripts, not on the command line.
+user dependent: I<root>'s pidfiles live in C</var/run>. Normal
+users' pidfiles live in C</tmp>. This option can only be used with the
+C<--name> option. Use this option if these locations are unacceptable but
+make sure you don't forget where you put your pidfiles. This option is best
+used in configuration files or in shell scripts, not on the command line.
 
-=item C<-F=>I</path>, C<--pidfile=>I</path>
+=item C<-F> I</path>, C<--pidfile=>I</path>
 
 Override the standard pidfile name and location. The standard pidfile location
 is described immediately above. The standard pidfile name is the argument of
@@ -322,29 +323,35 @@ pidfile name and location are unacceptable but make sure you don't forget
 where you put your pidfile. This option should only be used in configuration
 files or in shell scripts, not on the command line.
 
-=item C<-u=>I<user[.group]>, C<--user=>I<user[.group]>
+=item C<-u> I<user[:[group]]>, C<--user=>I<user[:[group]]>
 
-Run the client as a different user (and group). This only works for root. If
-the argument includes a C<.group> specifier, I<daemon> will assume the
+Run the client as a different user (and group). This only works for I<root>.
+If the argument includes a I<:group> specifier, I<daemon> will assume the
 specified group and no other. Otherwise, I<daemon> will assume all groups
-that the specified user is in.
+that the specified user is in. For backwards compatibility, C<"."> may be
+used instead of C<":"> to separate the user and group but since C<"."> may
+appear in user and group names, ambiguities can arise such as using
+C<--user=>I<u.g> with users I<u> and I<u.g> and group I<g>. With such an
+ambiguity, I<daemon> will assume the user I<u> and group I<g>. Use
+C<--user=>I<u.g:> instead for the other interpretation.
 
-=item C<-R=>I<path>, C<--chroot=>I<path>
+=item C<-R> I<path>, C<--chroot=>I<path>
 
 Change the root directory to I<path> before running the client. On some
-systems, only root can do this. Note that the path to the client program and
-to the configuration file (if any) must be relative to the new root path.
+systems, only I<root> can do this. Note that the path to the client program
+and to the configuration file (if any) must be relative to the new root
+path.
 
-=item C<-D=>I<path>, C<--chdir=>I<path>
+=item C<-D> I<path>, C<--chdir=>I<path>
 
 Change the directory to I<path> before running the client.
 
-=item C<-m=>I<umask>, C<--umask=>I<umask>
+=item C<-m> I<umask>, C<--umask=>I<umask>
 
 Change the umask to I<umask> before running the client. I<umask> must
 be a valid octal mode. The default umask is C<022>.
 
-=item C<-e=>I<var=val>, C<--env=>I<var=val>
+=item C<-e> I<var=val>, C<--env=>I<var=val>
 
 Set an environment variable for the client process. This option can be used
 any number of times. If it is used, only the supplied environment variables
@@ -363,7 +370,7 @@ Allow reading an unsafe configuration file and execution of an unsafe
 executable. A configuration file or executable is unsafe if it is group or
 world writable or is in a directory that is group or world writable
 (following symbolic links). If an executable is a script interpreted by
-another executable, then it is considered unsafe if the interpeter is
+another executable, then it is considered unsafe if the interpreter is
 unsafe. If the interpreter is C</usr/bin/env> (with an argument that is a
 command name to be searched for in C<$PATH>), then that command must be
 safe. By default, I<daemon(1)> will refuse to read an unsafe configuration
@@ -380,42 +387,53 @@ ordinary users. This option overrides that behaviour.
 =item C<-c>, C<--core>
 
 Allow the client to create a core file. This should only be used for
-debugging as it could lead to security holes in daemons run by root.
+debugging as it could lead to security holes in daemons run by I<root>.
 
 =item C<-r>, C<--respawn>
 
 Respawn the client when it terminates.
 
-=item C<-a=>I<#>, C<--acceptable=>I<#>
+=item C<-a> I<#>, C<--acceptable=>I<#>
 
 Specify the minimum acceptable duration in seconds of a client process. The
 default value is 300 seconds. It cannot be set to less than 10 seconds
-without recompiling I<daemon>. This option can only be used with the
-C<--respawn> option.
+except by I<root> when used in conjunction with the C<--idiot> option. This
+option can only be used with the C<--respawn> option.
 
 less than this, it is considered to have failed.
 
-=item C<-A=>I<#>, C<--attempts=>I<#>
+=item C<-A> I<#>, C<--attempts=>I<#>
 
-Number of attempts to spawn before delaying. The default value is 5. This
-option can only be used with the C<--respawn> option.
+Number of attempts to spawn before delaying. The default value is 5. It
+cannot be set to more than 100 attempts except by I<root> when used in
+conjunction with the C<--idiot> option. This option can only be used with
+the C<--respawn> option.
 
-=item C<-L=>I<#>, C<--delay=>I<#>
+=item C<-L> I<#>, C<--delay=>I<#>
 
 Delay in seconds between each burst of spawn attempts. The default value is
-300 seconds. It cannot be set to less than 10 seconds without recompiling
-I<daemon>. This option can only be used with the C<--respawn> option.
+300 seconds. It cannot be set to less than 10 seconds except by I<root> when
+used in conjunction with the C<--idiot> option. This option can only be used
+with the C<--respawn> option.
 
-=item C<-M=>I<#>, -C<--limit=>I<#>
+=item C<-M> I<#>, -C<--limit=>I<#>
 
 Limit the number of spawn attempt bursts. The default value is zero which
 means no limit. This option can only be used with the C<--respawn> option.
+
+=item C<--idiot>
+
+Turn on idiot mode in which I<daemon> will not enforce the minimum or
+maximum values normally imposed on the C<--acceptable>, C<--attempts> and
+C<--delay> option arguments. The C<--idiot> option must appear before any of
+these options. Only the I<root> user may use this option because it can turn
+a slight misconfiguration into a lot of wasted CPU effort and log messages.
 
 =item C<-f>, C<--foreground>
 
 Run the client in the foreground. The client is not turned into a daemon.
 
-=item C<-p>I<[=noecho]>, C<--pty>I<[=noecho]>
+=item C<-p>I<[noecho]>, C<--pty>I<[=noecho]>
 
 Connect the client to a pseudo terminal. This option can only be used with
 the C<--foreground> option. This is the default when the C<--foreground>
@@ -428,21 +446,21 @@ If the C<noecho> argument is supplied with this option, the client's side
 of the pseudo terminal will be set to noecho mode. Use this only if there
 really is a terminal involved and input is being echoed twice.
 
-=item C<-l=>I<spec>, C<--errlog=>I<spec>
+=item C<-l> I<spec>, C<--errlog=>I<spec>
 
 Send I<daemon>'s standard output and error to the syslog destination or file
 specified by I<spec>. If I<spec> is of the form C<"facility.priority">, then
 output is sent to I<syslog(3)>. Otherwise, output is appended to the file
 whose path is given in I<spec>. By default, output is sent to C<daemon.err>.
 
-=item C<-b=>I<spec>, C<--dbglog=>I<spec>
+=item C<-b> I<spec>, C<--dbglog=>I<spec>
 
 Send I<daemon>'s debug output to the syslog destination or file specified by
 I<spec>. If I<spec> is of the form C<"facility.priority">, then output is
 sent to I<syslog(3)>. Otherwise, output is appended to the file whose path
 is given in I<spec>. By default, output is sent to C<daemon.debug>.
 
-=item C<-o=>I<spec>, C<--output=>I<spec>
+=item C<-o> I<spec>, C<--output=>I<spec>
 
 Capture the client's standard output and error and send it to the syslog
 destination or file specified by I<spec>. If I<spec> is of the form
@@ -452,7 +470,7 @@ output is discarded unless the C<--foreground> option is present. In this
 case, the client's stdout and stderr are propagated to I<daemon>'s stdout
 and stderr respectively.
 
-=item C<-O=>I<spec>, C<--stdout=>I<spec>
+=item C<-O> I<spec>, C<--stdout=>I<spec>
 
 Capture the client's standard output and send it to the syslog destination
 or file specified by I<spec>. If I<spec> is of the form
@@ -461,7 +479,7 @@ stdout is appended to the file whose path is given in I<spec>. By default,
 stdout is discarded unless the C<--foreground> option is present, in which
 case, the client's stdout is propagated to I<daemon>'s stdout.
 
-=item C<-E=>I<spec>, C<--stderr=>I<spec>
+=item C<-E> I<spec>, C<--stderr=>I<spec>
 
 Capture the client's standard error and send it to the syslog destination
 specified by I<spec>. If I<spec> is of the form C<"facility.priority">, then
@@ -478,6 +496,10 @@ isn't. If the C<--verbose> option is supplied, print a message before
 exiting. This option can only be used with the C<--name> option. Note that
 the C<--chroot>, C<--user>, C<--name>, C<--pidfiles> and C<--pidfile> (and
 possibly C<--config>) options must be the same as for the target daemon.
+Note that the C<--running> option must appear before any C<--pidfile> or
+C<--pidfiles> option when checking if another user's daemon is running
+otherwise you might get an error about the pidfile directory not being
+writable.
 
 =item C<--restart>
 
@@ -494,6 +516,10 @@ C<--pidfiles> and C<--pidfile> (and possibly C<--config>) options must be the
 same as for the target daemon.
 
 =back
+
+As with all other programs, a C<--> argument signifies the end of options.
+Any options that appear on the command line after C<--> are part of the
+client command.
 
 =head1 FILES
 
@@ -512,8 +538,8 @@ For example:
 
 The command line options are processed first to look for a C<--config>
 option. If no C<--config> option was supplied, the default file,
-C</etc/daemon.conf>, is used. If the user has their own configuration file,
-C<~/.daemorc> it is also used. If the configuration files contain any
+C</etc/daemon.conf>, is used. If the user has their own configuration file
+(C<~/.daemonrc>) it is also used. If the configuration files contain any
 generic (C<'*'>) entries, their options are applied in order of appearance.
 If the C<--name> option was supplied and the configuration files contain any
 entries with the given name, their options are then applied in order of
@@ -539,11 +565,9 @@ using an alternative configuration file). So don't do that. The same applies
 to respawning and foreground.
 
 It is possible for the client process to obtain a controlling terminal under
-I<BSD> (and even under I<SVR4> if C<SVR4> was not defined or
-C<NO_EXTRA_SVR4_FORK> was defined when I<libslack(3)> is compiled). If
-anything calls I<open(2)> on a terminal device without the C<O_NOCTTY> flag,
-the process doing so will obtain a controlling terminal and then be
-susceptible to unintended termination by a C<SIGHUP>.
+I<BSD>. If anything calls I<open(2)> on a terminal device without the
+C<O_NOCTTY> flag, the process doing so will obtain a controlling terminal
+and then be susceptible to unintended termination by a C<SIGHUP>.
 
 Clients run in the foreground with a pseudo terminal don't respond to job
 control (i.e. suspending with Control-Z doesn't work). This is because the
@@ -560,13 +584,9 @@ to using C<--stop>.
 
 The following mailing lists exist for daemon related discussion:
 
-=over 4
-
  daemon-announce@libslack.org - Announcements
  daemon-users@libslack.org    - User forum
  daemon-dev@libslack.org      - Development forum
-
-=back
 
 To subscribe to any of these mailing lists, send a mail message to
 I<listname>C<-request@libslack.org> with C<subscribe> as the message body.
@@ -592,32 +612,44 @@ digests as above but append C<-digest> to the listname.
 
 =head1 SEE ALSO
 
-L<libslack(3)|libslack(3)>,
-L<daemon(3)|daemon(3)>,
-L<coproc(3)|coproc(3)>,
-L<pseudo(3)|pseudo(3)>,
-L<init(8)|init(8)>,
-L<inetd(8)|inetd(8)>,
-L<fork(2)|fork(2)>,
-L<umask(2)|umask(2)>,
-L<setsid(2)|setsid(2)>,
-L<chdir(2)|chdir(2)>,
-L<chroot(2)|chroot(2)>,
-L<setrlimit(2)|setrlimit(2)>,
-L<setgid(2)|setgid(2)>,
-L<setuid(2)|setuid(2)>,
-L<setgroups(2)|setgroups(2)>,
-L<initgroups(3)|initgroups(3)>,
-L<syslog(3)|syslog(3)>,
-L<kill(2)|kill(2)>
+I<libslack(3)>,
+I<daemon(3)>,
+I<coproc(3)>,
+I<pseudo(3)>,
+I<init(8)>,
+I<inetd(8)>,
+I<fork(2)>,
+I<umask(2)>,
+I<setsid(2)>,
+I<chdir(2)>,
+I<chroot(2)>,
+I<setrlimit(2)>,
+I<setgid(2)>,
+I<setuid(2)>,
+I<setgroups(2)>,
+I<initgroups(3)>,
+I<syslog(3)>,
+I<kill(2)>
 
 =head1 AUTHOR
 
-20040806 raf <raf@raf.org>
+20100612 raf <raf@raf.org>
 
 =cut
 
 */
+ 
+#ifndef _BSD_SOURCE
+#define _BSD_SOURCE /* For SIGWINCH and CEOF on OpenBSD-4.7 */
+#endif
+
+#ifndef __BSD_VISIBLE
+#define __BSD_VISIBLE 1 /* For SIGWINCH on FreeBSD-8.0 */
+#endif
+
+#ifndef _NETBSD_SOURCE
+#define _NETBSD_SOURCE /* For CEOF, chroot() on NetBSD-5.0.2 */
+#endif
 
 #include <slack/std.h>
 
@@ -625,6 +657,14 @@ L<kill(2)|kill(2)>
 #include <grp.h>
 #include <fcntl.h>
 #include <syslog.h>
+#ifdef _POSIX_SOURCE
+#undef _POSIX_SOURCE /* For CEOF on FreeBSD-8.0 */
+#define _RESTORE_POSIX_SOURCE
+#endif
+#include <termios.h>
+#ifdef _RESTORE_POSIX_SOURCE
+#define _POSIX_SOURCE
+#endif
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <sys/select.h>
@@ -712,11 +752,14 @@ static struct
 	char *pidfile;     /* absolute path for the pidfile */
 	char *user;        /* name of user to run as */
 	char *group;       /* name of group to run as */
+	char userbuf[BUFSIZ];  /* buffer to store the user name */
+	char groupbuf[BUFSIZ]; /* buffer to store the group name */
 	char *chroot;      /* name of root directory to run under */
 	char *chdir;       /* name of directory to change to */
 	char *command;     /* the client command as a string */
 	mode_t umask;      /* set umask to this */
 	int init_groups;   /* initgroups(3) if group not specified */
+	uid_t initial_uid; /* the uid when the program started */
 	uid_t uid;         /* run the client as this user */
 	gid_t gid;         /* run the client as this group */
 	List *env;         /* client environment variables */
@@ -727,6 +770,7 @@ static struct
 	int attempts;      /* number of times to attempt respawning before delay */
 	int delay;         /* delay in seconds between respawn attempt bursts */
 	int limit;         /* number of spawn attempt bursts */
+	int idiot;         /* idiot mode */
 	int attempt;       /* spawn attempt counter */
 	int burst;         /* spawn attempt burst counter */
 	int foreground;    /* run the client in the foreground? */
@@ -778,11 +822,14 @@ g =
 	null,                   /* pidfile */
 	null,                   /* user */
 	null,                   /* group */
+	{ 0 },                  /* userbuf */
+	{ 0 },                  /* groupbuf */
 	null,                   /* chroot */
 	null,                   /* chdir */
 	null,                   /* command */
 	S_IWGRP | S_IWOTH,      /* umask */
 	0,                      /* init_groups */
+	0,                      /* initial_uid */
 	0,                      /* uid */
 	0,                      /* gid */
 	null,                   /* env */
@@ -793,6 +840,7 @@ g =
 	RESPAWN_ATTEMPTS,       /* attempts */
 	RESPAWN_DELAY,          /* delay */
 	RESPAWN_LIMIT,          /* limit */
+	0,                      /* idiot */
 	0,                      /* attempt */
 	0,                      /* burst */
 	0,                      /* foreground */
@@ -841,8 +889,6 @@ C<static void handle_name_option(const char *spec)>
 
 Store the C<--name> option argument, C<spec>.
 
-=cut
-
 */
 
 #ifndef ACCEPT_NAME
@@ -875,8 +921,6 @@ C<static void handle_pidfiles_option(const char *spec)>
 
 Store the C<--pidfiles> option argument, C<spec>.
 
-=cut
-
 */
 
 static void handle_pidfiles_option(const char *spec)
@@ -894,7 +938,7 @@ static void handle_pidfiles_option(const char *spec)
 	if (stat(spec, status) == -1 || !S_ISDIR(status->st_mode))
 		prog_usage_msg("Invalid --pidfiles argument: '%s' (Directory does not exist)", spec);
 
-	if (access(spec, W_OK) == -1)
+	if (!g.running && access(spec, W_OK) == -1)
 		prog_usage_msg("Invalid --pidfiles argument: '%s' (Directory is not writable)", spec);
 
 	g.pidfiles = (char *)spec;
@@ -905,8 +949,6 @@ static void handle_pidfiles_option(const char *spec)
 C<static void handle_pidfile_option(const char *spec)>
 
 Store the C<--pidfile> option argument, C<spec>.
-
-=cut
 
 */
 
@@ -935,7 +977,7 @@ static void handle_pidfile_option(const char *spec)
 	if (stat(buf, status) == -1 || !S_ISDIR(status->st_mode))
 		prog_usage_msg("Invalid --pidfile argument: '%s' (Parent directory does not exist)", spec);
 
-	if (access(buf, W_OK) == -1)
+	if (!g.running && access(buf, W_OK) == -1)
 		prog_usage_msg("Invalid --pidfile argument: '%s' (Parent directory is not writable)", spec);
 
 	g.pidfile = (char *)spec;
@@ -954,6 +996,7 @@ static void handle_user_option(char *spec)
 	struct passwd *pwd;
 	struct group *grp;
 	char **member;
+	char *pos;
 
 	debug((1, "handle_user_option(spec = %s)", spec))
 
@@ -966,13 +1009,22 @@ static void handle_user_option(char *spec)
 	if (getuid() || geteuid())
 		prog_usage_msg("Invalid option: --user (only works for root)");
 
-	g.user = spec;
-	g.group = strchr(spec, '.');
-
-	if (g.group)
-		*g.group++ = '\0';
+	if ((pos = strchr(spec, ':')) || (pos = strchr(spec, '.')))
+	{
+		if (pos > spec)
+			snprintf(g.user = g.userbuf, BUFSIZ, "%*.*s", (int)(pos - spec), (int)(pos - spec), spec);
+		if (*++pos)
+			snprintf(g.group = g.groupbuf, BUFSIZ, "%s", pos);
+	}
+	else
+	{
+		snprintf(g.user = g.userbuf, BUFSIZ, "%s", spec);
+	}
 
 	g.init_groups = (g.group == null);
+
+	if (!g.user)
+		prog_usage_msg("Invalid --user argument: '%s' (no user name)", spec);
 
 	if (!(pwd = getpwnam(g.user)))
 		prog_usage_msg("Invalid --user argument: '%s' (unknown user %s)", spec, g.user);
@@ -1005,8 +1057,6 @@ C<static void handle_chroot_option(const char *spec)>
 
 Store the C<--chroot> option argument, C<spec>.
 
-=cut
-
 */
 
 static void handle_chroot_option(const char *spec)
@@ -1028,14 +1078,14 @@ C<static void handle_umask_option(const char *spec)>
 
 Parse and store the C<--umask> option argument, C<spec>.
 
-=cut
-
 */
 
 static void handle_umask_option(const char *spec)
 {
 	char *end;
 	long val;
+
+	debug((1, "handle_umask_option(spec = %s)", spec))
 
 	val = strtol(spec, &end, 8);
 
@@ -1051,12 +1101,12 @@ C<static void handle_env_option(const char *var)>
 
 Store the C<--env> option argument, C<var>.
 
-=cut
-
 */
 
 static void handle_env_option(const char *var)
 {
+	debug((1, "handle_env_option(spec = %s)", var))
+
 	if (g.env == null && !(g.env = list_create(null)))
 		fatalsys("failed to create environment list");
 
@@ -1071,13 +1121,13 @@ C<static void handle_inherit_option(void)>
 Process the C<--inherit> option. Add the contents of C<environ> to the list
 of environment variables to be used by the client.
 
-=cut
-
 */
 
 static void handle_inherit_option(void)
 {
 	char **env;
+
+	debug((1, "handle_inherit_option()"))
 
 	if (g.env == null && !(g.env = list_create(null)))
 		fatalsys("failed to create environment list");
@@ -1095,13 +1145,13 @@ C<static void handle_acceptable_option(int acceptable)>
 
 Store the C<--acceptable> option argument, C<acceptable>.
 
-=cut
-
 */
 
 static void handle_acceptable_option(int acceptable)
 {
-	if (acceptable < RESPAWN_ACCEPTABLE_MIN)
+	debug((1, "handle_acceptable_option(acceptable = %d)", acceptable))
+
+	if (!g.idiot && acceptable < RESPAWN_ACCEPTABLE_MIN)
 		prog_usage_msg("Invalid --acceptable argument: %d (less than %d)\n", acceptable, RESPAWN_ACCEPTABLE_MIN);
 
 	g.acceptable = acceptable;
@@ -1113,13 +1163,13 @@ C<static void handle_attempts_option(int attempts)>
 
 Store the positive C<--attempts> option argument, C<attempts>.
 
-=cut
-
 */
 
 static void handle_attempts_option(int attempts)
 {
-	if (attempts < RESPAWN_ATTEMPTS_MIN || attempts > RESPAWN_ATTEMPTS_MAX)
+	debug((1, "handle_attempts_option(attempts = %d)", attempts))
+
+	if (!g.idiot && (attempts < RESPAWN_ATTEMPTS_MIN || attempts > RESPAWN_ATTEMPTS_MAX))
 		prog_usage_msg("Invalid --attempts argument: %d (not between %d and %d)", attempts, RESPAWN_ATTEMPTS_MIN, RESPAWN_ATTEMPTS_MAX);
 
 	g.attempts = attempts;
@@ -1131,13 +1181,13 @@ C<static void handle_delay_option(int delay)>
 
 Store the C<--delay> option argument, C<delay>.
 
-=cut
-
 */
 
 static void handle_delay_option(int delay)
 {
-	if (delay < RESPAWN_DELAY_MIN)
+	debug((1, "handle_delay_option(delay = %d)", delay))
+
+	if (!g.idiot && delay < RESPAWN_DELAY_MIN)
 		prog_usage_msg("Invalid --delay argument: %d (less than %d)\n", delay, RESPAWN_DELAY_MIN);
 
 	g.delay = delay;
@@ -1149,12 +1199,12 @@ C<static void handle_limit_option(int limit)>
 
 Store the C<--limit> option argument, C<limit>.
 
-=cut
-
 */
 
 static void handle_limit_option(int limit)
 {
+	debug((1, "handle_limit_option(limit = %d)", limit))
+
 	if (limit < RESPAWN_LIMIT_MIN)
 		prog_usage_msg("Invalid --limit argument: %d (less than %d)\n", limit, RESPAWN_LIMIT_MIN);
 
@@ -1163,16 +1213,34 @@ static void handle_limit_option(int limit)
 
 /*
 
+C<static void handle_idiot_option(void)>
+
+Store the C<--idiot> option argument if allowed.
+
+*/
+
+static void handle_idiot_option(void)
+{
+	debug((1, "handle_idiot_option()"))
+
+	if (g.initial_uid)
+		prog_usage_msg("Invalid option: --idiot (is only for root)");
+
+	g.idiot = 1;
+}
+
+/*
+
 C<static void handle_pty_option(int arg)>
 
 Store the C<--pty> option argument, C<arg>.
-
-=cut
 
 */
 
 static void handle_pty_option(char *arg)
 {
+	debug((1, "handle_pty_option(arg = %s)", arg))
+
 	g.pty = 1;
 
 	if (arg)
@@ -1299,126 +1367,130 @@ static Option daemon_optab[] =
 {
 	{
 		"config", 'C', "path", "Specify the configuration file",
-		required_argument, OPT_STRING, OPT_VARIABLE, &g.config
+		required_argument, OPT_STRING, OPT_VARIABLE, &g.config, null
 	},
 	{
 		"noconfig", 'N', null, "Bypass the system configuration file",
-		no_argument, OPT_INTEGER, OPT_VARIABLE, &g.noconfig
+		no_argument, OPT_INTEGER, OPT_VARIABLE, &g.noconfig, null
 	},
 	{
 		"name", 'n', "name", "Guarantee a single named instance",
-		required_argument, OPT_STRING, OPT_FUNCTION, (void *)handle_name_option
+		required_argument, OPT_STRING, OPT_FUNCTION, null, (func_t *)handle_name_option
 	},
 	{
 		"command", 'X', "cmd", "Specify the client command as an option",
-		required_argument, OPT_STRING, OPT_VARIABLE, &g.command
+		required_argument, OPT_STRING, OPT_VARIABLE, &g.command, null
 	},
 	{
 		"pidfiles", 'P', "/dir", "Override standard pidfile location",
-		required_argument, OPT_STRING, OPT_FUNCTION, (void *)handle_pidfiles_option
+		required_argument, OPT_STRING, OPT_FUNCTION, null, (func_t *)handle_pidfiles_option
 	},
 	{
 		"pidfile", 'F', "/path", "Override standard pidfile name and location\n",
-		required_argument, OPT_STRING, OPT_FUNCTION, (void *)handle_pidfile_option
+		required_argument, OPT_STRING, OPT_FUNCTION, null, (func_t *)handle_pidfile_option
 	},
 	{
-		"user", 'u', "user[.group]", "Run the client as user[.group]",
-		required_argument, OPT_STRING, OPT_FUNCTION, (void *)handle_user_option
+		"user", 'u', "user[:group]", "Run the client as user[:group]",
+		required_argument, OPT_STRING, OPT_FUNCTION, null, (func_t *)handle_user_option
 	},
 	{
 		"chroot", 'R', "path", "Run the client with path as root",
-		required_argument, OPT_STRING, OPT_FUNCTION, (void *)handle_chroot_option
+		required_argument, OPT_STRING, OPT_FUNCTION, null, (func_t *)handle_chroot_option
 	},
 	{
 		"chdir", 'D', "path", "Run the client in directory path",
-		required_argument, OPT_STRING, OPT_VARIABLE, &g.chdir
+		required_argument, OPT_STRING, OPT_VARIABLE, &g.chdir, null
 	},
 	{
 		"umask", 'm', "umask", "Run the client with the given umask",
-		required_argument, OPT_STRING, OPT_FUNCTION, (void *)handle_umask_option
+		required_argument, OPT_STRING, OPT_FUNCTION, null, (func_t *)handle_umask_option
 	},
 	{
 		"env", 'e', "\"var=val\"", "Set a client environment variable",
-		required_argument, OPT_STRING, OPT_FUNCTION, (void *)handle_env_option
+		required_argument, OPT_STRING, OPT_FUNCTION, null, (func_t *)handle_env_option
 	},
 	{
 		"inherit", 'i', null, "Inherit environment variables",
-		no_argument, OPT_NONE, OPT_FUNCTION, (void *)handle_inherit_option
+		no_argument, OPT_NONE, OPT_FUNCTION, null, (func_t *)handle_inherit_option
 	},
 	{
 		"unsafe", 'U', null, "Allow execution of unsafe executable",
-		no_argument, OPT_NONE, OPT_VARIABLE, &g.unsafe
+		no_argument, OPT_NONE, OPT_VARIABLE, &g.unsafe, null
 	},
 	{
 		"safe", 'S', null, "Deny execution of unsafe executable",
-		no_argument, OPT_NONE, OPT_VARIABLE, &g.safe
+		no_argument, OPT_NONE, OPT_VARIABLE, &g.safe, null
 	},
 	{
 		"core", 'c', null, "Allow core file generation\n",
-		no_argument, OPT_NONE, OPT_VARIABLE, &g.core
+		no_argument, OPT_NONE, OPT_VARIABLE, &g.core, null
 	},
 	{
 		"respawn", 'r', null, "Respawn the client when it terminates",
-		no_argument, OPT_NONE, OPT_VARIABLE, &g.respawn
+		no_argument, OPT_NONE, OPT_VARIABLE, &g.respawn, null
 	},
 	{
-		"acceptable", 'a', "#", "Minimum acceptable client duration",
-		required_argument, OPT_INTEGER, OPT_FUNCTION, (void *)handle_acceptable_option
+		"acceptable", 'a', "#", "Minimum acceptable client duration (seconds)",
+		required_argument, OPT_INTEGER, OPT_FUNCTION, null, (func_t *)handle_acceptable_option
 	},
 	{
 		"attempts", 'A', "#", "Respawn # times on error before delay",
-		required_argument, OPT_INTEGER, OPT_FUNCTION, (void *)handle_attempts_option
+		required_argument, OPT_INTEGER, OPT_FUNCTION, null, (func_t *)handle_attempts_option
 	},
 	{
 		"delay", 'L', "#", "Delay between spawn attempt bursts (seconds)",
-		required_argument, OPT_INTEGER, OPT_FUNCTION, (void *)handle_delay_option
+		required_argument, OPT_INTEGER, OPT_FUNCTION, null, (func_t *)handle_delay_option
 	},
 	{
-		"limit", 'M', "#", "Maximum number of spawn attempt bursts\n",
-		required_argument, OPT_INTEGER, OPT_FUNCTION, (void *)handle_limit_option
+		"limit", 'M', "#", "Maximum number of spawn attempt bursts",
+		required_argument, OPT_INTEGER, OPT_FUNCTION, null, (func_t *)handle_limit_option
+	},
+	{
+		"idiot", nul, null, "Idiot mode (trust root with the above)\n",
+		no_argument, OPT_NONE, OPT_FUNCTION, null, (func_t *)handle_idiot_option
 	},
 	{
 		"foreground", 'f', null, "Run the client in the foreground",
-		no_argument, OPT_NONE, OPT_VARIABLE, &g.foreground
+		no_argument, OPT_NONE, OPT_VARIABLE, &g.foreground, null
 	},
 	{
 		"pty", 'p', "noecho", "Allocate a pseudo terminal for the client\n",
-		optional_argument, OPT_STRING, OPT_FUNCTION, (void *)handle_pty_option
+		optional_argument, OPT_STRING, OPT_FUNCTION, null, (func_t *)handle_pty_option
 	},
 	{
 		"errlog", 'l', "spec", "Send daemon's error output to syslog or file",
-		required_argument, OPT_STRING, OPT_FUNCTION, (void *)handle_errlog_option
+		required_argument, OPT_STRING, OPT_FUNCTION, null, (func_t *)handle_errlog_option
 	},
 	{
 		"dbglog", 'b', "spec", "Send daemon's debug output to syslog or file",
-		required_argument, OPT_STRING, OPT_FUNCTION, (void *)handle_dbglog_option
+		required_argument, OPT_STRING, OPT_FUNCTION, null, (func_t *)handle_dbglog_option
 	},
 	{
 		"output", 'o', "spec", "Send client's output to syslog or file",
-		required_argument, OPT_STRING, OPT_FUNCTION, (void *)handle_output_option
+		required_argument, OPT_STRING, OPT_FUNCTION, null, (func_t *)handle_output_option
 	},
 	{
 		"stdout", 'O', "spec", "Send client's stdout to syslog or file",
-		required_argument, OPT_STRING, OPT_FUNCTION, (void *)handle_stdout_option
+		required_argument, OPT_STRING, OPT_FUNCTION, null, (func_t *)handle_stdout_option
 	},
 	{
 		"stderr", 'E', "spec", "Send client's stderr to syslog or file\n",
-		required_argument, OPT_STRING, OPT_FUNCTION, (void *)handle_stderr_option
+		required_argument, OPT_STRING, OPT_FUNCTION, null, (func_t *)handle_stderr_option
 	},
 	{
 		"running", nul, null, "Check if a named daemon is running",
-		no_argument, OPT_NONE, OPT_VARIABLE, &g.running
+		no_argument, OPT_NONE, OPT_VARIABLE, &g.running, null
 	},
 	{
 		"restart", nul, null, "Restart a named daemon client",
-		no_argument, OPT_NONE, OPT_VARIABLE, &g.restart
+		no_argument, OPT_NONE, OPT_VARIABLE, &g.restart, null
 	},
 	{
 		"stop", nul, null, "Terminate a named daemon process",
-		no_argument, OPT_NONE, OPT_VARIABLE, &g.stop
+		no_argument, OPT_NONE, OPT_VARIABLE, &g.stop, null
 	},
 	{
-		null, '\0', null, null, 0, 0, 0, null
+		null, '\0', null, null, 0, 0, 0, null, null
 	}
 };
 
@@ -1580,6 +1652,8 @@ static void config_process(List *conf, char *target)
 	Config *config;
 	int j;
 
+	debug((1, "config_process(target = %s)", target))
+
 	while (list_has_next(conf) == 1)
 	{
 		config = (Config *)list_next(conf);
@@ -1615,7 +1689,7 @@ caller's responsibility to deallocated it.
 
 static void config_load(List **conf, const char *configfile)
 {
-	debug((1, "config_load()"))
+	debug((1, "config_load(configfile = %s)", configfile))
 
 	/* Check that the config file is safe */
 
@@ -1794,7 +1868,7 @@ static void winch(int signo)
 		return;
 	}
 
-	debug((2, "ioctl(masterfd=%d, TIOCSWINSZ, row = %d, col = %d, xpixel = %d, ypixel = %d)", g.masterfd, win.ws_row, win.ws_col, win.ws_xpixel, win.ws_ypixel))
+	debug((2, "ioctl(masterfd = %d, TIOCSWINSZ, row = %d, col = %d, xpixel = %d, ypixel = %d)", g.masterfd, win.ws_row, win.ws_col, win.ws_xpixel, win.ws_ypixel))
 
 	if (ioctl(g.masterfd, TIOCSWINSZ, &win) == -1)
 		errorsys("failed to set pty's window size");
@@ -1847,6 +1921,8 @@ static int tty_raw(int fd)
 
 	debug((1, "tty_raw(fd = %d)", fd))
 
+	debug((2, "tcgetattr(fd = %d)", fd))
+
 	if (tcgetattr(fd, attr) == -1)
 		return -1;
 
@@ -1857,6 +1933,8 @@ static int tty_raw(int fd)
 	attr->c_oflag &= ~(OPOST);
 	attr->c_cc[VMIN] = 1;
 	attr->c_cc[VTIME] = 0;
+
+	debug((2, "tcsetattr(fd = %d, TCSANOW, raw)", fd))
 
 	return tcsetattr(fd, TCSANOW, attr);
 }
@@ -1876,11 +1954,17 @@ static int tty_noecho(int fd)
 
 	debug((1, "tty_noecho(fd = %d)", fd))
 
+	debug((2, "tcgetattr(fd = %d)", fd))
+
 	if (tcgetattr(fd, attr) == -1)
 		return errorsys("failed to get terminal attributes for slave pty");
 
 	attr->c_lflag &= ~(ECHO | ECHOE | ECHOK | ECHONL);
+#ifdef ONLCR
 	attr->c_oflag &= ~ONLCR;
+#endif
+
+	debug((2, "tcsetattr(fd = %d, TCSANOW, noecho)", fd))
 
 	return tcsetattr(fd, TCSANOW, attr);
 }
@@ -1896,6 +1980,8 @@ Restore stdin's saved terminal attributes and initialise the terminal on exit.
 static void restore_stdin(void)
 {
 	debug((1, "restore_stdin()"))
+
+	debug((2, "tcsetattr(stdin, TCSANOW, orig)"))
 
 	if (tcsetattr(STDIN_FILENO, TCSANOW, &g.stdin_termios) == -1)
 		errorsys("failed to restore stdin terminal attributes");
@@ -1934,8 +2020,12 @@ static void prepare_parent(void)
 
 		/* Get stdin's terminal attributes and window size */
 
+		debug((2, "tcgetattr(stdin)"))
+
 		if (tcgetattr(STDIN_FILENO, &g.stdin_termios) == -1)
 			errorsys("failed to get terminal attributes for stdin");
+
+		debug((2, "ioctl(stdin, TIOCGWINSZ)"))
 
 		if (ioctl(STDIN_FILENO, TIOCGWINSZ, &g.stdin_winsize) == -1)
 			errorsys("failed to get terminal window size for stdin");
@@ -1946,6 +2036,8 @@ static void prepare_parent(void)
 			errorsys("failed to set stdin to raw mode");
 
 		/* Restore stdin's terminal settings on exit */
+
+		debug((2, "atexit(restore_stdin)"))
 
 		if (atexit((void (*)(void))restore_stdin) == -1)
 			errorsys("failed to atexit(restore_stdin)");
@@ -2081,6 +2173,8 @@ static void spawn_child(void)
 		{
 			slave_termios = &g.stdin_termios;
 			slave_winsize = &g.stdin_winsize;
+
+			debug((2, "setting sigwinch handler"))
 
 			if (signal_set_handler(SIGWINCH, 0, winch) == -1)
 				errorsys("failed to set sigwinch action");
@@ -2286,7 +2380,8 @@ static void run(void)
 					buf[n] = '\0';
 
 					if (g.foreground)
-						write(STDOUT_FILENO, buf, n);
+						if (write(STDOUT_FILENO, buf, n) == -1)
+							errorsys("failed to write(fd stdout, buf %*.*s)", n, n, buf);
 
 					if (g.client_outfd != -1)
 					{
@@ -2301,7 +2396,7 @@ static void run(void)
 						for (p = buf; (q = strchr(p, '\n')); p = q + 1)
 						{
 							debug((2, "stdout syslog(%s, %*.*s)", g.client_out, q - p, q - p, p))
-							syslog(g.client_outlog, "%*.*s", q - p, q - p, p);
+							syslog(g.client_outlog, "%*.*s", (int)(q - p), (int)(q - p), p);
 						}
 
 						if (*p && (*p != '\n' || p[1] != '\0'))
@@ -2346,7 +2441,8 @@ static void run(void)
 					buf[n] = '\0';
 
 					if (g.foreground)
-						write(STDERR_FILENO, buf, n);
+						if (write(STDERR_FILENO, buf, n) == -1)
+							errorsys("failed to write(fd stderr, buf %*.*s)", n, n, buf);
 
 					if (g.client_errfd != -1)
 					{
@@ -2361,7 +2457,7 @@ static void run(void)
 						for (p = buf; (q = strchr(p, '\n')); p = q + 1)
 						{
 							debug((2, "stderr syslog(%s, %*.*s)", g.client_err, q - p, q - p, p))
-							syslog(g.client_errlog, "%*.*s", q - p, q - p, p);
+							syslog(g.client_errlog, "%*.*s", (int)(q - p), (int)(q - p), p);
 						}
 
 						if (*p && (*p != '\n' || p[1] != '\0'))
@@ -2406,7 +2502,8 @@ static void run(void)
 					buf[n] = '\0';
 
 					if (g.foreground)
-						write(STDOUT_FILENO, buf, n);
+						if (write(STDOUT_FILENO, buf, n) == -1)
+							errorsys("failed to write(fd stdout, buf %*.*s)", n, n, buf);
 
 					if (g.client_outfd != -1)
 					{
@@ -2421,7 +2518,7 @@ static void run(void)
 						for (p = buf; (q = strchr(p, '\n')); p = q + 1)
 						{
 							debug((2, "stdout syslog(%s, %*.*s)", g.client_out, q - p, q - p, p))
-							syslog(g.client_outlog, "%*.*s", q - p, q - p, p);
+							syslog(g.client_outlog, "%*.*s", (int)(q - p), (int)(q - p), p);
 						}
 
 						if (*p && (*p != '\n' || p[1] != '\0'))
@@ -2540,8 +2637,8 @@ static void show(void)
 
 	debug((2, "options:"))
 
-	debug((2, " config %s, noconfig %d, name %s, command \"%s\", uid %d, gid %d, init_groups %d, chroot %s, chdir %s, umask %o, inherit %s, respawn %s, acceptable %d, attempts %d, delay %d, limit %d, foreground %s, pty %s, noecho %s, stdout %s%s%s%s, stderr %s%s%s%s, errlog %s%s%s%s, dbglog %s%s%s%s, core %s, unsafe %s, safe %s, stop %s, running %s, verbose %d, debug %d",
-		g.config,
+	debug((2, " config %s, noconfig %d, name %s, command \"%s\", uid %d, gid %d, init_groups %d, chroot %s, chdir %s, umask %o, inherit %s, respawn %s, acceptable %d, attempts %d, delay %d, limit %d, idiot %d, foreground %s, pty %s, noecho %s, stdout %s%s%s%s, stderr %s%s%s%s, errlog %s%s%s%s, dbglog %s%s%s%s, core %s, unsafe %s, safe %s, stop %s, running %s, verbose %d, debug %d",
+		g.config ? g.config : "<none>",
 		g.noconfig,
 		g.name ? g.name : "<none>",
 		g.command ? g.command : "<none>",
@@ -2557,6 +2654,7 @@ static void show(void)
 		g.attempts,
 		g.delay,
 		g.limit,
+		g.idiot,
 		g.foreground ? "yes" : "no",
 		g.pty ? "yes" : "no",
 		g.noecho ? "yes" : "no",
@@ -2722,19 +2820,17 @@ static int safety_check(const char *cmd, char *explanation, size_t explanation_s
 
 	/* Search $PATH */
 
-	debug((2, "searching $PATH"))
-
 	if (!(path = getenv("PATH")))
 		path = geteuid() ? DEFAULT_USER_PATH : DEFAULT_ROOT_PATH;
 
-	debug((2, "$PATH = %s", path))
+	debug((2, "PATH = %s", path))
 
 	for (s = path; s; s = (*f) ? f + 1 : null)
 	{
 		if (!(f = strchr(s, PATH_LIST_SEP)))
 			f = s + strlen(s);
 
-		if (snprintf(cmdbuf, 512, "%.*s%s%s", f - s, s, (f - s) ? PATH_SEP_STR : "", cmd) >= 512)
+		if (snprintf(cmdbuf, 512, "%.*s%s%s", (int)(f - s), s, (f - s) ? PATH_SEP_STR : "", cmd) >= 512)
 			continue;
 
 		/* Check if it exists and is executable */
@@ -2773,17 +2869,22 @@ static void sanity_check(void)
 {
 	struct stat status[1];
 
+	debug((1, "sanity_check()"))
+
 	if (g.acceptable != RESPAWN_ACCEPTABLE && !g.respawn)
 		prog_usage_msg("Missing option: --respawn (required for --acceptable)");
 
 	if (g.attempts != RESPAWN_ATTEMPTS && !g.respawn)
-		prog_usage_msg("Missing option: --respawn (required for --attemtps)");
+		prog_usage_msg("Missing option: --respawn (required for --attempts)");
 
 	if (g.delay != RESPAWN_DELAY && !g.respawn)
 		prog_usage_msg("Missing option: --respawn (required for --delay)");
 
 	if (g.limit != RESPAWN_LIMIT && !g.respawn)
 		prog_usage_msg("Missing option: --respawn (required for --limit)");
+
+	if (g.idiot && !g.respawn)
+		prog_usage_msg("Missing option: --respawn (required for --idiot)");
 
 	if (g.pty && !g.foreground)
 		prog_usage_msg("Missing option: --foreground (required for --pty)");
@@ -2841,6 +2942,9 @@ static void init(int ac, char **av)
 	int a;
 	char *name = null;
 
+	prog_dbg_stdout();
+	debug((1, "init()"))
+
 	/* Initialise locale and libslack */
 
 	setlocale(LC_ALL, "");
@@ -2851,7 +2955,7 @@ static void init(int ac, char **av)
 	prog_set_name(DAEMON_NAME);
 	prog_set_version(DAEMON_VERSION);
 	prog_set_date(DAEMON_DATE);
-	prog_set_syntax("[options] [cmd arg...]");
+	prog_set_syntax("[options] [--] [cmd arg...]");
 	prog_set_options(options);
 	prog_set_author("raf <raf@raf.org>");
 	prog_set_contact(prog_author());
@@ -2859,7 +2963,7 @@ static void init(int ac, char **av)
 
 	prog_set_legal
 	(
-		"Copyright (C) 1999-2004 raf <raf@raf.org>\n"
+		"Copyright (C) 1999-2010 raf <raf@raf.org>\n"
 		"\n"
 		"This is free software released under the terms of the GPL:\n"
 		"\n"
@@ -2882,11 +2986,16 @@ static void init(int ac, char **av)
 
 	/* Drop any special setuid/setgid privileges */
 
+	debug((2, "revoking privileges"))
+
 	if (daemon_revoke_privileges() == -1)
 		fatalsys("failed to revoke uid/gid privileges: uid/gid = %d/%d euid/egid = %d/%d", getuid(), getgid(), geteuid(), getegid());
 
 	/* Parse command line options */
 
+	debug((2, "processing command line options"))
+
+	g.initial_uid = getuid();
 	a = prog_opt_process(g.ac = ac, g.av = av);
 	g.done_name = 1;
 
@@ -2894,6 +3003,8 @@ static void init(int ac, char **av)
 
 	if (g.chroot)
 	{
+		debug((2, "chroot %s", g.chroot))
+
 		if (chdir(g.chroot) == -1)
 			fatalsys("failed to change directory to new root directory %s", g.chroot);
 
@@ -2905,11 +3016,16 @@ static void init(int ac, char **av)
 
 	/* Set user and groups */
 
-	if (g.uid && daemon_become_user(g.uid, g.gid, (g.init_groups) ? g.user : null) == -1)
+	if (g.uid)
 	{
-		struct group *grp = getgrgid(g.gid);
-		struct passwd *pwd = getpwuid(g.uid);
-		fatalsys("failed to set user/group to %s/%s (%d/%d): uid/gid = %d/%d euid/egid = %d/%d", (pwd) ? pwd->pw_name : "<noname>", (grp) ? grp->gr_name : "<noname>", (int)g.uid, (int)g.pid, (int)getuid(), (int)getgid(), (int)geteuid(), (int)getegid());
+		debug ((2, "changing to user %s/%d", g.user, g.uid))
+
+		if (daemon_become_user(g.uid, g.gid, (g.init_groups) ? g.user : null) == -1)
+		{
+			struct group *grp = getgrgid(g.gid);
+			struct passwd *pwd = getpwuid(g.uid);
+			fatalsys("failed to set user/group to %s/%s (%d/%d): uid/gid = %d/%d euid/egid = %d/%d", (pwd) ? pwd->pw_name : "<noname>", (grp) ? grp->gr_name : "<noname>", (int)g.uid, (int)g.pid, (int)getuid(), (int)getgid(), (int)geteuid(), (int)getegid());
+		}
 	}
 
 	g.done_user = 1;
@@ -2924,10 +3040,17 @@ static void init(int ac, char **av)
 
 	/* Prevent core file generation */
 
-	if (!g.core && daemon_prevent_core() == -1)
-		fatalsys("failed to prevent core file generation");
+	if (!g.core)
+	{
+		debug((2, "preventing core files"))
+
+		if (daemon_prevent_core() == -1)
+			fatalsys("failed to prevent core file generation");
+	}
 
 	/* Build absolute pidfile path if necessary */
+
+	debug((2, "constructing pidfile path"))
 
 	if (g.pidfile)
 	{
@@ -2956,6 +3079,8 @@ static void init(int ac, char **av)
 	{
 		show();
 
+		debug((2, "stopping daemon %s", name))
+
 		if (daemon_stop(name) == -1)
 			fatalsys("failed to stop the %s daemon", g.name);
 
@@ -2968,6 +3093,8 @@ static void init(int ac, char **av)
 	{
 		show();
 
+		debug((2, "checking if daemon %s is running: pidfile %s", g.name, name))
+
 		switch (daemon_is_running(name))
 		{
 			case 0:
@@ -2975,7 +3102,7 @@ static void init(int ac, char **av)
 				exit(EXIT_FAILURE);
 
 			case 1:
-				verbose(1, "%s is running (pid %d)", g.name, (int)daemon_getpid(g.name));
+				verbose(1, "%s is running (pid %d)", g.name, (int)daemon_getpid(name));
 				exit(EXIT_SUCCESS);
 
 			default:
@@ -2989,6 +3116,8 @@ static void init(int ac, char **av)
 	{
 		show();
 
+		debug((2, "restarting daemon %s: pidfile %s", g.name, name))
+
 		if ((g.pid = daemon_getpid(name)) == -1)
 			fatalsys("failed to find pid for %s", g.name ? g.name : name);
 
@@ -2999,6 +3128,8 @@ static void init(int ac, char **av)
 	}
 
 	/* Build a command line argument vector for the client */
+
+	debug((2, "constructing command line arguments for the client"))
 
 	if (g.command && !(cmd = split(g.command, " ")))
 		fatalsys("out of memory");
@@ -3018,6 +3149,8 @@ static void init(int ac, char **av)
 	g.cmd[i + ac - a] = null;
 
 	/* Check that we have a command to run */
+
+	debug((2, "checking the client command"))
 
 	if (g.cmd[0] == null)
 		prog_usage_msg("Invalid arguments: no command supplied");
@@ -3045,55 +3178,81 @@ static void init(int ac, char **av)
 
 	if (g.foreground)
 	{
+		debug((2, "locking pidfile only (foreground)"))
+
 		if (name && daemon_pidfile(name) == -1)
 			fatalsys("failed to create pidfile for %s", g.name ? g.name : name);
 	}
 	else
 	{
-		int rc = daemon_init(name);
+		int rc;
+
+		debug((2, "becoming a daemon and locking pidfile"))
+
+		rc = daemon_init(name);
 		prog_err_syslog(prog_name(), 0, LOG_DAEMON, LOG_ERR);
 
 		if (rc == -1)
 			fatalsys("failed to become a daemon");
 	}
 
-	if (name && atexit((void (*)(void))daemon_close) == -1)
+	if (name)
 	{
-		daemon_close();
-		fatalsys("%s: failed to atexit(daemon_close)", name);
+		debug((2, "atexit(daemon_close)"))
+
+		if (atexit((void (*)(void))daemon_close) == -1)
+		{
+			daemon_close();
+			fatalsys("%s: failed to atexit(daemon_close)", name);
+		}
 	}
 
 	/* Set umask */
+
+	debug((2, "setting umask to %o", g.umask))
 
 	umask(g.umask);
 
 	/* Set directory */
 
-	if (g.chdir && chdir(g.chdir) == -1)
-		fatalsys("failed to change directory to %s", g.chdir);
+	if (g.chdir)
+	{
+		debug((2, "chdir %s", g.chdir))
+
+		if (chdir(g.chdir) == -1)
+			fatalsys("failed to change directory to %s", g.chdir);
+	}
 
 	/* Set daemon's error message destination (syslog or file) */
 
 	if (g.daemon_errlog)
 	{
+		debug((2, "starting error delivery to syslog %s.%s", syslog_facility_str(g.daemon_errlog), syslog_priority_str(g.daemon_errlog)))
+
 		if (prog_err_syslog(prog_name(), 0, g.daemon_errlog & LOG_FACMASK, g.daemon_errlog & LOG_PRIMASK) == -1)
 			fatalsys("failed to start error delivery to %s.%s", syslog_facility_str(g.daemon_errlog), syslog_priority_str(g.daemon_errlog));
 	}
 	else if (g.daemon_err)
 	{
+		debug((2, "starting error delivery to file %s", g.daemon_err))
+
 		if (prog_err_file(g.daemon_err) == -1)
-			fatalsys("failed to start output delivery to %s", g.daemon_err);
+			fatalsys("failed to start error delivery to %s", g.daemon_err);
 	}
 
 	/* Set daemon's debug message destination (syslog or file) */
 
 	if (g.daemon_dbglog)
 	{
+		debug((2, "starting debug delivery to syslog %s.%s", syslog_facility_str(g.daemon_dbglog), syslog_priority_str(g.daemon_dbglog)))
+
 		if (prog_dbg_syslog(prog_name(), 0, g.daemon_dbglog & LOG_FACMASK, g.daemon_dbglog & LOG_PRIMASK) == -1)
 			fatalsys("failed to start debug delivery to %s.%s", syslog_facility_str(g.daemon_dbglog), syslog_priority_str(g.daemon_dbglog));
 	}
 	else if (g.daemon_dbg)
 	{
+		debug((2, "starting debug delivery to file %s", g.daemon_dbg))
+
 		if (prog_dbg_file(g.daemon_dbg) == -1)
 			fatalsys("failed to start debug delivery to %s", g.daemon_dbg);
 	}
@@ -3103,11 +3262,21 @@ static void init(int ac, char **av)
 	flags = O_CREAT | O_WRONLY | O_APPEND;
 	mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
 
-	if (g.client_out && !g.client_outlog && (g.client_outfd = open(g.client_out, flags, mode)) == -1)
-		errorsys("failed to open %s to log client stdout", g.client_out);
+	if (g.client_out && !g.client_outlog)
+	{
+		debug((2, "opening client output file %s", g.client_out))
 
-	if (g.client_err && !g.client_errlog && (g.client_errfd = open(g.client_err, flags, mode)) == -1)
-		errorsys("failed to open %s to log client stderr", g.client_err);
+		if ((g.client_outfd = open(g.client_out, flags, mode)) == -1)
+			errorsys("failed to open %s to log client stdout", g.client_out);
+	}
+
+	if (g.client_err && !g.client_errlog)
+	{
+		debug((2, "opening client error file %s", g.client_err))
+
+		if ((g.client_errfd = open(g.client_err, flags, mode)) == -1)
+			errorsys("failed to open %s to log client stderr", g.client_err);
+	}
 
 	/* Build an environment variable vector for the client */
 
