@@ -1,7 +1,7 @@
 #
 # libslack - http://libslack.org/
 #
-# Copyright (C) 1999-2010 raf <raf@raf.org>
+# Copyright (C) 1999-2002, 2004, 2010, 2020 raf <raf@raf.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,11 +14,9 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-# or visit http://www.gnu.org/copyleft/gpl.html
+# along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
-# 20100612 raf <raf@raf.org>
+# 20201111 raf <raf@raf.org>
 
 # Uncomment these to override the defines in daemon.h and prog.h
 #
@@ -99,6 +97,32 @@ SLACK_TEST_CCFLAGS += -Wno-long-long
 #
 SLACK_TEST_CCFLAGS += -Wno-overlength-strings
 
+# Uncomment these if your gcc supports them. Don't panic.
+# These are to test that snprintf handles bad input.
+#
+SLACK_TEST_CCFLAGS += -Wno-address
+SLACK_TEST_CCFLAGS += -Wno-nonnull
+SLACK_TEST_CCFLAGS += -Wno-format
+SLACK_TEST_CCFLAGS += -Wno-restrict
+
+# Uncomment these if you need to (i.e. on macOS).
+# Note that the deprecated warning is about tmpnam()
+# which is used safely here (believe it or check the code).
+# It's used to create a path for bind() for UNIX domain
+# datagram sockets on some systems. The reason that it is
+# safe is because bind() will fail if the path already exists.
+# That's the equivalent of using open with O_EXCL that is
+# recommended when using tmpnam(). Some compilers will warn
+# about using tmpnam() saying that it is decprecated and to
+# use mkstemp() instead but that function creates the file as
+# well to eliminate the race condition but we don't want a
+# file to be created here. We want a UNIX domain datagram
+# socket which can only be created by bind(). Correct me if
+# I'm wrong.
+
+# SLACK_CCFLAGS += -Wno-deprecated-declarations
+SLACK_CCFLAGS += -Wno-gnu-folding-constant
+
 # Uncomment this to exclude compilation of the debug locker functions.
 # These functions shamefully assume that pthread_self() can be cast into
 # an unsigned long. If this is not true on on your system, uncomment this
@@ -107,11 +131,12 @@ SLACK_TEST_CCFLAGS += -Wno-overlength-strings
 # SLACK_DEFINES += -DNO_DEBUG_LOCKERS=1
 
 SLACK_NAME := slack
-SLACK_VERSION := 0.6
+SLACK_VERSION := 0.7
 SLACK_URL := http://libslack.org/
 SLACK_ID := lib$(SLACK_NAME)-$(SLACK_VERSION)
 SLACK_DIST := $(SLACK_ID).tar.gz
-SLACK_HTML_DIST := $(SLACK_ID).html.tar.gz
+SLACK_HTML_ID := $(SLACK_ID)-html
+SLACK_HTML_DIST := $(SLACK_HTML_ID).tar.gz
 
 SLACK_TARGET := $(SLACK_SRCDIR)/lib$(SLACK_NAME).a
 SLACK_INSTALL := $(SLACK_ID).a

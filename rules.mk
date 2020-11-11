@@ -1,7 +1,7 @@
 
 # daemon - http://libslack.org/daemon/
 #
-# Copyright (C) 1999-2010 raf <raf@raf.org>
+# Copyright (C) 1999-2004, 2010, 2020 raf <raf@raf.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,12 +14,10 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-# or visit http://www.gnu.org/copyleft/gpl.html
+# along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
 
-# 20100612 raf <raf@raf.org>
+# 20201111 raf <raf@raf.org>
 
 ifneq ($(DAEMON_TARGET),./$(DAEMON_NAME))
 
@@ -59,8 +57,9 @@ install-daemon-html: html-daemon
 	install -m 644 $(DAEMON_HTMLFILES) $(DAEMON_HTMLDIR)
 
 install-daemon-conf: $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE)
-	@mkdir -p $(DAEMON_CONFDIR); \
-	install -m 644 $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE) $(DAEMON_CONFDIR)
+	@mkdir -p $(DAEMON_CONF_INSDIR); \
+	[ -f $(DAEMON_CONF_INSDIR)/$(DAEMON_CONFFILE) ] || install -m 644 $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE) $(DAEMON_CONF_INSDIR); \
+	[ -d $(DAEMON_CONF_INSDIR)/$(DAEMON_CONFDIR) ] || mkdir $(DAEMON_CONF_INSDIR)/$(DAEMON_CONFDIR)
 
 .PHONY: uninstall-daemon uninstall-daemon-bin uninstall-daemon-man uninstall-daemon-html uninstall-daemon-conf
 
@@ -77,7 +76,7 @@ uninstall-daemon-html:
 	@rm -f $(patsubst %, $(DAEMON_HTMLDIR)/%, $(notdir $(DAEMON_HTMLFILES)))
 
 uninstall-daemon-conf:
-	@rm -f $(DAEMON_CONFDIR)/$(DAEMON_CONFFILE)
+	@rm -rf $(DAEMON_CONF_INSDIR)/$(DAEMON_CONFFILE) $(DAEMON_CONF_INSDIR)/$(DAEMON_CONFDIR)
 
 .PHONY: dist-daemon dist-html-daemon rpm-daemon deb-daemon sol-daemon obsd-daemon fbsd-daemon nbsd-daemon osx-daemon
 
@@ -89,7 +88,7 @@ dist-daemon: distclean
 	dst=$(DAEMON_ID); \
 	cd ..; \
 	[ "$$src" != "$$dst" -a ! -d "$$dst" ] && ln -s $$src $$dst; \
-	tar chzf $$up/$(DAEMON_DIST) $$dst; \
+	tar chzf $$up/$(DAEMON_DIST) --exclude='.git*' $$dst; \
 	[ -h "$$dst" ] && rm -f $$dst; \
 	tar tzfv $$up/$(DAEMON_DIST); \
 	ls -l $$up/$(DAEMON_DIST)
@@ -99,10 +98,10 @@ dist-html-daemon: html-daemon
 	up="`pwd`/.."; \
 	cd $(DAEMON_SRCDIR); \
 	src=`basename \`pwd\``; \
-	dst=$(DAEMON_ID); \
+	dst=$(DAEMON_HTML_ID); \
 	cd ..; \
 	[ "$$src" != "$$dst" -a ! -d "$$dst" ] && ln -s $$src $$dst; \
-	tar chzf $$up/$(DAEMON_HTML_DIST) $(patsubst $(DAEMON_SRCDIR)/%, $$dst/%, $(DAEMON_SRCDIR)/README $(DAEMON_HTMLFILES)); \
+	tar chzf $$up/$(DAEMON_HTML_DIST) $(patsubst $(DAEMON_SRCDIR)/%, $$dst/%, $(DAEMON_SRCDIR)/README.md $(DAEMON_SRCDIR)/INSTALL $(DAEMON_SRCDIR)/COPYING $(DAEMON_SRCDIR)/LICENSE $(DAEMON_SRCDIR)/REFERENCES $(DAEMON_SRCDIR)/CHANGELOG $(DAEMON_HTMLFILES)); \
 	[ -h "$$dst" ] && rm -f $$dst; \
 	tar tzfv $$up/$(DAEMON_HTML_DIST); \
 	ls -l $$up/$(DAEMON_HTML_DIST)
@@ -133,12 +132,14 @@ rpm-daemon: $(DAEMON_SRCDIR)/daemon.spec
 	rpm -qlpv $$up/$(DAEMON_ID)-*.*.rpm
 
 DAEMON_SPEC_CODE := perl -ne ' \
-		next if /^~+$$/; \
+		next if /^=+$$/; \
 		chop($$section = $$_), next if /^[A-Z]+$$/; \
-		$$summary = $$_ if $$section eq "README" && /^\w/; \
+		$$summary = $$_ if $$section eq "README" && /^[*\w]/; \
 		$$description .= $$_ if $$section eq "DESCRIPTION"; \
 		if ($$section ne "README" && $$section ne "DESCRIPTION") \
 		{ \
+			$$summary =~ s/[*`]//g; \
+			$$description =~ s/[*`]//g; \
 			print "Summary: $$summary"; \
 			print "Name: $(DAEMON_NAME)\n"; \
 			print "Version: $(DAEMON_VERSION)\n"; \
@@ -162,7 +163,7 @@ DAEMON_SPEC_CODE := perl -ne ' \
 
 $(DAEMON_SRCDIR)/daemon.spec:
 	@set -e; \
-	$(DAEMON_SPEC_CODE) < $(DAEMON_SRCDIR)/README > $(DAEMON_SRCDIR)/daemon.spec; \
+	$(DAEMON_SPEC_CODE) < $(DAEMON_SRCDIR)/README.md > $(DAEMON_SRCDIR)/daemon.spec; \
 	for file in $(DAEMON_RPM_FILES); do echo $$file >> $(DAEMON_SRCDIR)/daemon.spec; done; \
 	for file in $(sort $(DAEMON_RPM_DOCFILES)); do echo %doc $$file >> $(DAEMON_SRCDIR)/daemon.spec; done
 
@@ -194,19 +195,20 @@ deb-daemon: $(DAEMON_SRCDIR)/debian
 
 DAEMON_DEBIAN_CONTROL_CODE := perl -p -i -e ' \
 		BEGIN { \
-			open(README, "../README") or die("failed to open ../README\n"); \
+			open(README, "../README.md") or die("failed to open ../README.md\n"); \
 			while (<README>) \
 			{ \
-				next if /^~+$$/; \
+				next if /^=+$$/; \
 				chop($$section = $$_), next if /^[A-Z]+$$/; \
-				$$summary = $$_ if $$section eq "README" && /^\w/; \
+				$$summary = $$_ if $$section eq "README" && /^[*\w]/; \
 				$$description .= $$_ if $$section eq "DESCRIPTION"; \
 				if ($$section ne "README" && $$section ne "DESCRIPTION") \
 				{ \
 					chop($$description); \
 					chop($$description); \
+					$$description =~ s/[*`]//g; \
 					chop($$summary); \
-					$$summary = $$1 if $$summary =~ /^\w+ - (.*)$$/; \
+					$$summary = $$1 if $$summary =~ /^\*?\w+\*? - (.*)$$/; \
 					$$description =~ s/^$$/./mg; \
 					$$description =~ s/^/ /mg; \
 					last; \
@@ -217,23 +219,24 @@ DAEMON_DEBIAN_CONTROL_CODE := perl -p -i -e ' \
 		s/^Section: unknown$$/Section: utils/; \
 		s/^(Build-Depends: .*)/$$1, perl/; \
 		s/^Homepage: <.*>$$/Homepage: http:\/\/libslack.org\/daemon\//; \
-		s/, \$${misc:Depends}//; \
+		s/, \$$\{misc:Depends\}//; \
 		s/^Description: <insert up to 60 chars description>$$/Description: $$summary/; \
 		s/^ <insert long description, indented with spaces>$$/$$description/'
 
 DAEMON_DEBIAN_COPYRIGHT_CODE := perl -p -i -e ' \
 		s/<url:\/\/example\.com>/<http:\/\/libslack.org\/daemon\/>/; \
-		s/Upstream Author\(s\):/Upstream Author:/; \
-		s/<put author.s name and email here>/raf <raf\@raf.org>/; \
-		s/\s+<likewise for another author>//; \
-		s/<Copyright \(C\) YYYY Name OfAuthor>/Copyright (C) 1999-2010 raf <raf\@raf.org>/; \
-		s/<Put the license of the package here indented by 4 spaces>/This software is released under the terms of the GNU General Public License:\n\n    http:\/\/www.gnu.org\/copyleft\/gpl.html (on the Web)\n    file:\/usr\/share\/common-licenses\/GPL  (on Debian systems)\n/; \
+		s/Copyright: <years> <put author.s name and email here>/Copyright: 1999-2004, 2010, 2020 raf <raf\@raf.org>/; \
+		s/\s+<years> <likewise for another author>\n//; \
+		s/License: <special license>/License: GPL-2+/; \
+		s/<Put the license of the package here indented by 1 space>/This software is released under the terms of the GNU General Public License v2+:\n\n    http:\/\/www.gnu.org\/copyleft\/gpl.html   (on the Web)\n    file:\/usr\/share\/common-licenses\/GPL-2  (on Debian systems)/; \
+		s/ <This follows the format of Description: lines in control file>\n//; \
+		s/ <Including paragraphs>\n//; \
 		s/\#.*//'
 
 DAEMON_DEBIAN_RULES_CODE := perl -p -i -e ' \
 		s/^\t(.*)\$$\(MAKE\) \S*clean$$/\t$$1\$$(MAKE) debian-clobber/; \
 		s/^\t\$$\(MAKE\)$$/\t\$$(MAKE) all daemon.conf man-daemon html-daemon/; \
-		s/^\t\$$\(MAKE\) .*install.*$$/\t\$$(MAKE) PREFIX=debian\/$(DAEMON_NAME)\/usr install-daemon-bin\n\t\$$(MAKE) PREFIX=debian\/$(DAEMON_NAME)\/usr\/share install-daemon-man\n\t\$$(MAKE) DAEMON_HTMLDIR=debian\/$(DAEMON_NAME)\/usr\/share\/doc\/daemon\/html install-daemon-html\n\t\$$(MAKE) DAEMON_CONFDIR=debian\/$(DAEMON_NAME)\/etc install-daemon-conf/; \
+		s/^\t\$$\(MAKE\) .*install.*$$/\t\$$(MAKE) PREFIX=debian\/$(DAEMON_NAME)\/usr install-daemon-bin\n\t\$$(MAKE) PREFIX=debian\/$(DAEMON_NAME)\/usr\/share install-daemon-man\n\t\$$(MAKE) DAEMON_HTMLDIR=debian\/$(DAEMON_NAME)\/usr\/share\/doc\/daemon\/html install-daemon-html\n\t\$$(MAKE) DAEMON_CONF_INSDIR=debian\/$(DAEMON_NAME)\/etc install-daemon-conf/; \
 		s/^\tdh_installexamples$$/\#\tdh_installexamples/; \
 		s/^\tdh_installmenu$$/\#\tdh_installmenu/; \
 		s/^\tdh_installcron$$/\#\tdh_installcron/; \
@@ -257,7 +260,7 @@ $(DAEMON_SRCDIR)/debian:
 	esac; \
 	echo "Creating debian directory."; \
 	dh_make -h | grep createorig >/dev/null && createorig=--createorig; \
-	echo | dh_make $$createorig -s -e raf@raf.org; \
+	dh_make $$createorig -s -e raf@raf.org; \
 	[ "$$DAEMON_RENAMED" = "yes" ] && cd .. && mv $(DAEMON_NAME)-$(DAEMON_VERSION) $(DAEMON_NAME) && cd $(DAEMON_NAME); \
 	cd $(DAEMON_SRCDIR)/debian; \
 	echo "Cleaning up debian directory."; \
@@ -294,8 +297,12 @@ debian-clobber::
 $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE):
 	@echo '# /etc/daemon.conf: system-wide daemon(1) configuration.' > $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE); \
 	echo '# See daemon(1) for full documentation.' >> $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE); \
-	echo '' >> $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE); \
+	echo '#' >> $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE); \
 	echo '# Format: <name|"*"> <option(","option)*>' >> $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE); \
+	echo '#' >> $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE); \
+	echo '# Examples:' >> $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE); \
+	echo '# *      pidfiles=/var/tmp' >> $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE); \
+	echo '# name   respawn,command=/usr/bin/command args' >> $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE); \
 	echo '' >> $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE)
 
 sol-daemon: $(DAEMON_SRCDIR)/daemon.pkginfo
@@ -308,7 +315,7 @@ sol-daemon: $(DAEMON_SRCDIR)/daemon.pkginfo
 	cd $(DAEMON_SRCDIR)/solaris/build; \
 	gzip -dc $$up/$(DAEMON_DIST) | tar xf -; \
 	cd $(DAEMON_ID); \
-	./config; \
+	./configure; \
 	gmake PREFIX=../../install FINAL_PREFIX="$(PREFIX)" all install-daemon; \
 	cd "$$base"; \
 	mv $(DAEMON_SRCDIR)/daemon.pkginfo $(DAEMON_SRCDIR)/solaris/info/pkginfo; \
@@ -326,11 +333,12 @@ sol-daemon: $(DAEMON_SRCDIR)/daemon.pkginfo
 	gzip $$up/$(DAEMON_ID)-solaris-$$arch.pkg
 
 DAEMON_PKGINFO_CODE := perl -ne ' \
-		next if /^~+$$/; \
+		next if /^=+$$/; \
 		chop($$section = $$_), next if /^[A-Z]+$$/; \
-		chop($$description = $$_) if $$section eq "README" && /^\w/; \
+		chop($$description = $$_) if $$section eq "README" && /^[*\w]/; \
 		if ($$section ne "README") \
 		{ \
+			$$description =~ s/[*`]//g; \
 			print "PKG=\"$(DAEMON_SOL)\"\n"; \
 			print "NAME=\"$$description\"\n"; \
 			print "VERSION=\"$(DAEMON_VERSION)\"\n"; \
@@ -341,7 +349,7 @@ DAEMON_PKGINFO_CODE := perl -ne ' \
 
 $(DAEMON_SRCDIR)/daemon.pkginfo:
 	@set -e; \
-	$(DAEMON_PKGINFO_CODE) < $(DAEMON_SRCDIR)/README > $(DAEMON_SRCDIR)/daemon.pkginfo
+	$(DAEMON_PKGINFO_CODE) < $(DAEMON_SRCDIR)/README.md > $(DAEMON_SRCDIR)/daemon.pkginfo
 
 obsd-daemon: $(DAEMON_SRCDIR)/obsd-daemon-oneline $(DAEMON_SRCDIR)/obsd-daemon-description
 	@set -e; \
@@ -352,7 +360,7 @@ obsd-daemon: $(DAEMON_SRCDIR)/obsd-daemon-oneline $(DAEMON_SRCDIR)/obsd-daemon-d
 	cd "$$base/obsd-$(DAEMON_NAME)/build"; \
 	tar xzf "$$up/$(DAEMON_DIST)"; \
 	cd ./$(DAEMON_ID); \
-	./config; \
+	./configure; \
 	gmake PREFIX=../../install FINAL_PREFIX="$(PREFIX)" all install-daemon; \
 	cd "$$base"; \
 	echo "@cwd $(PREFIX)" >> $(DAEMON_SRCDIR)/obsd-daemon-packinglist; \
@@ -363,31 +371,32 @@ obsd-daemon: $(DAEMON_SRCDIR)/obsd-daemon-oneline $(DAEMON_SRCDIR)/obsd-daemon-d
 	rm -rf "$$base/obsd-$(DAEMON_NAME)" $(DAEMON_SRCDIR)/obsd-daemon-packinglist $(DAEMON_SRCDIR)/obsd-daemon-oneline $(DAEMON_SRCDIR)/obsd-daemon-description
 
 DAEMON_OBSD_ONELINE_CODE := perl -ne ' \
-		next if /^~+$$/; \
+		next if /^=+$$/; \
 		chop($$section = $$_), next if /^[A-Z]+$$/; \
-		chop($$description = $$_) if $$section eq "README" && /^\w/; \
+		chop($$description = $$_) if $$section eq "README" && /^[*\w]/; \
 		if ($$section ne "README") \
 		{ \
-			my ($$name, $$desc) = $$description =~ /^(\w+) - (.*)$$/; \
+			my ($$name, $$desc) = $$description =~ /^\*?(\w+)\*? - (.*)$$/; \
 			print "$$desc\n"; \
 			exit; \
 		}'
 
 $(DAEMON_SRCDIR)/obsd-daemon-oneline:
-	@$(DAEMON_OBSD_ONELINE_CODE) < $(DAEMON_SRCDIR)/README > $(DAEMON_SRCDIR)/obsd-daemon-oneline
+	@$(DAEMON_OBSD_ONELINE_CODE) < $(DAEMON_SRCDIR)/README.md > $(DAEMON_SRCDIR)/obsd-daemon-oneline
 
 DAEMON_OBSD_DESCRIPTION_CODE := perl -ne ' \
-		next if /^~+$$/; \
+		next if /^=+$$/; \
 		chop($$section = $$_), next if /^[A-Z]+$$/; \
 		$$description .= $$_ if $$section eq "DESCRIPTION"; \
 		if ($$section ne "README" && $$section ne "DESCRIPTION") \
 		{ \
+			$$description =~ s/[*`]//g; \
 			print $$description; \
 			exit; \
 		}'
 
 $(DAEMON_SRCDIR)/obsd-daemon-description:
-	@$(DAEMON_OBSD_DESCRIPTION_CODE) < $(DAEMON_SRCDIR)/README > $(DAEMON_SRCDIR)/obsd-daemon-description
+	@$(DAEMON_OBSD_DESCRIPTION_CODE) < $(DAEMON_SRCDIR)/README.md > $(DAEMON_SRCDIR)/obsd-daemon-description
 
 fbsd-daemon: $(DAEMON_SRCDIR)/fbsd-daemon-oneline $(DAEMON_SRCDIR)/fbsd-daemon-description
 	@set -e; \
@@ -398,7 +407,7 @@ fbsd-daemon: $(DAEMON_SRCDIR)/fbsd-daemon-oneline $(DAEMON_SRCDIR)/fbsd-daemon-d
 	cd "$$base/fbsd-$(DAEMON_NAME)/build"; \
 	tar xzf "$$up/$(DAEMON_DIST)"; \
 	cd ./$(DAEMON_ID); \
-	./config; \
+	./configure; \
 	gmake PREFIX=../../install FINAL_PREFIX="$(PREFIX)" all install-daemon; \
 	cd "$$base"; \
 	echo "@name $(DAEMON_ID)" > $(DAEMON_SRCDIR)/fbsd-daemon-packinglist; \
@@ -411,31 +420,32 @@ fbsd-daemon: $(DAEMON_SRCDIR)/fbsd-daemon-oneline $(DAEMON_SRCDIR)/fbsd-daemon-d
 	rm -rf "$$base/fbsd-$(DAEMON_NAME)" $(DAEMON_SRCDIR)/fbsd-daemon-packinglist $(DAEMON_SRCDIR)/fbsd-daemon-oneline $(DAEMON_SRCDIR)/fbsd-daemon-description
 
 DAEMON_FBSD_ONELINE_CODE := perl -ne ' \
-		next if /^~+$$/; \
+		next if /^=+$$/; \
 		chop($$section = $$_), next if /^[A-Z]+$$/; \
-		chop($$description = $$_) if $$section eq "README" && /^\w/; \
+		chop($$description = $$_) if $$section eq "README" && /^[*\w]/; \
 		if ($$section ne "README") \
 		{ \
-			my ($$name, $$desc) = $$description =~ /^(\w+) - (.*)$$/; \
+			my ($$name, $$desc) = $$description =~ /^\*?(\w+)\*? - (.*)$$/; \
 			print "$$desc\n"; \
 			exit; \
 		}'
 
 $(DAEMON_SRCDIR)/fbsd-daemon-oneline:
-	@$(DAEMON_FBSD_ONELINE_CODE) < $(DAEMON_SRCDIR)/README > $(DAEMON_SRCDIR)/fbsd-daemon-oneline
+	@$(DAEMON_FBSD_ONELINE_CODE) < $(DAEMON_SRCDIR)/README.md > $(DAEMON_SRCDIR)/fbsd-daemon-oneline
 
 DAEMON_FBSD_DESCRIPTION_CODE := perl -ne ' \
-		next if /^~+$$/; \
+		next if /^=+$$/; \
 		chop($$section = $$_), next if /^[A-Z]+$$/; \
 		$$description .= $$_ if $$section eq "DESCRIPTION"; \
 		if ($$section ne "README" && $$section ne "DESCRIPTION") \
 		{ \
+			$$description =~ s/[*`]//g; \
 			print $$description; \
 			exit; \
 		}'
 
 $(DAEMON_SRCDIR)/fbsd-daemon-description:
-	@$(DAEMON_FBSD_DESCRIPTION_CODE) < $(DAEMON_SRCDIR)/README > $(DAEMON_SRCDIR)/fbsd-daemon-description
+	@$(DAEMON_FBSD_DESCRIPTION_CODE) < $(DAEMON_SRCDIR)/README.md > $(DAEMON_SRCDIR)/fbsd-daemon-description
 
 nbsd-daemon: $(DAEMON_SRCDIR)/nbsd-daemon-oneline $(DAEMON_SRCDIR)/nbsd-daemon-description $(DAEMON_SRCDIR)/nbsd-daemon-buildinfo
 	@set -e; \
@@ -446,7 +456,7 @@ nbsd-daemon: $(DAEMON_SRCDIR)/nbsd-daemon-oneline $(DAEMON_SRCDIR)/nbsd-daemon-d
 	cd "$$base/nbsd-$(DAEMON_NAME)/build"; \
 	tar xzf "$$up/$(DAEMON_DIST)"; \
 	cd ./$(DAEMON_ID); \
-	./config; \
+	./configure; \
 	gmake PREFIX=../../install FINAL_PREFIX="$(PREFIX)" all install-daemon; \
 	cd "$$base"; \
 	echo "@name $(DAEMON_ID)" > $(DAEMON_SRCDIR)/nbsd-daemon-packinglist; \
@@ -460,31 +470,32 @@ nbsd-daemon: $(DAEMON_SRCDIR)/nbsd-daemon-oneline $(DAEMON_SRCDIR)/nbsd-daemon-d
 	rm -rf "$$base/nbsd-$(DAEMON_NAME)" $(DAEMON_SRCDIR)/nbsd-daemon-packinglist $(DAEMON_SRCDIR)/nbsd-daemon-oneline $(DAEMON_SRCDIR)/nbsd-daemon-description $(DAEMON_SRCDIR)/nbsd-daemon-buildinfo
 
 DAEMON_NBSD_ONELINE_CODE := perl -ne ' \
-		next if /^~+$$/; \
+		next if /^=+$$/; \
 		chop($$section = $$_), next if /^[A-Z]+$$/; \
-		chop($$description = $$_) if $$section eq "README" && /^\w/; \
+		chop($$description = $$_) if $$section eq "README" && /^[*\w]/; \
 		if ($$section ne "README") \
 		{ \
-			my ($$name, $$desc) = $$description =~ /^(\w+) - (.*)$$/; \
+			my ($$name, $$desc) = $$description =~ /^\*?(\w+)\*? - (.*)$$/; \
 			print "$$desc\n"; \
 			exit; \
 		}'
 
 $(DAEMON_SRCDIR)/nbsd-daemon-oneline:
-	@$(DAEMON_NBSD_ONELINE_CODE) < $(DAEMON_SRCDIR)/README > $(DAEMON_SRCDIR)/nbsd-daemon-oneline
+	@$(DAEMON_NBSD_ONELINE_CODE) < $(DAEMON_SRCDIR)/README.md > $(DAEMON_SRCDIR)/nbsd-daemon-oneline
 
 DAEMON_NBSD_DESCRIPTION_CODE := perl -ne ' \
-		next if /^~+$$/; \
+		next if /^=+$$/; \
 		chop($$section = $$_), next if /^[A-Z]+$$/; \
 		$$description .= $$_ if $$section eq "DESCRIPTION"; \
 		if ($$section ne "README" && $$section ne "DESCRIPTION") \
 		{ \
+			$$description =~ s/[*`]//g; \
 			print $$description; \
 			exit; \
 		}'
 
 $(DAEMON_SRCDIR)/nbsd-daemon-description:
-	@$(DAEMON_NBSD_DESCRIPTION_CODE) < $(DAEMON_SRCDIR)/README > $(DAEMON_SRCDIR)/nbsd-daemon-description
+	@$(DAEMON_NBSD_DESCRIPTION_CODE) < $(DAEMON_SRCDIR)/README.md > $(DAEMON_SRCDIR)/nbsd-daemon-description
 
 $(DAEMON_SRCDIR)/nbsd-daemon-buildinfo:
 	@echo "MACHINE_ARCH=`uname -p`" > $(DAEMON_SRCDIR)/nbsd-daemon-buildinfo; \
@@ -500,7 +511,7 @@ osx-daemon:
 	cd "./osx-$(DAEMON_NAME)/build"; \
 	tar xzf "$$up/$(DAEMON_DIST)"; \
 	cd ./$(DAEMON_ID); \
-	./config; \
+	./configure; \
 	make PREFIX=../../install FINAL_PREFIX="$(PREFIX)" all install-daemon; \
 	cd ../../install; \
 	arch="`uname -m`"; \
@@ -527,12 +538,12 @@ help::
 	echo " install-daemon-bin    -- installs $(DAEMON_NAME) in $(APP_INSDIR)"; \
 	echo " install-daemon-man    -- installs the $(DAEMON_NAME) manpage in $(APP_MANDIR)"; \
 	echo " install-daemon-html   -- installs the $(DAEMON_NAME) html manpage in $(DAEMON_HTMLDIR)"; \
-	echo " install-daemon-conf   -- installs the $(DAEMON_NAME).conf file in $(DAEMON_CONFDIR)"; \
+	echo " install-daemon-conf   -- installs the $(DAEMON_NAME).conf{,.d} file/directory in $(DAEMON_CONF_INSDIR)"; \
 	echo " uninstall-daemon      -- uninstalls $(DAEMON_NAME) and its manpage"; \
 	echo " uninstall-daemon-bin  -- uninstalls $(DAEMON_NAME) from $(APP_INSDIR)"; \
 	echo " uninstall-daemon-man  -- uninstalls the $(DAEMON_NAME) manpage from $(APP_MANDIR)"; \
 	echo " uninstall-daemon-html -- uninstalls the $(DAEMON_NAME) html manpage from $(DAEMON_HTMLDIR)"; \
-	echo " uninstall-daemon-conf -- uninstalls the $(DAEMON_NAME).conf file from $(DAEMON_CONFDIR)"; \
+	echo " uninstall-daemon-conf -- uninstalls the $(DAEMON_NAME).conf{,.d} file/directory from $(DAEMON_CONF_INSDIR)"; \
 	echo " dist-daemon           -- makes a source tarball for daemon+libslack"; \
 	echo " dist-html-daemon      -- makes a tarball of daemon's html manpages"; \
 	echo " rpm-daemon            -- makes source and binary rpm packages for daemon"; \
@@ -565,6 +576,7 @@ help-macros::
 	echo "DAEMON_MANFILES = $(DAEMON_MANFILES)"; \
 	echo "DAEMON_HTMLFILES = $(DAEMON_HTMLFILES)"; \
 	echo "DAEMON_CONFFILE = $(DAEMON_CONFFILE)"; \
+	echo "DAEMON_CONFDIR = $(DAEMON_CONFDIR)"; \
 	echo "DAEMON_RPM_FILES = $(DAEMON_RPM_FILES)"; \
 	echo "DAEMON_RPM_DOCFILES = $(DAEMON_RPM_DOCFILES)"; \
 	echo "DAEMON_DEFINES = $(DAEMON_DEFINES)"; \

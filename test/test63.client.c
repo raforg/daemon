@@ -1,5 +1,7 @@
+#include <stdlib.h>
 #include <stdio.h>
 #include <signal.h>
+#include <unistd.h>
 
 void term(int sig)
 {

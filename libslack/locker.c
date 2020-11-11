@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2010 raf <raf@raf.org>
+* Copyright (C) 1999-2002, 2004, 2010, 2020 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -14,11 +14,9 @@
 * GNU General Public License for more details.
 *
 * You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-* or visit http://www.gnu.org/copyleft/gpl.html
+* along with this program; if not, see <https://www.gnu.org/licenses/>.
 *
-* 20100612 raf <raf@raf.org>
+* 20201111 raf <raf@raf.org>
 */
 
 /*
@@ -1029,7 +1027,7 @@ C<http://raf.org/papers/mt-disciplined.html>
 
 =head1 AUTHOR
 
-20100612 raf <raf@raf.org>
+20201111 raf <raf@raf.org>
 
 =cut
 
@@ -1461,6 +1459,10 @@ int main(int ac, char **av)
 		TIME_TEST("rwlock builtin locker (cacheaddr)", 0, dr, rblc, length = list_length_test_builtin_locker_cacheaddr(rwlock_list))
 		TIME_TEST("rwlock builtin locker (1test/cacheaddr)", 0, dr, rbl1c, length = list_length_test_builtin_locker_1test_cacheaddr(rwlock_list))
 		printf("\n");
+
+		/* Suppress compiler warning */
+		if (length)
+			length = 0;
 
 		list_release(list);
 		list_release(mutex_list);

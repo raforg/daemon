@@ -1,7 +1,7 @@
 /*
 # libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2010 raf <raf@raf.org>
+* Copyright (C) 1999-2002, 2004, 2010, 2020 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -14,11 +14,9 @@
 * GNU General Public License for more details.
 *
 * You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-* or visit http://www.gnu.org/copyleft/gpl.html
+* along with this program; if not, see <https://www.gnu.org/licenses/>.
 *
-* 20100612 raf <raf@raf.org>
+* 20201111 raf <raf@raf.org>
 */
 
 /*
@@ -40,6 +38,8 @@ I<libslack(fio)> - fifo and file control module and some I/O
     int nap(long sec, long usec);
     int fcntl_set_flag(int fd, int flag);
     int fcntl_clear_flag(int fd, int flag);
+    int fcntl_set_fdflag(int fd, int flag);
+    int fcntl_clear_fdflag(int fd, int flag);
     int fcntl_lock(int fd, int cmd, int type, int whence, int start, int len);
     int nonblock_set(int fd, int arg);
     int nonblock_on(int fd);
@@ -364,10 +364,12 @@ int nap(long sec, long usec)
 
 =item C<int fcntl_set_flag(int fd, int flag)>
 
-Shorthand for setting the file flag, C<flag>, on the file descriptor, C<fd>,
-using I<fcntl(2)>. All other flags are unaffected. On success, returns C<0>.
-On error, returns C<-1> with C<errno> set by I<fcntl(2)> with C<F_GETFL> or
-C<F_SETFL> as the command.
+Shorthand for setting the file status flag, C<flag>, on the file descriptor,
+C<fd>, using I<fcntl(2)>. All other file status flags are unaffected. On
+success, returns C<0>. On error, returns C<-1> with C<errno> set by
+I<fcntl(2)> with C<F_GETFL> or C<F_SETFL> as the command. Example file
+status flags are C<O_APPEND>, C<O_ASYNC>, C<O_DIRECT>, C<O_NOATIME>, and
+C<O_NONBLOCK> depending on the system.
 
 =cut
 
@@ -387,16 +389,66 @@ int fcntl_set_flag(int fd, int flag)
 
 =item C<int fcntl_clear_flag(int fd, int flag)>
 
-Shorthand for clearing the file flag, C<flag>, from the file descriptor,
-C<fd>, using I<fcntl(2)>. All other flags are unaffected. On success,
-returns C<0>. On error, returns C<-1> with C<errno> set by I<fcntl(2)> with
-C<F_GETFL> or C<F_SETFL> as the command.
+Shorthand for clearing the file status flag, C<flag>, from the file
+descriptor, C<fd>, using I<fcntl(2)>. All other file status flags are
+unaffected. On success, returns C<0>. On error, returns C<-1> with C<errno>
+set by I<fcntl(2)> with C<F_GETFL> or C<F_SETFL> as the command. Example
+file status flags are C<O_APPEND>, C<O_ASYNC>, C<O_DIRECT>, C<O_NOATIME>,
+and C<O_NONBLOCK> depending on the system.
 
 =cut
 
 */
 
 int fcntl_clear_flag(int fd, int flag)
+{
+	int flags;
+
+	if ((flags = fcntl(fd, F_GETFL, 0)) == -1)
+		return -1;
+
+	return fcntl(fd, F_SETFL, flags & ~flag);
+}
+
+/*
+
+=item C<int fcntl_set_fdflag(int fd, int flag)>
+
+Shorthand for setting the file descriptor flag, C<flag>, on the file
+descriptor, C<fd>, using I<fcntl(2)>. All other file descriptor flags are
+unaffected. On success, returns C<0>. On error, returns C<-1> with C<errno>
+set by I<fcntl(2)> with C<F_GETFD> or C<F_SETFD> as the command. The only
+file descriptor flag at time of writing is C<FD_CLOEXEC>.
+
+=cut
+
+*/
+
+int fcntl_set_fdflag(int fd, int flag)
+{
+	int flags;
+
+	if ((flags = fcntl(fd, F_GETFD, 0)) == -1)
+		return -1;
+
+	return fcntl(fd, F_SETFD, flags | flag);
+}
+
+/*
+
+=item C<int fcntl_clear_fdflag(int fd, int flag)>
+
+Shorthand for clearing the file descriptor flag, C<flag>, from the file
+descriptor, C<fd>, using I<fcntl(2)>. All other file descriptor flags are
+unaffected. On success, returns C<0>. On error, returns C<-1> with C<errno>
+set by I<fcntl(2)> with C<F_GETFD> or C<F_SETFD> as the command. The only
+file descriptor flag at time of writing is C<FD_CLOEXEC>.
+
+=cut
+
+*/
+
+int fcntl_clear_fdflag(int fd, int flag)
 {
 	int flags;
 
@@ -820,6 +872,9 @@ Setting file flags:
         if (fcntl_set_flag(STDOUT_FILENO, O_APPEND) == -1)
             return EXIT_FAILURE;
 
+        if (fcntl_set_fdflag(STDOUT_FILENO, FD_CLOEXEC) == -1)
+            return EXIT_FAILURE;
+
         if (nonblock_on(STDOUT_FILENO) == -1)
             return EXIT_FAILURE;
 
@@ -827,6 +882,9 @@ Setting file flags:
             return EXIT_FAILURE;
 
         if (fcntl_clear_flag(STDOUT_FILENO, O_APPEND) == -1)
+            return EXIT_FAILURE;
+
+        if (fcntl_clear_fdflag(STDOUT_FILENO, FD_CLOEXEC) == -1)
             return EXIT_FAILURE;
 
         if (nonblock_off(STDOUT_FILENO) == -1)
@@ -908,7 +966,7 @@ I<mkfifo(2)>
 
 =head1 AUTHOR
 
-20100612 raf <raf@raf.org>
+20201111 raf <raf@raf.org>
 
 =cut
 
@@ -967,6 +1025,12 @@ int main(int ac, char **av)
 		if (fcntl_clear_flag(fd, O_NONBLOCK) == -1)
 			++errors, printf("Test6: fcntl_clear_flag() failed (%s)\n", strerror(errno));
 
+		if (fcntl_set_fdflag(fd, FD_CLOEXEC) == -1)
+			++errors, printf("Test7: fcntl_set_fdflag() failed (%s)\n", strerror(errno));
+
+		if (fcntl_clear_fdflag(fd, FD_CLOEXEC) == -1)
+			++errors, printf("Test8: fcntl_clear_fdflag() failed (%s)\n", strerror(errno));
+
 		close(fd);
 		close(wfd);
 		unlink(fifoname);
@@ -1003,40 +1067,40 @@ int main(int ac, char **av)
 		unlink(filename); \
 	}
 
-	TEST_FGETLINE(7, line, BUFSIZ, "abc\ndef\r\nghi\r", "abc\n", "def\n", "ghi\n")
-	TEST_FGETLINE(8, line, BUFSIZ, "abc\rdef\nghi\r\n", "abc\n", "def\n", "ghi\n")
-	TEST_FGETLINE(9, line, BUFSIZ, "abc\r\ndef\rghi\n", "abc\n", "def\n", "ghi\n")
-	TEST_FGETLINE(10, line, BUFSIZ, "abc\ndef\rghi", "abc\n", "def\n", "ghi")
-	TEST_FGETLINE(11, line, BUFSIZ, "", (char *)NULL, (char *)NULL, (char *)NULL)
-	TEST_FGETLINE(12, line, 5, "abc", "abc", (char *)NULL, (char *)NULL)
-	TEST_FGETLINE(13, line, 5, "abc\n", "abc\n", (char *)NULL, (char *)NULL)
-	TEST_FGETLINE(14, line, 5, "abc\r\n", "abc\n", (char *)NULL, (char *)NULL)
-	TEST_FGETLINE(15, line, 5, "abc\r", "abc\n", (char *)NULL, (char *)NULL)
-	TEST_FGETLINE(16, line, 3, "abc\r", "ab", "c\n", (char *)NULL)
-	TEST_FGETLINE(17, NULL, 0, "abc\r", (char *)NULL, (char *)NULL, (char *)NULL)
+	TEST_FGETLINE(9, line, BUFSIZ, "abc\ndef\r\nghi\r", "abc\n", "def\n", "ghi\n")
+	TEST_FGETLINE(10, line, BUFSIZ, "abc\rdef\nghi\r\n", "abc\n", "def\n", "ghi\n")
+	TEST_FGETLINE(11, line, BUFSIZ, "abc\r\ndef\rghi\n", "abc\n", "def\n", "ghi\n")
+	TEST_FGETLINE(12, line, BUFSIZ, "abc\ndef\rghi", "abc\n", "def\n", "ghi")
+	TEST_FGETLINE(13, line, BUFSIZ, "", (char *)NULL, (char *)NULL, (char *)NULL)
+	TEST_FGETLINE(14, line, 5, "abc", "abc", (char *)NULL, (char *)NULL)
+	TEST_FGETLINE(15, line, 5, "abc\n", "abc\n", (char *)NULL, (char *)NULL)
+	TEST_FGETLINE(16, line, 5, "abc\r\n", "abc\n", (char *)NULL, (char *)NULL)
+	TEST_FGETLINE(17, line, 5, "abc\r", "abc\n", (char *)NULL, (char *)NULL)
+	TEST_FGETLINE(18, line, 3, "abc\r", "ab", "c\n", (char *)NULL)
+	TEST_FGETLINE(19, NULL, 0, "abc\r", (char *)NULL, (char *)NULL, (char *)NULL)
 
 	/* Test read_timeout() and write_timeout() */
 
 	if ((fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC | O_NONBLOCK, S_IRUSR | S_IWUSR)) == -1)
-		++errors, printf("Test19: failed to create %s (%s)\n", filename, strerror(errno));
+		++errors, printf("Test20: failed to create %s (%s)\n", filename, strerror(errno));
 	else
 	{
 		char buf[12] = "0123456789\n";
 
 		if (write_timeout(fd, 1, 0) == -1)
-			++errors, printf("Test18: write_timeout(fd, 1, 0) failed (%s)\n", strerror(errno));
+			++errors, printf("Test21: write_timeout(fd, 1, 0) failed (%s)\n", strerror(errno));
 		else if (write(fd, buf, 11) != 11)
-			++errors, printf("Test18: write(fd, \"0123456789\\n\", 11) failed (%s)\n", strerror(errno));
+			++errors, printf("Test22: write(fd, \"0123456789\\n\", 11) failed (%s)\n", strerror(errno));
 		else
 		{
 			close(fd);
 
 			if ((fd = open(filename, O_RDONLY | O_NONBLOCK)) == -1)
-				++errors, printf("Test19: failed to open %s for reading (%s)\n", filename, strerror(errno));
+				++errors, printf("Test23: failed to open %s for reading (%s)\n", filename, strerror(errno));
 			else if (read_timeout(fd, 1, 0) == -1)
-				++errors, printf("Test19: read_timeout(fd, 1, 0) failed (%s)\n", strerror(errno));
+				++errors, printf("Test24: read_timeout(fd, 1, 0) failed (%s)\n", strerror(errno));
 			else if (read(fd, buf, 11) != 11)
-				++errors, printf("Test19: read(fd) failed (%s)\n", strerror(errno));
+				++errors, printf("Test25: read(fd) failed (%s)\n", strerror(errno));
 		}
 
 		close(fd);
@@ -1052,20 +1116,20 @@ int main(int ac, char **av)
 	else if (errno != EINVAL) \
 		++errors, printf("Test%d: %s failed (errno = %s, not %s)\n", (i), (#func), strerror(errno), strerror(EINVAL));
 
-	TEST_ERR(20, read_timeout(-1, 0, 0))
-	TEST_ERR(21, read_timeout(0, -1, 0))
-	TEST_ERR(22, read_timeout(0, 0, -1))
-	TEST_ERR(23, write_timeout(-1, 0, 0))
-	TEST_ERR(24, write_timeout(0, -1, 0))
-	TEST_ERR(25, write_timeout(0, 0, -1))
-	TEST_ERR(26, rw_timeout(-1, 0, 0))
-	TEST_ERR(27, rw_timeout(0, -1, 0))
-	TEST_ERR(28, rw_timeout(0, 0, -1))
-	TEST_ERR(29, nap(-1, 0))
-	TEST_ERR(30, nap(0, -1))
+	TEST_ERR(26, read_timeout(-1, 0, 0))
+	TEST_ERR(27, read_timeout(0, -1, 0))
+	TEST_ERR(28, read_timeout(0, 0, -1))
+	TEST_ERR(29, write_timeout(-1, 0, 0))
+	TEST_ERR(30, write_timeout(0, -1, 0))
+	TEST_ERR(31, write_timeout(0, 0, -1))
+	TEST_ERR(32, rw_timeout(-1, 0, 0))
+	TEST_ERR(33, rw_timeout(0, -1, 0))
+	TEST_ERR(34, rw_timeout(0, 0, -1))
+	TEST_ERR(35, nap(-1, 0))
+	TEST_ERR(36, nap(0, -1))
 
 	if (errors)
-		printf("%d/30 tests failed\n", errors);
+		printf("%d/36 tests failed\n", errors);
 	else
 		printf("All tests passed\n");
 

@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2010 raf <raf@raf.org>
+* Copyright (C) 1999-2002, 2004, 2010, 2020 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -14,11 +14,9 @@
 * GNU General Public License for more details.
 *
 * You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-* or visit http://www.gnu.org/copyleft/gpl.html
+* along with this program; if not, see <https://www.gnu.org/licenses/>.
 *
-* 20100612 raf <raf@raf.org>
+* 20201111 raf <raf@raf.org>
 */
 
 /*
@@ -119,23 +117,27 @@ I<libslack(prog)> - program framework module
     int prog_out_stdout(void);
     int prog_out_file(const char *path);
     int prog_out_syslog(const char *ident, int option, int facility, int priority);
+    int prog_out_push_filter(msg_filter_t *filter);
     int prog_out_none(void);
     int prog_err_fd(int fd);
     int prog_err_stderr(void);
     int prog_err_file(const char *path);
     int prog_err_syslog(const char *ident, int option, int facility, int priority);
+    int prog_err_push_filter(msg_filter_t *filter);
     int prog_err_none(void);
     int prog_dbg_fd(int fd);
     int prog_dbg_stdout(void);
     int prog_dbg_stderr(void);
     int prog_dbg_file(const char *path);
     int prog_dbg_syslog(const char *id, int option, int facility, int priority);
+    int prog_dbg_push_filter(msg_filter_t *filter);
     int prog_dbg_none(void);
     int prog_alert_fd(int fd);
     int prog_alert_stdout(void);
     int prog_alert_stderr(void);
     int prog_alert_file(const char *path);
     int prog_alert_syslog(const char *id, int option, int facility, int priority);
+    int prog_alert_push_filter(msg_filter_t *filter);
     int prog_alert_none(void);
     int prog_opt_process(int ac, char **av);
     void prog_usage_msg(const char *format, ...);
@@ -184,6 +186,10 @@ module.
 
 #ifndef _BSD_SOURCE
 #define _BSD_SOURCE /* For snprintf() on OpenBSD-4.7 */
+#endif
+
+#ifndef _DEFAULT_SOURCE
+#define _DEFAULT_SOURCE /* New name for _BSD_SOURCE */
 #endif
 
 #include "config.h"
@@ -279,6 +285,12 @@ C<null> with C<errno> set appropriately.
 	name = value; \
 	UNLOCK(NULL) \
 	return value
+
+#define prog_pop_msg(name, lvalue) \
+	WRLOCK(-1) \
+	lvalue = name; \
+	name = NULL; \
+	UNLOCK(-1) \
 
 #define prog_set_int(name, value) \
 	size_t prev; \
@@ -1021,6 +1033,36 @@ int prog_out_syslog(const char *ident, int option, int facility, int priority)
 
 /*
 
+=item C<int prog_out_push_filter(msg_filter_t *filter)>
+
+Pushes a msg filter I<filter> function onto the program's message
+destination. On success, returns C<0>. On error, retturns C<-1> with
+C<errno> set appropriately.
+
+=cut
+
+*/
+
+int prog_out_push_filter(msg_filter_t *filter)
+{
+	Msg *mesg, *top;
+
+	prog_pop_msg(g.out, top);
+
+	if (!(mesg = msg_create_filter_with_locker(g.locker, filter, top)))
+		return -1;
+
+	if (!prog_set_out(mesg))
+	{
+		msg_release(mesg);
+		return -1;
+	}
+
+	return 0;
+}
+
+/*
+
 =item C<int prog_out_none(void)>
 
 Sets the program's message destination to C<null>. This disables all normal
@@ -1127,6 +1169,36 @@ int prog_err_syslog(const char *ident, int option, int facility, int priority)
 	Msg *mesg;
 
 	if (!(mesg = msg_create_syslog_with_locker(g.locker, ident, option, facility, priority)))
+		return -1;
+
+	if (!prog_set_err(mesg))
+	{
+		msg_release(mesg);
+		return -1;
+	}
+
+	return 0;
+}
+
+/*
+
+=item C<int prog_err_push_filter(msg_filter_t *filter)>
+
+Pushes a msg filter I<filter> function onto the program's error message
+destination. On success, returns C<0>. On error, retturns C<-1> with
+C<errno> set appropriately.
+
+=cut
+
+*/
+
+int prog_err_push_filter(msg_filter_t *filter)
+{
+	Msg *mesg, *top;
+
+	prog_pop_msg(g.err, top);
+
+	if (!(mesg = msg_create_filter_with_locker(g.locker, filter, top)))
 		return -1;
 
 	if (!prog_set_err(mesg))
@@ -1275,6 +1347,36 @@ int prog_dbg_syslog(const char *id, int option, int facility, int priority)
 
 /*
 
+=item C<int prog_dbg_push_filter(msg_filter_t *filter)>
+
+Pushes a msg filter I<filter> function onto the program's debug message
+destination. On success, returns C<0>. On error, retturns C<-1> with
+C<errno> set appropriately.
+
+=cut
+
+*/
+
+int prog_dbg_push_filter(msg_filter_t *filter)
+{
+	Msg *mesg, *top;
+
+	prog_pop_msg(g.dbg, top);
+
+	if (!(mesg = msg_create_filter_with_locker(g.locker, filter, top)))
+		return -1;
+
+	if (!prog_set_dbg(mesg))
+	{
+		msg_release(mesg);
+		return -1;
+	}
+
+	return 0;
+}
+
+/*
+
 =item C<int prog_dbg_none(void)>
 
 Sets the program's debug message destination to C<null>. This disables all
@@ -1410,6 +1512,38 @@ int prog_alert_syslog(const char *id, int option, int facility, int priority)
 
 /*
 
+=item C<int prog_alert_push_filter(msg_filter_t *filter)>
+
+Pushes a msg filter I<filter> function onto the program's alert message
+destination. On success, returns C<0>. On error, retturns C<-1> with
+C<errno> set appropriately.
+
+=cut
+
+*/
+
+int prog_alert_push_filter(msg_filter_t *filter)
+{
+	Msg *mesg, *top;
+
+	prog_pop_msg(g.log, top);
+
+	if (!(mesg = msg_create_filter_with_locker(g.locker, filter, top)))
+		return -1;
+
+	g.log = NULL;
+
+	if (!prog_set_alert(mesg))
+	{
+		msg_release(mesg);
+		return -1;
+	}
+
+	return 0;
+}
+
+/*
+
 =item C<int prog_alert_none(void)>
 
 Sets the program's alert message destination to C<null>. This disables all
@@ -1464,7 +1598,7 @@ int prog_opt_process(int ac, char **av)
 		return set_errno(err);
 
 	if (rc == -1)
-		prog_usage_msg(msgbuf);
+		prog_usage_msg("%s", msgbuf);
 
 	return rc;
 }
@@ -2024,21 +2158,21 @@ C<arg_action> attributes and whether or not an argument is present.
  ~~~~~~~~~~~~~~~~~ ~~~~~~~~~~~ ~~~~~~~~~~~~ ~~~~~~ ~~~~~~
  required_argument OPT_INTEGER OPT_VARIABLE yes    *object = strtol(argument)
  required_argument OPT_STRING  OPT_VARIABLE yes    *object = argument
- required_argument OPT_INTEGER OPT_FUNCTION yes    fuction(strtol(argument))
- required_argument OPT_STRING  OPT_FUNCTION yes    fuction(argument)
+ required_argument OPT_INTEGER OPT_FUNCTION yes    function(strtol(argument))
+ required_argument OPT_STRING  OPT_FUNCTION yes    function(argument)
 
  optional_argument OPT_INTEGER OPT_VARIABLE yes    *object = strtol(argument)
  optional_argument OPT_STRING  OPT_VARIABLE yes    *object = argument
- optional_argument OPT_INTEGER OPT_FUNCTION yes    fuction(&strtol(argument))
- optional_argument OPT_STRING  OPT_FUNCTION yes    fuction(argument)
+ optional_argument OPT_INTEGER OPT_FUNCTION yes    function(&strtol(argument))
+ optional_argument OPT_STRING  OPT_FUNCTION yes    function(argument)
 
  optional_argument OPT_INTEGER OPT_VARIABLE no     ++*object
  optional_argument OPT_STRING  OPT_VARIABLE no     nothing
- optional_argument OPT_INTEGER OPT_FUNCTION no     fuction(NULL)
- optional_argument OPT_STRING  OPT_FUNCTION no     fuction(NULL)
+ optional_argument OPT_INTEGER OPT_FUNCTION no     function(NULL)
+ optional_argument OPT_STRING  OPT_FUNCTION no     function(NULL)
 
  no_argument       OPT_NONE    OPT_VARIABLE no     ++*object
- no_argument       OPT_NONE    OPT_FUNCTION no     fuction()
+ no_argument       OPT_NONE    OPT_FUNCTION no     function()
 
 Note that integer option arguments may be expressed in octal, decimal or
 hexadecimal. There may be leading whitespace but no trailing text of any
@@ -2398,7 +2532,7 @@ The following program:
      prog_set_syntax("[options] arg...");
      prog_set_options(options);
      prog_set_version("1.0");
-     prog_set_date("20100612");
+     prog_set_date("20201111");
      prog_set_author("raf <raf@raf.org>");
      prog_set_contact(prog_author());
      prog_set_url("http://libslack.org/");
@@ -2436,7 +2570,7 @@ will behave like:
 
  Name: example
  Version: 1.0
- Date: 20100612
+ Date: 20201111
  Author: raf <raf@raf.org>
  URL: http://libslack.org/
 
@@ -2478,7 +2612,7 @@ I<locker(3)>
 
 =head1 AUTHOR
 
-20100612 raf <raf@raf.org>
+20201111 raf <raf@raf.org>
 
 =cut
 
@@ -2622,7 +2756,7 @@ int main(int ac, char **av)
 			"\n"
 			"Name: %s\n"
 			"Version: 1.0\n"
-			"Date: 20100612\n"
+			"Date: 20201111\n"
 			"Author: raf <raf@raf.org>\n"
 			"Vendor: A Software Vendor\n"
 			"URL: http://libslack.org/test/\n"
@@ -2715,7 +2849,7 @@ int main(int ac, char **av)
 	prog_set_syntax("[options]");
 	prog_set_options(prog_options_table);
 	prog_set_version("1.0");
-	prog_set_date("20100612");
+	prog_set_date("20201111");
 	prog_set_author("raf <raf@raf.org>");
 	prog_set_contact("raf <raf@raf.org>");
 	prog_set_vendor("A Software Vendor");
@@ -2759,7 +2893,7 @@ int main(int ac, char **av)
 				if (WIFSIGNALED(status))
 					++errors, printf("Test%d: failed: received signal %d\n", 12 + i + 1, WTERMSIG(status));
 
-				if (i != 2 && WIFEXITED(status) && WEXITSTATUS(status))
+				if (i != 2 && WIFEXITED(status) && WEXITSTATUS(status) != EXIT_SUCCESS)
 					++errors, printf("Test%d: failed: exit status %d\n", 12 + i + 1, WEXITSTATUS(status));
 			}
 		}

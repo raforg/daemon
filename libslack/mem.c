@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2010 raf <raf@raf.org>
+* Copyright (C) 1999-2002, 2004, 2010, 2020 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -14,11 +14,9 @@
 * GNU General Public License for more details.
 *
 * You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-* or visit http://www.gnu.org/copyleft/gpl.html
+* along with this program; if not, see <https://www.gnu.org/licenses/>.
 *
-* 20100612 raf <raf@raf.org>
+* 20201111 raf <raf@raf.org>
 */
 
 /*
@@ -235,7 +233,8 @@ memory. On error, returns C<null> with C<errno> set appropriately.
 
 Note that entire pages are locked by I<mlock(2)> so don't create many, small
 pieces of secure memory or many entire pages will be locked. Use a secure
-memory pool instead. Also note that secure memory requires root privileges.
+memory pool instead. Also note that on old systems, secure memory requires
+root privileges.
 
 On some systems (e.g. Solaris), memory locks must start on page boundaries.
 So we need to I<malloc(3)> enough memory to extend from whatever address
@@ -321,7 +320,8 @@ void *mem_create_secure(size_t size)
 
 =item C<void mem_release_secure(void *mem)>
 
-Sets the memory pointed to by C<mem> to C<nul> bytes, then unlocks and
+Sets the memory pointed to by C<mem> to C<0xff> bytes, then to C<0xaa>
+bytes, then to C<0x55> bytes, then to C<nul> bytes, then unlocks and
 releases (deallocates) C<mem>. Only to be used on memory returned by
 I<mem_create_secure(3)>. Only to be used in destructor functions. In other
 cases, use I<mem_destroy(3)> which also sets C<mem> to C<null>.
@@ -728,13 +728,14 @@ void *pool_destroy(Pool **pool)
 
 Creates a memory pool of size C<size> just like I<pool_create(3)> except
 that the memory pool is locked into RAM with I<mlock(2)> so that it can't be
-paged to disk where some nefarious local user might read its contents. It is
-the caller's responsibility to deallocate the new pool with
-I<pool_release_secure(3)> or I<pool_destroy_secure(3)> which will clear the
-memory pool and unlock it before deallocating it. In all other ways, the
+paged to disk where some nefarious local user with root access might read
+its contents. It is the caller's responsibility to deallocate the new pool
+with I<pool_release_secure(3)> or I<pool_destroy_secure(3)> which will clear
+the memory pool and unlock it before deallocating it. In all other ways, the
 pool returned is exactly like a pool returned by I<pool_create(3)>. On
 success, returns the pool. On error, returns C<null> with C<errno> set
-appropriately. Note that secure memory requires root privileges.
+appropriately. Note that on old systems, secure memory requires root
+privileges.
 
 =cut
 
@@ -1092,7 +1093,7 @@ I<locker(3)>
 
 =head1 AUTHOR
 
-20100612 raf <raf@raf.org>
+20201111 raf <raf@raf.org>
 
 =cut
 
@@ -1194,7 +1195,7 @@ int main(int ac, char **av)
 
 			if (WIFSIGNALED(status) && WTERMSIG(status) != SIGABRT)
 				++errors, printf("Test10: mem_resize() failed - killed by signal %d\n", WTERMSIG(status));
-			else if (WIFEXITED(status) && WEXITSTATUS(status))
+			else if (WIFEXITED(status) && WEXITSTATUS(status) != EXIT_SUCCESS)
 				++errors, printf("Test10: mem_resize() failed - exit status %d\n", WEXITSTATUS(status));
 
 			break;
@@ -1559,7 +1560,7 @@ int main(int ac, char **av)
 
 	/* Test secure mem/pool functions */
 
-	no_secure_mem = (getuid() != 0);
+	no_secure_mem = 0; /* (getuid() != 0); */
 
 	if (!no_secure_mem)
 	{
@@ -1585,7 +1586,7 @@ int main(int ac, char **av)
 #endif
 
 		if (!(mem1 = mem_create_secure(1024)))
-			++errors, printf("Test61: mem_create_secure(1024) failed: %s\n", strerror(errno));
+			++errors, printf("Test61: mem_create_secure(1024) failed: %s (Does mlock() require root privileges on this system? If so, audit this code and rerun it as root)\n", strerror(errno));
 		else
 		{
 			mem_destroy_secure(&mem1);
@@ -1594,7 +1595,7 @@ int main(int ac, char **av)
 		}
 
 		if (!(pool = pool_create_secure(32)))
-			++errors, printf("Test63: pool_create_secure(32) failed: %s\n", strerror(errno));
+			++errors, printf("Test63: pool_create_secure(32) failed: %s (Does mlock() require root privileges on this system? If so, audit this code and rerun it as root)\n", strerror(errno));
 		else
 		{
 			void *whitebox = pool->pool;
@@ -1602,10 +1603,16 @@ int main(int ac, char **av)
 			if (!(mem1 = pool_alloc(pool, 32)))
 				++errors, printf("Test64: pool_alloc(pool, 32) failed: %s\n", strerror(errno));
 
+			memset(mem1, 0xff, 32);
 			pool_destroy_secure(&pool);
 			/* Note: This test may be invalid because the memory has already been deallocated */
 			if (memcmp(whitebox, "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 32))
-				++errors, printf("Test65: pool_destroy_secure(32) failed: memory not cleared (possibly)\n");
+			{
+				if (!memcmp(whitebox, "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff", 32))
+					++errors, printf("Test65: pool_destroy_secure(32) failed: memory not cleared\n");
+				else
+					++errors, printf("Test65: pool_destroy_secure(32) failed: memory not cleared (possibly - or maybe the already-deallocated memory has just been reused by now)\n");
+			}
 			if (pool)
 				++errors, printf("Test66: pool_destroy_secure(32) failed: pool == %p, not NULL\n", (void *)pool);
 		}

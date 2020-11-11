@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2010 raf <raf@raf.org>
+* Copyright (C) 1999-2002, 2004, 2010, 2020 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -14,11 +14,9 @@
 * GNU General Public License for more details.
 *
 * You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-* or visit http://www.gnu.org/copyleft/gpl.html
+* along with this program; if not, see <https://www.gnu.org/licenses/>.
 *
-* 20100612 raf <raf@raf.org>
+* 20201111 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_NET_H
@@ -140,6 +138,12 @@ ssize_t net_send(int sockfd, long timeout, const char *format, ...);
 ssize_t net_vsend(int sockfd, long timeout, const char *format, va_list args);
 ssize_t sendfd(int sockfd, const void *buf, size_t nbytes, int flags, int fd);
 ssize_t recvfd(int sockfd, void *buf, size_t nbytes, int flags, int *fd);
+#ifdef SO_PASSCRED
+#ifdef SCM_CREDENTIALS
+ssize_t recvcred(int sockfd, void *buf, size_t nbytes, int flags, struct ucred *cred);
+ssize_t recvfromcred(int sockfd, void *buf, size_t nbytes, int flags, struct sockaddr *src_addr, socklen_t *src_addrlen, struct ucred *cred);
+#endif
+#endif
 int mail(const char *server, const char *sender, const char *recipients, const char *subject, const char *message);
 _end_decls
 

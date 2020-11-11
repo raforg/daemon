@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2010 raf <raf@raf.org>
+* Copyright (C) 1999-2002, 2004, 2010, 2020 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -14,11 +14,9 @@
 * GNU General Public License for more details.
 *
 * You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-* or visit http://www.gnu.org/copyleft/gpl.html
+* along with this program; if not, see <https://www.gnu.org/licenses/>.
 *
-* 20100612 raf <raf@raf.org>
+* 20201111 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_MSG_H
@@ -37,6 +35,7 @@
 
 typedef struct Msg Msg;
 typedef void msg_out_t(void *data, const void *mesg, size_t mesglen);
+typedef int msg_filter_t(void **mesgp, const void *mesg, size_t mesglen);
 typedef void msg_release_t(void *data);
 
 _begin_decls
@@ -69,6 +68,8 @@ Msg *msg_create_plex(Msg *msg1, Msg *msg2);
 Msg *msg_create_plex_with_locker(Locker *locker, Msg *msg1, Msg *msg2);
 int msg_add_plex(Msg *mesg, Msg *item);
 int msg_add_plex_unlocked(Msg *mesg, Msg *item);
+Msg *msg_create_filter(msg_filter_t *filter, Msg *mesg);
+Msg *msg_create_filter_with_locker(Locker *locker, msg_filter_t *filter, Msg *mesg);
 const char *msg_set_timestamp_format(const char *format);
 int msg_set_timestamp_format_locker(Locker *locker);
 int syslog_lookup_facility(const char *facility);

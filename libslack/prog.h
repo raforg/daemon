@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2010 raf <raf@raf.org>
+* Copyright (C) 1999-2002, 2004, 2010, 2020 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -14,11 +14,9 @@
 * GNU General Public License for more details.
 *
 * You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-* or visit http://www.gnu.org/copyleft/gpl.html
+* along with this program; if not, see <https://www.gnu.org/licenses/>.
 *
-* 20100612 raf <raf@raf.org>
+* 20201111 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_PROG_H
@@ -127,23 +125,27 @@ int prog_out_fd(int fd);
 int prog_out_stdout(void);
 int prog_out_file(const char *path);
 int prog_out_syslog(const char *ident, int option, int facility, int priority);
+int prog_out_push_filter(msg_filter_t *filter);
 int prog_out_none(void);
 int prog_err_fd(int fd);
 int prog_err_stderr(void);
 int prog_err_file(const char *path);
 int prog_err_syslog(const char *ident, int option, int facility, int priority);
+int prog_err_push_filter(msg_filter_t *filter);
 int prog_err_none(void);
 int prog_dbg_fd(int fd);
 int prog_dbg_stdout(void);
 int prog_dbg_stderr(void);
 int prog_dbg_file(const char *path);
 int prog_dbg_syslog(const char *id, int option, int facility, int priority);
+int prog_dbg_push_filter(msg_filter_t *filter);
 int prog_dbg_none(void);
 int prog_alert_fd(int fd);
 int prog_alert_stdout(void);
 int prog_alert_stderr(void);
 int prog_alert_file(const char *path);
 int prog_alert_syslog(const char *id, int option, int facility, int priority);
+int prog_alert_push_filter(msg_filter_t *filter);
 int prog_alert_none(void);
 int prog_opt_process(int ac, char **av);
 void prog_usage_msg(const char *format, ...);

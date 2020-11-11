@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-$^W = 1;
+use warnings;
 use strict;
 $| = 1;
 

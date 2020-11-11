@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 2001-2010 raf <raf@raf.org>
+* Copyright (C) 1999-2002, 2004, 2010, 2020 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -14,11 +14,9 @@
 * GNU General Public License for more details.
 *
 * You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-* or visit http://www.gnu.org/copyleft/gpl.html
+* along with this program; if not, see <https://www.gnu.org/licenses/>.
 *
-* 20100612 raf <raf@raf.org>
+* 20201111 raf <raf@raf.org>
 */
 
 /*
@@ -1895,10 +1893,28 @@ int main(int ac, char **av)
 
 	printf("Testing: %s\n", "snprintf");
 
+	/*_
+	** Note that, in the macros below, the assignment of sprintf()'s
+	** return value to a variable called "suppress_optimization" is
+	** is extremely important when using recent versions of gcc.
+	** Without it, gcc would optimize the call to sprintf() into a
+	** call to strcpy() in the case when the format is "%s".
+	** That would crash while the actual sprintf() in glibc would work
+	** as expected and put "(null)" into the buffer. Note that this only
+	** matters when the value is NULL which is only included in the tests
+	** when HAVE_PRINTF_STR_FMT_NULL is defined. Presumably, at some point,
+	** gcc's optimizer will remove the unused assignment and then this
+	** problem will resurface. There's a pretense at a use which seems to
+	** make gcc behave itself for now (but it might get smarter one day
+	** and these tests might break again).
+	*/
+
 #define TEST_SNPRINTF1(format, val, vfmt) \
 	{ \
 		char valstr[1024]; \
-		sprintf(valstr, (vfmt), (val)); \
+		int suppress_optimization = sprintf(valstr, (vfmt), (val)); \
+		if (suppress_optimization) \
+			/* suppress gcc warning */; \
 		++tests; \
 		len1 = snprintf(buf1, sizeof(buf1), (format), (val)); \
 		len2 = sprintf(buf2, (format), (val)); \
@@ -1913,7 +1929,9 @@ int main(int ac, char **av)
 #define TEST_SNPRINTF2(format, width, precision, val, vfmt) \
 	{ \
 		char valstr[1024]; \
-		sprintf(valstr, (vfmt), (val)); \
+		int suppress_optimization = sprintf(valstr, (vfmt), (val)); \
+		if (suppress_optimization) \
+			/* suppress gcc warning */; \
 		++tests; \
 		len1 = snprintf(buf1, sizeof(buf1), (format), (width), (precision), (val)); \
 		len2 = sprintf(buf2, (format), (width), (precision), (val)); \
@@ -1928,7 +1946,9 @@ int main(int ac, char **av)
 #define TEST_SNPRINTF3(format, arg, val, vfmt) \
 	{ \
 		char valstr[1024]; \
-		sprintf(valstr, (vfmt), (val)); \
+		int suppress_optimization = sprintf(valstr, (vfmt), (val)); \
+		if (suppress_optimization) \
+			/* suppress gcc warning */; \
 		++tests; \
 		len1 = snprintf(buf1, sizeof(buf1), (format), (arg), (val)); \
 		len2 = sprintf(buf2, (format), (arg), (val)); \

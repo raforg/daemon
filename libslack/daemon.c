@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2010 raf <raf@raf.org>
+* Copyright (C) 1999-2002, 2004, 2010, 2020 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -14,11 +14,9 @@
 * GNU General Public License for more details.
 *
 * You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-* or visit http://www.gnu.org/copyleft/gpl.html
+* along with this program; if not, see <https://www.gnu.org/licenses/>.
 *
-* 20100612 raf <raf@raf.org>
+* 20201111 raf <raf@raf.org>
 */
 
 /*
@@ -69,6 +67,10 @@ tedious. These functions perform these tasks for you.
 
 #ifndef _BSD_SOURCE
 #define _BSD_SOURCE /* For setgroups(2) and S_ISLNK(2) on Linux */
+#endif
+
+#ifndef _DEFAULT_SOURCE
+#define _DEFAULT_SOURCE /* New name for _BSD_SOURCE */
 #endif
 
 #ifndef __BSD_VISIBLE
@@ -674,7 +676,7 @@ static int daemon_lock_pidfile(char *pidfile)
 	}
 
 	/*
-	** The pidfile may have been unlinked, after we opened, it by another daemon
+	** The pidfile may have been unlinked, after we opened it, by another daemon
 	** process that was dying between the last open() and the fcntl(). There's
 	** no use hanging on to a locked file that doesn't exist (and there's
 	** nothing to stop another daemon process from creating and locking a
@@ -712,6 +714,10 @@ static int daemon_lock_pidfile(char *pidfile)
 		close(pid_fd);
 		goto start;
 	}
+
+	/* Prevent leaking this file descriptor into child processes. */
+
+	fcntl_set_fdflag(pid_fd, FD_CLOEXEC);
 
 	return pid_fd;
 }
@@ -808,9 +814,21 @@ Initialises a daemon by performing the following tasks:
 
 =item *
 
-If the process was not invoked by I<init(8)> or I<inetd(8)>:
+If the process was not invoked by I<init(8)> (i.e. pid 1) or I<inetd(8)>
+(i.e. C<stdin> is a socket):
 
 =over 4
+
+=item *
+
+Ignore C<SIGHUP> signals in case the current process session leader
+terminates while attached to a controlling terminal causing us to
+receive a C<SIGHUP> signal before we start our own process session below.
+
+This can happen when the process that calls I<daemon_init(3)> was itself
+invoked interactively via the shell builtin C<exec>. When this initial
+process terminates below, the terminal emulator that invoked the shell also
+terminates.
 
 =item *
 
@@ -822,17 +840,15 @@ Start a new process session.
 
 =item *
 
-Under I<SVR4>, background the process again to lose process session
-leadership. This prevents the process from ever gaining a controlling
-terminal. This only happens when C<SVR4> is defined and
-C<NO_EXTRA_SVR4_FORK> is not defined when I<libslack> is compiled. Before
-doing this, ignore C<SIGHUP> because when the session leader terminates, all
-processes in the foreground process group are sent a C<SIGHUP> signal
-(apparently). Note that this code may not execute (e.g. when started by
-I<init(8)> or I<inetd(8)> or when either C<SVR4> was not defined or
-C<NO_EXTRA_SVR4_FORK> was defined when I<libslack> was compiled). This means
-that the client can't make any assumptions about the C<SIGHUP> handler when
-I<daemon_init(3)> returns.
+Background the process again to lose process session leadership. Under
+C<SVR4> this prevents the process from ever gaining a controlling terminal.
+This is only necessary under C<SVR4> but is always done for simplicity. Note
+that ignoring C<SIGHUP> signals earlier means that when the newly created
+process session leader terminates, then even if it has a controlling
+terminal open, the newly backgrounded process won't receive the
+corresponding C<SIGHUP> signal that is sent to all processes in the process
+session's foreground process group because it inherited signal dispositions
+from the initial process.
 
 =back
 
@@ -887,6 +903,21 @@ int daemon_init(const char *name)
 	if (!(daemon_started_by_init() || daemon_started_by_inetd()))
 	{
 		/*
+		** Ignore SIGHUP signals in case the current process session leader
+		** terminates while attached to a controlling terminal causing us to
+		** receive a SIGHUP signal before we start our own process session below.
+		*/
+
+		struct sigaction act[1];
+
+		act->sa_handler = SIG_IGN;
+		sigemptyset(&act->sa_mask);
+		act->sa_flags = 0;
+
+		if (sigaction(SIGHUP, act, NULL) == -1)
+			return -1;
+
+		/*
 		** Background the process.
 		** Lose process session/group leadership.
 		*/
@@ -895,38 +926,45 @@ int daemon_init(const char *name)
 			return -1;
 
 		if (pid)
+		{
+#ifndef DISABLE_DAEMON_INIT_EXIT_DELAY_MSEC
+			/*
+			** If the user has requested an exit delay because they use
+			** "exec daemon" to run KDE applications that are failing
+			** immediately, then delay the parent's exit by the given
+			** number of milliseconds.
+			**
+			** Note: We are not delaying the start of the client, just the
+			** exit of the initial parent process.
+			**
+			** Note Also: I have no idea why this delay seems to fix
+			** "exec daemon kde-app" failures.
+			**
+			** Also Note: This has nothing to do with daemon. The same
+			** failures occur with "exec kde-app".
+			**
+			** Also note: Setting DAEMON_INIT_EXIT_DELAY_MSEC to at least 400
+			** (i.e. 0.4 seconds) seems to be enough. Your mileage may vary.
+			*/
+
+			char *delay_var;
+			long delay_msec;
+
+			if ((delay_var = getenv("DAEMON_INIT_EXIT_DELAY_MSEC")) && (delay_msec = atol(delay_var)) > 0)
+				nap(delay_msec / 1000, (delay_msec & 1000) * 1000);
+#endif
 			exit(EXIT_SUCCESS);
+		}
 
 		/* Become a process session leader. */
 		/* This can only fail when we're already a session leader. */
 
 		setsid();
 
-#ifndef NO_EXTRA_SVR4_FORK
-#ifdef SVR4
 		/*
-		** Ignore SIGHUP because when the session leader terminates (which is
-		** about to happen), all processes in the foreground process group
-		** are sent the SIGHUP signal (apparently). It is expected that
-		** clients will set their own SIGHUP handler after the call to
-		** daemon_init() if necessary.
-		*/
-
-		{
-			struct sigaction act[1];
-
-			act->sa_handler = SIG_IGN;
-			sigemptyset(&act->sa_mask);
-			act->sa_flags = 0;
-
-			if (sigaction(SIGHUP, act, NULL) == -1)
-				return -1;
-		}
-
-		/*
-		** Lose process session leadership
-		** to prevent gaining a controlling
-		** terminal in SVR4.
+		** Lose process session leadership to prevent gaining a controlling
+		** terminal in SVR4. Always do it in case we don't know what flavour
+		** of UNIX this system is.
 		*/
 
 		if ((pid = fork()) == -1)
@@ -934,8 +972,6 @@ int daemon_init(const char *name)
 
 		if (pid)
 			exit(EXIT_SUCCESS);
-#endif
-#endif
 	}
 
 	/* Enter the root directory to prevent hampering umounts. */
@@ -965,7 +1001,7 @@ int daemon_init(const char *name)
 	** we don't close stdin, stdout and stderr.
 	** Don't forget to open any future tty devices with O_NOCTTY
 	** so as to prevent gaining a controlling terminal
-	** (not necessary with SVR4).
+	** (not necessary with SVR4 or modern versions of BSD).
 	*/
 
 	if (daemon_started_by_inetd())
@@ -1308,7 +1344,7 @@ becomes a daemon and then sends a I<syslog(3)> message and then terminates.
         char device[64], mount[64], fstype[64], opts[64];
         int freq, passno;
 
-        if (sscanf(line, "%s %s %s %s %d %d", device, mount, fstype, opts, &freq, &passno) != 6)
+        if (sscanf(line, "%63s %63s %63s %63s %d %d", device, mount, fstype, opts, &freq, &passno) != 6)
             fprintf(stderr, "Syntax Error in %s (line %d): %s\n", path, lineno, line);
         else
         {
@@ -1360,13 +1396,7 @@ becomes a daemon and then sends a I<syslog(3)> message and then terminates.
         return EXIT_SUCCESS; // unreached
     }
 
-=head1 BUGS
-
-It is possible to obtain a controlling terminal under I<BSD> (and even under
-I<SVR4> if I<SVR4> was not defined or C<NO_EXTRA_SVR4_FORK> was defined when
-I<libslack> is compiled). If anything calls I<open(2)> on a terminal device
-without the C<O_NOCTTY> flag, the process doing so will obtain a controlling
-terminal.
+=head1 CAVEAT
 
 Because I<root>'s pidfiles are created in a different directory
 (C</var/run>) to those of ordinary users (C</tmp>), it is possible for
@@ -1389,6 +1419,21 @@ I<daemon_path_is_safe(3)> and I<daemon_parse_config(3)> should probably all
 have the I<daemon_> prefix removed from their names. Their use is more
 general than just in daemons.
 
+If you use "exec daemon" to run a KDE application you may find that the KDE
+application sometimes doesn't run. This problem has only been seen with I<konsole(1)>
+but it may happen with other KDE applications as well. Capturing the standard
+error of the KDE application might show something like:
+
+  unnamed app(9697): KUniqueApplication: Registering failed!
+  unnamed app(9697): Communication problem with  "konsole" , it probably crashed. 
+  Error message was:  "org.freedesktop.DBus.Error.ServiceUnknown" : " "The name
+                      org.kde.konsole was not provided by any .service files"
+
+A workaround seems to be to delay the termination of the initial I<daemon(1)>
+process by at least 0.4 seconds. To make this happen, set the environment
+variable C<DAEMON_INIT_EXIT_DELAY_MSEC> to the number of milliseconds by
+which to delay. For example: C<DAEMON_INIT_EXIT_DELAY_MSEC=400>.
+
 =head1 SEE ALSO
 
 I<libslack(3)>,
@@ -1410,7 +1455,7 @@ I<kill(2))>
 
 =head1 AUTHOR
 
-20100612 raf <raf@raf.org>
+20201111 raf <raf@raf.org>
 
 =cut
 
@@ -1519,10 +1564,10 @@ static int config_test1(int test, const char *name)
 static void parse_test1(void *obj, const char *path, char *line, size_t lineno)
 {
 	Data1 *data1 = (Data1 *)obj;
-	char service[BUFSIZ];
-	char port[BUFSIZ];
+	char service[1024];
+	char port[1024];
 
-	if (sscanf(line, "%s %s", service, port) != 2)
+	if (sscanf(line, "%1023s %1023s", service, port) != 2)
 		++errors, printf("Test%d: syntax error: '%s' (file %s line %d)\n", data1->test, line, path, (int)lineno);
 	else if (strcmp(service, data1->pair[data1->i].service))
 		++errors, printf("Test%d: expected service '%s', received '%s' (file %s line %d)\n", data1->test, data1->pair[data1->i].service, service, path, (int)lineno);
@@ -1549,10 +1594,10 @@ static int config_test2(int test, const char *name)
 static void parse_test2(void *obj, const char *path, char *line, size_t lineno)
 {
 	Data2 *data2 = (Data2 *)obj;
-	char word[8][BUFSIZ];
+	char word[8][1024];
 	int words;
 
-	words = sscanf(line, "%s %s %s %s %s %s %s %s", word[0], word[1], word[2], word[3], word[4], word[5], word[6], word[7]);
+	words = sscanf(line, "%1023s %1023s %1023s %1023s %1023s %1023s %1023s %1023s", word[0], word[1], word[2], word[3], word[4], word[5], word[6], word[7]);
 
 	for (data2->j = 0; data2->j < words; ++data2->j)
 	{
@@ -1649,7 +1694,7 @@ int main(int ac, char **av)
 #define WCOREDUMP(status) 0
 #endif
 
-			if (WIFEXITED(status) && WEXITSTATUS(status))
+			if (WIFEXITED(status) && WEXITSTATUS(status) != EXIT_SUCCESS)
 				++errors;
 			else if (WCOREDUMP(status) && (stat(core, statbuf) == 0 || stat(core2, statbuf)) == 0)
 				++errors, printf("Test3: child dumped core\n");
@@ -1719,7 +1764,7 @@ int main(int ac, char **av)
 					break;
 				}
 
-				if (WIFEXITED(status) && WEXITSTATUS(status))
+				if (WIFEXITED(status) && WEXITSTATUS(status) != EXIT_SUCCESS)
 					++errors;
 			}
 		}
@@ -1991,7 +2036,7 @@ int main(int ac, char **av)
 				break;
 			}
 
-			if (WIFEXITED(status) && WEXITSTATUS(status))
+			if (WIFEXITED(status) && WEXITSTATUS(status) != EXIT_SUCCESS)
 				++errors, printf("Test34: Failed to run test: signal_set_handler() failed\n");
 		}
 	}

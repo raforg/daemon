@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2010 raf <raf@raf.org>
+* Copyright (C) 1999-2002, 2004, 2010, 2020 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -14,11 +14,9 @@
 * GNU General Public License for more details.
 *
 * You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-* or visit http://www.gnu.org/copyleft/gpl.html
+* along with this program; if not, see <https://www.gnu.org/licenses/>.
 *
-* 20100612 raf <raf@raf.org>
+* 20201111 raf <raf@raf.org>
 */
 
 /*
@@ -110,6 +108,10 @@ details.
 
 #ifndef _BSD_SOURCE
 #define _BSD_SOURCE /* For snprintf() on OpenBSD-4.7 */
+#endif
+
+#ifndef _DEFAULT_SOURCE
+#define _DEFAULT_SOURCE /* New name for _BSD_SOURCE */
 #endif
 
 #include "config.h"
@@ -835,7 +837,7 @@ I<printf(3)>
 
 =head1 AUTHOR
 
-20100612 raf <raf@raf.org>
+20201111 raf <raf@raf.org>
 
 =cut
 
@@ -850,6 +852,8 @@ I<printf(3)>
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+
+#include "str.h"
 
 int verify(int test, const char *name, const char *result)
 {
@@ -890,6 +894,11 @@ int verifysys(int test, const char *name, const char *result, int err)
 	snprintf(buf, BUFSIZ, result, strerror(err));
 
 	return verify(test, name, buf);
+}
+
+int msg_filter_prefix(void **mesgp, const void *mesg, size_t mesglen)
+{
+	return asprintf((char **)mesgp, "[%d] %.*s", 12345, (int)mesglen, (char *)mesg);
 }
 
 int main(int ac, char **av)
@@ -959,6 +968,18 @@ int main(int ac, char **av)
 	error("errormsg");
 	errors += verify(4, err, results[3]);
 
+	/* Test filtered debug */
+
+	prog_dbg_file(dbg);
+	if (prog_dbg_push_filter(msg_filter_prefix) == -1)
+		++errors, printf("Test5: prog_dbg_push_filter() failed\n");
+	else
+	{
+		debugf(1, "filteredmsg");
+		errors += verify(6, dbg, "[12345] debug: filteredmsg");
+	}
+
+
 	/* Test fatal */
 
 	switch (pid = fork())
@@ -972,7 +993,7 @@ int main(int ac, char **av)
 		case -1:
 		{
 			++errors;
-			printf("Test5: failed to perform test - fork() failed (%s)\n", strerror(errno));
+			printf("Test7: failed to perform test - fork() failed (%s)\n", strerror(errno));
 			break;
 		}
 
@@ -982,18 +1003,18 @@ int main(int ac, char **av)
 
 			if (waitpid(pid, &status, 0) == -1)
 			{
-				++errors, printf("Test5: failed to wait for test - waitpid(%d) failed (%s)\n", (int)pid, strerror(errno));
+				++errors, printf("Test7: failed to wait for test - waitpid(%d) failed (%s)\n", (int)pid, strerror(errno));
 				break;
 			}
 
 			if (!WIFEXITED(status) || WEXITSTATUS(status) != EXIT_FAILURE)
-				++errors, printf("Test5: failed: %s %d\n",
+				++errors, printf("Test7: failed: %s %d\n",
 					WIFSIGNALED(status) ? "received signal" : "exit code",
 					WIFSIGNALED(status) ? WTERMSIG(status) : WEXITSTATUS(status));
 		}
 	}
 
-	errors += verify(5, err, results[4]);
+	errors += verify(7, err, results[4]);
 
 	/* Test dump */
 
@@ -1010,7 +1031,7 @@ int main(int ac, char **av)
 		case -1:
 		{
 			++errors;
-			printf("Test6: failed to perform test - fork() failed (%s)\n", strerror(errno));
+			printf("Test8: failed to perform test - fork() failed (%s)\n", strerror(errno));
 			break;
 		}
 
@@ -1021,18 +1042,18 @@ int main(int ac, char **av)
 
 			if (waitpid(pid, &status, 0) == -1)
 			{
-				++errors, printf("Test6: failed to wait for test - waitpid(%d) failed (%s)\n", (int)pid, strerror(errno));
+				++errors, printf("Test8: failed to wait for test - waitpid(%d) failed (%s)\n", (int)pid, strerror(errno));
 				break;
 			}
 
 			if (!WIFSIGNALED(status) || WTERMSIG(status) != SIGABRT)
-				++errors, printf("Test5: failed: %s %d\n",
+				++errors, printf("Test8: failed: %s %d\n",
 					WIFSIGNALED(status) ? "received signal" : "exit code",
 					WIFSIGNALED(status) ? WTERMSIG(status) : WEXITSTATUS(status));
 
 			if (stat(core, statbuf) == -1 && errno == ENOENT &&
 				stat(core2, statbuf) == -1 && errno == ENOENT)
-				++errors, printf("Test6: failed: no core file produced (ulimit?)\n");
+				++errors, printf("Test8: failed: no core file produced (ulimit?)\n");
 			else
 			{
 				unlink(core);
@@ -1041,19 +1062,19 @@ int main(int ac, char **av)
 		}
 	}
 
-	errors += verify(6, err, results[5]);
+	errors += verify(8, err, results[5]);
 
 	/* Test debugsys, errorsys */
 
 	prog_dbg_file(dbg);
 	set_errno(EPERM);
 	debugsysf(1, "debugsysmsg");
-	errors += verifysys(7, dbg, results[6], EPERM);
+	errors += verifysys(9, dbg, results[6], EPERM);
 
 	prog_err_file(err);
 	set_errno(ENOENT);
 	errorsys("errorsysmsg");
-	errors += verifysys(8, err, results[7], ENOENT);
+	errors += verifysys(10, err, results[7], ENOENT);
 
 	/* Test fatalsys */
 
@@ -1064,98 +1085,6 @@ int main(int ac, char **av)
 			prog_err_file(err);
 			set_errno(EPERM);
 			fatalsys("fatalsysmsg");
-		}
-
-		case -1:
-		{
-			++errors;
-			printf("Test9: failed to perform test - fork() failed (%s)\n", strerror(errno));
-			break;
-		}
-
-		default:
-		{
-			int status;
-
-			if (waitpid(pid, &status, 0) == -1)
-			{
-				++errors;
-				printf("Test9: failed to wait for test - waitpid(%d) failed (%s)\n", (int)pid, strerror(errno));
-				break;
-			}
-
-			if (!WIFEXITED(status) || WEXITSTATUS(status) != EXIT_FAILURE)
-				++errors, printf("Test5: failed: %s %d\n",
-					WIFSIGNALED(status) ? "received signal" : "exit code",
-					WIFSIGNALED(status) ? WTERMSIG(status) : WEXITSTATUS(status));
-		}
-	}
-
-	errors += verifysys(9, err, results[8], EPERM);
-
-	/* Test dumpsys */
-
-	switch (pid = fork())
-	{
-		case 0:
-		{
-			prog_err_file(err);
-			unlink(core);
-			unlink(core2);
-			set_errno(ENOENT);
-			dumpsys("dumpsysmsg");
-		}
-
-		case -1:
-		{
-			++errors;
-			printf("Test10: failed to perform test - fork() failed (%s)\n", strerror(errno));
-			break;
-		}
-
-		default:
-		{
-			struct stat statbuf[1];
-			int status;
-
-			if (waitpid(pid, &status, 0) == -1)
-			{
-				++errors;
-				printf("Test10: failed to wait for test - waitpid(%d) failed (%s)\n", (int)pid, strerror(errno));
-				break;
-			}
-
-			if (!WIFSIGNALED(status) || WTERMSIG(status) != SIGABRT)
-				++errors, printf("Test5: failed: %s %d\n",
-					WIFSIGNALED(status) ? "received signal" : "exit code",
-					WIFSIGNALED(status) ? WTERMSIG(status) : WEXITSTATUS(status));
-
-			if (stat(core, statbuf) == -1 && errno == ENOENT &&
-				stat(core2, statbuf) == -1 && errno == ENOENT)
-				++errors, printf("Test10: failed: no core file produced (ulimit?)\n");
-			else
-			{
-				unlink(core);
-				unlink(core2);
-			}
-		}
-	}
-
-	errors += verifysys(10, err, results[9], ENOENT);
-
-	/* Test check true */
-
-	switch (pid = fork())
-	{
-		case 0:
-		{
-			int i = 1;
-			prog_err_file(err);
-			unlink(core);
-			unlink(core2);
-			set_errno(ENOENT);
-			check(i == 1, "checkmsg");
-			_exit(EXIT_SUCCESS);
 		}
 
 		case -1:
@@ -1176,8 +1105,100 @@ int main(int ac, char **av)
 				break;
 			}
 
+			if (!WIFEXITED(status) || WEXITSTATUS(status) != EXIT_FAILURE)
+				++errors, printf("Test11: failed: %s %d\n",
+					WIFSIGNALED(status) ? "received signal" : "exit code",
+					WIFSIGNALED(status) ? WTERMSIG(status) : WEXITSTATUS(status));
+		}
+	}
+
+	errors += verifysys(11, err, results[8], EPERM);
+
+	/* Test dumpsys */
+
+	switch (pid = fork())
+	{
+		case 0:
+		{
+			prog_err_file(err);
+			unlink(core);
+			unlink(core2);
+			set_errno(ENOENT);
+			dumpsys("dumpsysmsg");
+		}
+
+		case -1:
+		{
+			++errors;
+			printf("Test12: failed to perform test - fork() failed (%s)\n", strerror(errno));
+			break;
+		}
+
+		default:
+		{
+			struct stat statbuf[1];
+			int status;
+
+			if (waitpid(pid, &status, 0) == -1)
+			{
+				++errors;
+				printf("Test12: failed to wait for test - waitpid(%d) failed (%s)\n", (int)pid, strerror(errno));
+				break;
+			}
+
+			if (!WIFSIGNALED(status) || WTERMSIG(status) != SIGABRT)
+				++errors, printf("Test12: failed: %s %d\n",
+					WIFSIGNALED(status) ? "received signal" : "exit code",
+					WIFSIGNALED(status) ? WTERMSIG(status) : WEXITSTATUS(status));
+
+			if (stat(core, statbuf) == -1 && errno == ENOENT &&
+				stat(core2, statbuf) == -1 && errno == ENOENT)
+				++errors, printf("Test12: failed: no core file produced (ulimit?)\n");
+			else
+			{
+				unlink(core);
+				unlink(core2);
+			}
+		}
+	}
+
+	errors += verifysys(12, err, results[9], ENOENT);
+
+	/* Test check true */
+
+	switch (pid = fork())
+	{
+		case 0:
+		{
+			int i = 1;
+			prog_err_file(err);
+			unlink(core);
+			unlink(core2);
+			set_errno(ENOENT);
+			check(i == 1, "checkmsg");
+			_exit(EXIT_SUCCESS);
+		}
+
+		case -1:
+		{
+			++errors;
+			printf("Test13: failed to perform test - fork() failed (%s)\n", strerror(errno));
+			break;
+		}
+
+		default:
+		{
+			int status;
+
+			if (waitpid(pid, &status, 0) == -1)
+			{
+				++errors;
+				printf("Test13: failed to wait for test - waitpid(%d) failed (%s)\n", (int)pid, strerror(errno));
+				break;
+			}
+
 			if (!WIFEXITED(status) || WEXITSTATUS(status) != EXIT_SUCCESS)
-				++errors, printf("Test5: failed: %s %d\n",
+				++errors, printf("Test13: failed: %s %d\n",
 					WIFSIGNALED(status) ? "received signal" : "exit code",
 					WIFSIGNALED(status) ? WTERMSIG(status) : WEXITSTATUS(status));
 		}
@@ -1201,7 +1222,7 @@ int main(int ac, char **av)
 		case -1:
 		{
 			++errors;
-			printf("Test12: failed to perform test - fork() failed (%s)\n", strerror(errno));
+			printf("Test14: failed to perform test - fork() failed (%s)\n", strerror(errno));
 			break;
 		}
 
@@ -1213,18 +1234,18 @@ int main(int ac, char **av)
 			if (waitpid(pid, &status, 0) == -1)
 			{
 				++errors;
-				printf("Test12: failed to wait for test - waitpid(%d) failed (%s)\n", (int)pid, strerror(errno));
+				printf("Test14: failed to wait for test - waitpid(%d) failed (%s)\n", (int)pid, strerror(errno));
 				break;
 			}
 
 			if (!WIFSIGNALED(status) || WTERMSIG(status) != SIGABRT)
-				++errors, printf("Test5: failed: %s %d\n",
+				++errors, printf("Test14: failed: %s %d\n",
 					WIFSIGNALED(status) ? "received signal" : "exit code",
 					WIFSIGNALED(status) ? WTERMSIG(status) : WEXITSTATUS(status));
 
 			if (stat(core, statbuf) == -1 && errno == ENOENT &&
 				stat(core2, statbuf) == -1 && errno == ENOENT)
-				++errors, printf("Test12: failed: no core file produced (ulimit?)\n");
+				++errors, printf("Test14: failed: no core file produced (ulimit?)\n");
 			else
 			{
 				unlink(core);
@@ -1234,7 +1255,7 @@ int main(int ac, char **av)
 	}
 
 	snprintf(buf, BUFSIZ, "dump: Internal Error: %s: %s [", "i == 0", "checkmsg");
-	errors += verify(12, err, buf);
+	errors += verify(14, err, buf);
 
 	/* Test debug sections */
 
@@ -1260,7 +1281,7 @@ int main(int ac, char **av)
     debugf(1, "global debugmsg");                  /* yes */
     debugf(4, "global debugmsg");                  /* no (level too high) */
 
-	errors += verify(13, dbg, results[10]);
+	errors += verify(15, dbg, results[10]);
 
 #undef LEXER_SECTION
 #undef PARSER_SECTION
@@ -1272,7 +1293,7 @@ int main(int ac, char **av)
 	alert(LOG_INFO, "alertmsg");
 	errno = 0;
 	alertsys(LOG_INFO, "alertsysmsg");
-	errors += verify(14, alertfile, results[11]);
+	errors += verify(16, alertfile, results[11]);
 
 	prog_out_none();
 	prog_err_none();
@@ -1283,25 +1304,25 @@ int main(int ac, char **av)
 
 	errno = 0;
 	if ((rci = set_errno(EINVAL)) != -1)
-		++errors, printf("Test15: set_errno(EINVAL) failed (returned %d, not %d)\n", rci, -1);
+		++errors, printf("Test17: set_errno(EINVAL) failed (returned %d, not %d)\n", rci, -1);
 	else if (errno != EINVAL)
-		++errors, printf("Test15: set_errno(EINVAL) failed (errno = %s, not %s)\n", strerror(errno), strerror(EINVAL));
+		++errors, printf("Test17: set_errno(EINVAL) failed (errno = %s, not %s)\n", strerror(errno), strerror(EINVAL));
 
 	errno = 0;
 	if ((rcp = set_errnull(EINVAL)) != NULL)
-		++errors, printf("Test16: set_errnull(EINVAL) failed (returned %p, not %p)\n", rcp, (void *)NULL);
+		++errors, printf("Test18: set_errnull(EINVAL) failed (returned %p, not %p)\n", rcp, (void *)NULL);
 	else if (errno != EINVAL)
-		++errors, printf("Test16: set_errnull(EINVAL) failed (errno = %s, not %s)\n", strerror(errno), strerror(EINVAL));
+		++errors, printf("Test18: set_errnull(EINVAL) failed (errno = %s, not %s)\n", strerror(errno), strerror(EINVAL));
 
 	errno = 0;
 	if ((rcfp = set_errnullf(EINVAL)) != NULL)
-		/* ++errors, printf("Test17: set_errnullf(EINVAL) failed (returned %p, not %p)\n", rcfp, (void *)NULL); */
-		++errors, printf("Test17: set_errnullf(EINVAL) failed (returned something other than null)\n");
+		/* ++errors, printf("Test19: set_errnullf(EINVAL) failed (returned %p, not %p)\n", rcfp, (void *)NULL); */
+		++errors, printf("Test19: set_errnullf(EINVAL) failed (returned something other than null)\n");
 	else if (errno != EINVAL)
-		++errors, printf("Test17: set_errnullf(EINVAL) failed (errno = %s, not %s)\n", strerror(errno), strerror(EINVAL));
+		++errors, printf("Test19: set_errnullf(EINVAL) failed (errno = %s, not %s)\n", strerror(errno), strerror(EINVAL));
 
 	if (errors)
-		printf("%d/17 tests failed\n", errors);
+		printf("%d/19 tests failed\n", errors);
 	else
 		printf("All tests passed\n");
 

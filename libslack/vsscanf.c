@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2010 raf <raf@raf.org>
+* Copyright (C) 1999-2002, 2004, 2010, 2020 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -14,11 +14,9 @@
 * GNU General Public License for more details.
 *
 * You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-* or visit http://www.gnu.org/copyleft/gpl.html
+* along with this program; if not, see <https://www.gnu.org/licenses/>.
 *
-* 20100612 raf <raf@raf.org>
+* 20201111 raf <raf@raf.org>
 */
 
 /*
@@ -131,7 +129,7 @@ I<sscanf(3)>
 
 =head1 AUTHOR
 
-20100612 raf <raf@raf.org>
+20201111 raf <raf@raf.org>
 
 =cut
 
@@ -279,6 +277,7 @@ int vsscanf(const char *str, const char *format, va_list args)
 					end = strchr((*f == ']') ? f + 1 : f, ']');
 					if (!end) return FAIL; /* Could be cnv to match glibc-2.2 */
 					setsize = end - f;     /* But FAIL matches the C standard */
+					if (!*s) return FAIL;
 					while (width-- && *s)
 					{
 						if (!setcomp && !memchr(f, *s, setsize)) break;
@@ -394,18 +393,25 @@ int main(int ac, char **av)
 		p1 = (void *)0xdeadbeef
 	);
 
-	if (ac >= 2 && !strcmp(av[1], "show"))
-		printf("%s\n", str);
-
-	rc1 = sscanf(str,
-		" abc %hd %d %ld %e %le %Le xyz %p %[^abc ] %3c %s%hn %n%% %ln",
+	rc1 = sscanf(str, " abc %hd %d %ld %e %le %Le xyz %p %127[^abc ] %3c %127s %hn %n%% %ln",
 		&si1, &i1, &li1, &f1, &d1, &ld1, &p1, b1, c1, s1, &sn1, &in1, &ln1
 	);
 
-	rc2 = test_sscanf(str,
-		" abc %hd %d %ld %e %le %Le xyz %p %[^abc ] %3c %s%hn %n%% %ln",
+	rc2 = test_sscanf(str, " abc %hd %d %ld %e %le %Le xyz %p %127[^abc ] %3c %127s %hn %n%% %ln",
 		&si2, &i2, &li2, &f2, &d2, &ld2, &p2, b2, c2, s2, &sn2, &in2, &ln2
 	);
+
+	if (ac >= 2 && !strcmp(av[1], "show"))
+	{
+		printf("in: %s\n", str);
+		printf("rc1=%d, rc2=%d\n", rc1, rc2);
+		printf("out1: si1<%hd> i1<%d> li1<%ld> f1<%e> d1<%le> ld1<%Le> p1<%p> b1<%s> c1<%s> s1<%s> sn1<%hd> in1<%d> ln1<%ld>\n",
+			si1, i1, li1, f1, d1, ld1, p1, b1, c1, s1, sn1, in1, ln1
+		);
+		printf("out2: si2<%hd> i2<%d> li2<%ld> f2<%e> d2<%le> ld2<%Le> p2<%p> b2<%s> c2<%s> s2<%s> sn2<%hd> in2<%d> ln2<%ld>\n",
+			si2, i2, li2, f2, d2, ld2, p2, b2, c2, s2, sn2, in2, ln2
+		);
+	}
 
 	if (rc1 != rc2)
 		++errors, printf("Test1: failed (returned %d, not %d)\n", rc2, rc1);
@@ -513,13 +519,13 @@ int main(int ac, char **av)
 	TEST_ERR_ARG(44, "", "%f", f);
 	TEST_ERR_ARG(45, "", "%g", f);
 	TEST_ERR_ARG(46, "", "%G", f);
-	TEST_ERR_ARG(47, "", "%[^]", *b);
+	TEST_ERR_ARG(47, "", "%[abc]", *b); /* This fails when comparing against glibc */
 	TEST_ERR_ARG(48, "", "%c", *c);
 	TEST_ERR(49, "a", "%%");
 	TEST_ERR(50, "a", "b");
 
 	if (errors)
-		printf("%d/50 tests failed (This system's sscanf(3) is probably wrong)\n", errors);
+		printf("%d/50 tests failed (This system's sscanf(3) might be wrong))\n", errors);
 	else
 		printf("All tests passed\n");
 

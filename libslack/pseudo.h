@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2010 raf <raf@raf.org>
+* Copyright (C) 1999-2002, 2004, 2010, 2020 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -14,11 +14,9 @@
 * GNU General Public License for more details.
 *
 * You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-* or visit http://www.gnu.org/copyleft/gpl.html
+* along with this program; if not, see <https://www.gnu.org/licenses/>.
 *
-* 20100612 raf <raf@raf.org>
+* 20201111 raf <raf@raf.org>
 */
 
 /*
@@ -46,12 +44,12 @@
 #include <slack/hdr.h>
 
 _begin_decls
-int pty_open(int *masterfd, int *slavefd, char *slavename, size_t slavenamesize, const struct termios *slave_termios, const struct winsize *slave_winsize);
-int pty_release(const char *slavename);
-int pty_set_owner(const char *slavename, uid_t uid);
-int pty_make_controlling_tty(int *slavefd, const char *slavename);
-int pty_change_window_size(int masterfd, int row, int col, int xpixel, int ypixel);
-pid_t pty_fork(int *masterfd, char *slavename, size_t slavenamesize, const struct termios *slave_termios, const struct winsize *slave_winsize);
+int pty_open(int *pty_user_fd, int *pty_process_fd, char *pty_device_name, size_t pty_device_name_size, const struct termios *pty_device_termios, const struct winsize *pty_device_winsize);
+int pty_release(const char *pty_device_name);
+int pty_set_owner(const char *pty_device_name, uid_t uid);
+int pty_make_controlling_tty(int *pty_process_fd, const char *pty_device_name);
+int pty_change_window_size(int pty_user_fd, int row, int col, int xpixel, int ypixel);
+pid_t pty_fork(int *pty_user_fd, char *pty_device_name, size_t pty_device_name_size, const struct termios *pty_device_termios, const struct winsize *pty_device_winsize);
 _end_decls
 
 #endif

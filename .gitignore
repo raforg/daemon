@@ -1,0 +1,9 @@
+*.o
+*.a
+daemon
+tags
+libslack/.git
+libslack/.gitignore
+libslack/slack
+libslack/test/*
+libslack/tags

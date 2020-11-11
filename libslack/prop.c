@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2010 raf <raf@raf.org>
+* Copyright (C) 1999-2002, 2004, 2010, 2020 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -14,11 +14,9 @@
 * GNU General Public License for more details.
 *
 * You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-* or visit http://www.gnu.org/copyleft/gpl.html
+* along with this program; if not, see <https://www.gnu.org/licenses/>.
 *
-* 20100612 raf <raf@raf.org>
+* 20201111 raf <raf@raf.org>
 */
 
 /*
@@ -90,6 +88,10 @@ C<false>, C<yes> or C<no>, C<on> or C<off> (case insensitive).
 
 #ifndef _BSD_SOURCE
 #define _BSD_SOURCE /* For snprintf() on OpenBSD-4.7 */
+#endif
+
+#ifndef _DEFAULT_SOURCE
+#define _DEFAULT_SOURCE /* New name for _BSD_SOURCE */
 #endif
 
 #include "config.h"
@@ -788,7 +790,7 @@ int prop_get_bool_or(const char *name, int default_value)
 	if (sscanf(prop, " %d ", &val))
 		return val;
 
-	if (sscanf(prop, " %s ", buf))
+	if (sscanf(prop, " %127s ", buf))
 	{
 		if ((buf[0] == 't' || buf[0] == 'T') &&
 			(buf[1] == 'r' || buf[1] == 'R') &&
@@ -1233,7 +1235,7 @@ I<prog(3)>
 
 =head1 AUTHOR
 
-20100612 raf <raf@raf.org>
+20201111 raf <raf@raf.org>
 
 =cut
 
@@ -1345,6 +1347,7 @@ int main(int ac, char **av)
 	const char *val;
 	int ival, i;
 	int int_val;
+	const char *sval;
 	double double_val;
 	int bool_val;
 	int errors = 0;
@@ -1464,8 +1467,66 @@ int main(int ac, char **av)
 	if ((bool_val = prop_get_bool_or("c", 1)) != 1)
 		++errors, printf("Test43: prop_get_bool_or() failed (%d not 1)\n", bool_val);
 
+	sval = prop_set("b", "true");
+	if (!sval)
+		++errors, printf("Test44: prop_set() failed (returned null)\n");
+	else if (strcmp(sval, "true"))
+		++errors, printf("Test45: prop_set() failed (returned \"%s\" not \"%s\")\n", sval, "true");
+	if ((bool_val = prop_get_bool_or("b", 0)) != 1)
+		++errors, printf("Test46: prop_get_bool_or() failed (%d not 1)\n", bool_val);
+
+	sval = prop_set("b", "false");
+	if (!sval)
+		++errors, printf("Test47: prop_set() failed (returned null)\n");
+	else if (strcmp(sval, "false"))
+		++errors, printf("Test48: prop_set() failed (returned \"%s\" not \"%s\")\n", sval, "true");
+	if ((bool_val = prop_get_bool_or("b", 1)) != 0)
+		++errors, printf("Test49: prop_get_bool_or() failed (%d not 0)\n", bool_val);
+
+	sval = prop_set("b", "yes");
+	if (!sval)
+		++errors, printf("Test50: prop_set() failed (returned null)\n");
+	else if (strcmp(sval, "yes"))
+		++errors, printf("Test51: prop_set() failed (returned \"%s\" not \"%s\")\n", sval, "yes");
+	if ((bool_val = prop_get_bool_or("b", 0)) != 1)
+		++errors, printf("Test52: prop_get_bool_or() failed (%d not 1)\n", bool_val);
+
+	sval = prop_set("b", "no");
+	if (!sval)
+		++errors, printf("Test53: prop_set() failed (returned null)\n");
+	else if (strcmp(sval, "no"))
+		++errors, printf("Test54: prop_set() failed (returned \"%s\" not \"%s\")\n", sval, "no");
+	if ((bool_val = prop_get_bool_or("b", 1)) != 0)
+		++errors, printf("Test55: prop_get_bool_or() failed (%d not 0)\n", bool_val);
+
+	sval = prop_set("b", "on");
+	if (!sval)
+		++errors, printf("Test56: prop_set() failed (returned null)\n");
+	else if (strcmp(sval, "on"))
+		++errors, printf("Test57: prop_set() failed (returned \"%s\" not \"%s\")\n", sval, "on");
+	if ((bool_val = prop_get_bool_or("b", 0)) != 1)
+		++errors, printf("Test58: prop_get_bool_or() failed (%d not 1)\n", bool_val);
+
+	sval = prop_set("b", "off");
+	if (!sval)
+		++errors, printf("Test59: prop_set() failed (returned null)\n");
+	else if (strcmp(sval, "off"))
+		++errors, printf("Test60: prop_set() failed (returned \"%s\" not \"%s\")\n", sval, "off");
+	if ((bool_val = prop_get_bool_or("b", 1)) != 0)
+		++errors, printf("Test61: prop_get_bool_or() failed (%d not 0)\n", bool_val);
+
+	sval = prop_set("b", "neither");
+	if (!sval)
+		++errors, printf("Test62: prop_set() failed (returned null)\n");
+	else if (strcmp(sval, "neither"))
+		++errors, printf("Test63: prop_set() failed (returned \"%s\" not \"%s\")\n", sval, "neither");
+	if ((bool_val = prop_get_bool_or("b", 1)) != 1)
+		++errors, printf("Test64: prop_get_bool_or() failed (%d not 1)\n", bool_val);
+	if ((bool_val = prop_get_bool_or("b", 0)) != 0)
+		++errors, printf("Test65: prop_get_bool_or() failed (%d not 0)\n", bool_val);
+
 	if (errors)
-		printf("%d/43 tests failed\n", errors);
+		printf("%d/65 tests failed\n", errors);
 	else
 		printf("All tests passed\n");
 

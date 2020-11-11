@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2010 raf <raf@raf.org>
+* Copyright (C) 1999-2002, 2004, 2010, 2020 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -14,11 +14,9 @@
 * GNU General Public License for more details.
 *
 * You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-* or visit http://www.gnu.org/copyleft/gpl.html
+* along with this program; if not, see <https://www.gnu.org/licenses/>.
 *
-* 20100612 raf <raf@raf.org>
+* 20201111 raf <raf@raf.org>
 */
 
 #ifndef LIBSLACK_STR_H
@@ -254,8 +252,12 @@ int str_oct_unlocked(const String *str);
 int oct(const char *str);
 int strcasecmp(const char *s1, const char *s2);
 int strncasecmp(const char *s1, const char *s2, size_t n);
+#ifndef strlcpy /* This is now a macro on OSX/macOS */
 size_t strlcpy(char *dst, const char *src, size_t size);
+#endif
+#ifndef strlcat /* This is now a macro on OSX/macOS */
 size_t strlcat(char *dst, const char *src, size_t size);
+#endif
 char *cstrcpy(char *dst, const char *src);
 char *cstrcat(char *dst, const char *src);
 char *cstrchr(const char *str, int c);

@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2010 raf <raf@raf.org>
+* Copyright (C) 1999-2002, 2004, 2010, 2020 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -14,11 +14,9 @@
 * GNU General Public License for more details.
 *
 * You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-* or visit http://www.gnu.org/copyleft/gpl.html
+* along with this program; if not, see <https://www.gnu.org/licenses/>.
 *
-* 20100612 raf <raf@raf.org>
+* 20201111 raf <raf@raf.org>
 */
 
 /*
@@ -37,14 +35,18 @@
 /*
  * 20010930 raf <raf@raf.org>
  * Librarified the code (no calls to fatal(), return errors instead)
- * Made slave device name truncation an error (rather than ignoring it)
+ * Made pty device name truncation an error (rather than ignoring it)
  * Made it thread safe on some systems (use ttyname_r/ptsname_r)
  * Added a manpage (perldoc -F pseudo.c)
  * Made pty_allocate() more like openpty() but safe (called it pty_open())
  * Added safe version of forkpty() (called it pty_fork())
  *
  * 20100612 raf <raf@raf.org>
- * pty_open: master fd often has ECHO on by default these days so turn it off
+ * pty_open: pty_user_fd often has ECHO on by default these days so turn it off
+ *
+ * 20201111 raf <raf@raf.org>
+ * pty_make_controlling_tty(): Removed vhangup() which caused problems when
+ * it succeeded (i.e. when run as root). It broke code that used pty_fork().
  */
 
 /*
@@ -58,12 +60,12 @@ I<libslack(pseudo)> - pseudo terminal module
     #include <slack/std.h>
     #include <slack/pseudo.h>
 
-    int pty_open(int *masterfd, int *slavefd, char *slavename, size_t slavenamesize, const struct termios *slave_termios, const struct winsize *slave_winsize);
-    int pty_release(const char *slavename);
-    int pty_set_owner(const char *slavename, uid_t uid);
-    int pty_make_controlling_tty(int *slavefd, const char *slavename);
-    int pty_change_window_size(int masterfd, int row, int col, int xpixel, int ypixel);
-    pid_t pty_fork(int *masterfd, char *slavename, size_t slavenamesize, const struct termios *slave_termios, const struct winsize *slave_winsize);
+    int pty_open(int *pty_user_fd, int *pty_process_fd, char *pty_device_name, size_t pty_device_name_size, const struct termios *pty_device_termios, const struct winsize *pty_device_winsize);
+    int pty_release(const char *pty_device_name);
+    int pty_set_owner(const char *pty_device_name, uid_t uid);
+    int pty_make_controlling_tty(int *pty_process_fd, const char *pty_device_name);
+    int pty_change_window_size(int pty_user_fd, int row, int col, int xpixel, int ypixel);
+    pid_t pty_fork(int *pty_user_fd, char *pty_device_name, size_t pty_device_name_size, const struct termios *pty_device_termios, const struct winsize *pty_device_winsize);
 
 =head1 DESCRIPTION
 
@@ -80,6 +82,10 @@ attached to a pseudo terminal which is made the controlling terminal.
 
 #ifndef _BSD_SOURCE
 #define _BSD_SOURCE /* For strlcpy() on OpenBSD-4.7 */
+#endif
+
+#ifndef _DEFAULT_SOURCE
+#define _DEFAULT_SOURCE /* New name for _BSD_SOURCE */
 #endif
 
 #ifndef __BSD_VISIBLE
@@ -134,8 +140,23 @@ attached to a pseudo terminal which is made the controlling terminal.
 #include <sys/stropts.h>
 #endif
 
+#if 0
+/*
+** Don't use vhangup(). It is only available on Linux anyway
+** and it requires root privileges (CAP_SYS_TTY_CONFIG).
+** And, when it works, it causes some coproc module tests
+** that use pty_fork() to fail when run as root (but only
+** since we started turning off echo mode on pty_user_fd).
+** And it doesn't make sense to virtually hangup the terminal
+** as soon as we've made it our controlling terminal. I don't
+** understand what the point ever was. The documentation for
+** vhangup() says that it arranges for other users to have a
+** "clean" terminal at login time without explaining what that
+** means. I doubt that it's relevant here.
+*/
 #if defined(HAVE_VHANGUP) && !defined(HAVE_DEV_PTMX)
 #define USE_VHANGUP
+#endif
 #endif
 
 #ifndef O_NOCTTY
@@ -150,22 +171,24 @@ attached to a pseudo terminal which is made the controlling terminal.
 
 /*
 
-=item C<int pty_open(int *masterfd, int *slavefd, char *slavename, size_t slavenamesize, const struct termios *slave_termios, const struct winsize *slave_winsize)>
+=item C<int pty_open(int *pty_user_fd, int *pty_process_fd, char *pty_device_name, size_t pty_device_name_size, const struct termios *pty_device_termios, const struct winsize *pty_device_winsize)>
 
 A safe version of I<openpty(3)>. Allocates and opens a pseudo terminal. The
-new descriptor for the master side of the pseudo terminal is stored in
-C<*masterfd>. The new descriptor for the slave side of the pseudo terminal
-is stored in C<*slavefd>. The device name of the slave side of the pseudo
-terminal is stored in the buffer pointed to by C<slavename> which must be
-able to hold at least 64 characters. C<slavenamesize> is the size of the
-buffer pointed to by C<slavename>. No more than C<slavenamesize> bytes will
-be written into the buffer pointed to by C<slavename>, including the
-terminating C<nul> byte. If C<slave_termios> is not null, it is passed to
-I<tcsetattr(3)> with the command C<TCSANOW> to set the terminal attributes
-of the slave device. If C<slave_winsize> is not null, it is passed to
-I<ioctl(2)> with the command C<TIOCSWINSZ> to set the window size of the
-slave device. On success, returns C<0>. On error, returns C<-1> with
-C<errno> set appropriately.
+new file descriptor for the user (or controlling process) side of the pseudo
+terminal is stored in C<*pty_user_fd>. The new file descriptor for the
+process side of the pseudo terminal is stored in C<*pty_process_fd>. The
+device name of the process side of the pseudo terminal is stored in the
+buffer pointed to by C<pty_device_name> which must be able to hold at least
+64 characters. C<pty_device_name_size> is the size of the buffer pointed to
+by C<pty_device_name>. No more than C<pty_device_name_size> bytes will be
+written into the buffer pointed to by C<pty_device_name>, including the
+terminating C<nul> byte. If C<pty_device_termios> is not null, it is passed
+to I<tcsetattr(3)> with the command C<TCSANOW> to set the terminal
+attributes of the device on the process side of the pseudo terminal. If
+C<pty_device_winsize> is not null, it is passed to I<ioctl(2)> with the
+command C<TIOCSWINSZ> to set the window size of the device on the process
+side of the pseudo terminal. On success, returns C<0>. On error, returns
+C<-1> with C<errno> set appropriately.
 
 =cut
 
@@ -214,9 +237,9 @@ static int uid2gid(uid_t uid)
 	return ret;
 }
 
-int pty_open(int *masterfd, int *slavefd, char *slavename, size_t slavenamesize, const struct termios *slave_termios, const struct winsize *slave_winsize)
+int pty_open(int *pty_user_fd, int *pty_process_fd, char *pty_device_name, size_t pty_device_name_size, const struct termios *pty_device_termios, const struct winsize *pty_device_winsize)
 {
-	struct termios master_termios[1];
+	struct termios pty_user_termios[1];
 
 #if defined(HAVE_OPENPTY) || defined(BSD4_4)
 
@@ -229,38 +252,38 @@ int pty_open(int *masterfd, int *slavefd, char *slavename, size_t slavenamesize,
 	char *name;
 #endif
 
-	if (!masterfd || !slavefd || !slavename || slavenamesize < 64)
+	if (!pty_user_fd || !pty_process_fd || !pty_device_name || pty_device_name_size < 64)
 		return set_errno(EINVAL);
 
-	/* Open the master and slave descriptors, set ownership and permissions */
+	/* Open both pty descriptors, set ownership and permissions */
 
-	if (openpty(masterfd, slavefd, NULL, NULL, NULL) == -1)
+	if (openpty(pty_user_fd, pty_process_fd, NULL, NULL, NULL) == -1)
 		return -1;
 
-	/* Retrieve the device name of the slave */
+	/* Retrieve the device name of the process side of the pty */
 
 #ifdef HAVE_TTYNAME_R
-	if ((err = ttyname_r(*slavefd, buf, 64)))
+	if ((err = ttyname_r(*pty_process_fd, buf, 64)))
 	{
-		close(*masterfd);
-		close(*slavefd);
+		close(*pty_user_fd);
+		close(*pty_process_fd);
 		return set_errno(err);
 	}
 #else
-	if (!(name = ttyname(*slavefd)))
+	if (!(name = ttyname(*pty_process_fd)))
 	{
-		close(*masterfd);
-		close(*slavefd);
+		close(*pty_user_fd);
+		close(*pty_process_fd);
 		return set_errno(ENOTTY);
 	}
 #endif
 
 	/* Return it to the caller */
 
-	if (strlcpy(slavename, name, slavenamesize) >= slavenamesize)
+	if (strlcpy(pty_device_name, name, pty_device_name_size) >= pty_device_name_size)
 	{
-		close(*masterfd);
-		close(*slavefd);
+		close(*pty_user_fd);
+		close(*pty_process_fd);
 		return set_errno(ENOSPC);
 	}
 
@@ -272,29 +295,29 @@ int pty_open(int *masterfd, int *slavefd, char *slavename, size_t slavenamesize,
 	 * pty's automagically when needed
 	 */
 
-	char *slave;
+	char *name;
 
-	if (!masterfd || !slavefd || !slavename || slavenamesize < 64)
+	if (!pty_user_fd || !pty_process_fd || !pty_device_name || pty_device_name_size < 64)
 		return set_errno(EINVAL);
 
-	/* Open the master descriptor and get the slave's device name */
+	/* Open the pty user file descriptor and get the pty's device name */
 
-	if (!(slave = _getpty(masterfd, O_RDWR, 0622, 0)))
+	if (!(name = _getpty(pty_user_fd, O_RDWR, 0622, 0)))
 		return -1;
 
 	/* Return it to the caller */
 
-	if (strlcpy(slavename, name, slavenamesize) >= slavenamesize)
+	if (strlcpy(pty_device_name, name, pty_device_name_size) >= pty_device_name_size)
 	{
-		close(*masterfd);
+		close(*pty_user_fd);
 		return set_errno(ENOSPC);
 	}
 
-	/* Open the slave descriptor */
+	/* Open the pty process file descriptor */
 
-	if ((*slavefd = open(slavename, O_RDWR | O_NOCTTY)) == -1)
+	if ((*pty_process_fd = open(pty_device_name, O_RDWR | O_NOCTTY)) == -1)
 	{
-		close(*masterfd);
+		close(*pty_user_fd);
 		return -1;
 	}
 
@@ -313,88 +336,88 @@ int pty_open(int *masterfd, int *slavefd, char *slavename, size_t slavenamesize,
 	char *name;
 #endif
 
-	if (!masterfd || !slavefd || !slavename || slavenamesize < 64)
+	if (!pty_user_fd || !pty_process_fd || !pty_device_name || pty_device_name_size < 64)
 		return set_errno(EINVAL);
 
-	/* Open the master descriptor */
+	/* Open the pty user file descriptor */
 
-	if ((*masterfd = open("/dev/ptmx", O_RDWR | O_NOCTTY)) == -1)
+	if ((*pty_user_fd = open("/dev/ptmx", O_RDWR | O_NOCTTY)) == -1)
 		return -1;
 
-	/* Set slave ownership and permissions to real uid of process */
+	/* Set pty device ownership and permissions to the real uid of the process */
 
-	if (grantpt(*masterfd) == -1)
+	if (grantpt(*pty_user_fd) == -1)
 	{
-		close(*masterfd);
+		close(*pty_user_fd);
 		return -1;
 	}
 
-	/* Unlock the slave so it can be opened */
+	/* Unlock the pty device so it can be opened */
 
-	if (unlockpt(*masterfd) == -1)
+	if (unlockpt(*pty_user_fd) == -1)
 	{
-		close(*masterfd);
+		close(*pty_user_fd);
 		return -1;
 	}
 
-	/* Retrieve the device name of the slave */
+	/* Retrieve the device name of the process side of the pty */
 
 #ifdef HAVE_PTSNAME_R
-	if ((err = ptsname_r(*masterfd, buf, 64)))
+	if ((err = ptsname_r(*pty_user_fd, buf, 64)))
 	{
-		close(*masterfd);
+		close(*pty_user_fd);
 		return set_errno(err);
 	}
 #else
-	if (!(name = ptsname(*masterfd)))
+	if (!(name = ptsname(*pty_user_fd)))
 	{
-		close(*masterfd);
+		close(*pty_user_fd);
 		return set_errno(ENOTTY);
 	}
 #endif
 
 	/* Return it to the caller */
 
-	if (strlcpy(slavename, name, slavenamesize) >= slavenamesize)
+	if (strlcpy(pty_device_name, name, pty_device_name_size) >= pty_device_name_size)
 	{
-		close(*masterfd);
+		close(*pty_user_fd);
 		return set_errno(ENOSPC);
 	}
 
-	/* Open the slave descriptor */
+	/* Open the pty process file descriptor */
 
-	if ((*slavefd = open(slavename, O_RDWR | O_NOCTTY)) == -1)
+	if ((*pty_process_fd = open(pty_device_name, O_RDWR | O_NOCTTY)) == -1)
 	{
-		close(*masterfd);
+		close(*pty_user_fd);
 		return -1;
 	}
 
-	/* Turn the slave into a terminal */
+	/* Turn the pty process file descriptor into a terminal */
 
 #ifndef HAVE_CYGWIN
 	/*
 	 * Push the appropriate streams modules, as described in Solaris pts(7).
 	 * HP-UX pts(7) doesn't have ttcompat module.
 	 */
-	if (ioctl(*slavefd, I_PUSH, "ptem") == -1)
+	if (ioctl(*pty_process_fd, I_PUSH, "ptem") == -1)
 	{
-		close(*masterfd);
-		close(*slavefd);
+		close(*pty_user_fd);
+		close(*pty_process_fd);
 		return -1;
 	}
 
-	if (ioctl(*slavefd, I_PUSH, "ldterm") == -1)
+	if (ioctl(*pty_process_fd, I_PUSH, "ldterm") == -1)
 	{
-		close(*masterfd);
-		close(*slavefd);
+		close(*pty_user_fd);
+		close(*pty_process_fd);
 		return -1;
 	}
 
 #ifndef __hpux
-	if (ioctl(*slavefd, I_PUSH, "ttcompat") == -1)
+	if (ioctl(*pty_process_fd, I_PUSH, "ttcompat") == -1)
 	{
-		close(*masterfd);
-		close(*slavefd);
+		close(*pty_user_fd);
+		close(*pty_process_fd);
 		return -1;
 	}
 #endif
@@ -412,43 +435,43 @@ int pty_open(int *masterfd, int *slavefd, char *slavename, size_t slavenamesize,
 	char *name;
 #endif
 
-	if (!masterfd || !slavefd || !slavename || slavenamesize < 64)
+	if (!pty_user_fd || !pty_process_fd || !pty_device_name || pty_device_name_size < 64)
 		return set_errno(EINVAL);
 
-	/* Open the master descriptor */
+	/* Open the pty user file descriptor */
 
-	if ((*masterfd = open("/dev/ptc", O_RDWR | O_NOCTTY)) == -1)
+	if ((*pty_user_fd = open("/dev/ptc", O_RDWR | O_NOCTTY)) == -1)
 		return -1;
 
-	/* Retrieve the device name of the slave */
+	/* Retrieve the device name of the process side of the pty */
 
 #ifdef HAVE_TTYNAME_R
-	if ((err = ttyname_r(*masterfd, buf, 64)))
+	if ((err = ttyname_r(*pty_user_fd, buf, 64)))
 	{
-		close(*masterfd);
+		close(*pty_user_fd);
 		return set_errno(err);
 	}
 #else
-	if (!(name = ttyname(*masterfd)))
+	if (!(name = ttyname(*pty_user_fd)))
 	{
-		close(*masterfd);
+		close(*pty_user_fd);
 		return set_errno(ENOTTY);
 	}
 #endif
 
 	/* Return it to the caller */
 
-	if (strlcpy(slavename, name, slavenamesize) >= slavenamesize)
+	if (strlcpy(pty_device_name, name, pty_device_name_size) >= pty_device_name_size)
 	{
-		close(*masterfd);
+		close(*pty_user_fd);
 		return set_errno(ENOSPC);
 	}
 
-	/* Open the slave descriptor */
+	/* Open the pty process file descriptor */
 
-	if ((*slavefd = open(name, O_RDWR | O_NOCTTY)) == -1)
+	if ((*pty_process_fd = open(name, O_RDWR | O_NOCTTY)) == -1)
 	{
-		close(*masterfd);
+		close(*pty_user_fd);
 		return -1;
 	}
 
@@ -463,34 +486,34 @@ int pty_open(int *masterfd, int *slavefd, char *slavename, size_t slavenamesize,
 	int found = 0;
 	int i;
 
-	/* Identify the first available pty master device */
+	/* Identify the first available pty user device */
 
 	for (i = 0; !found && i < num_ptys; i++)
 	{
 		snprintf(buf, sizeof buf, "/dev/pty%c%c", ptymajors[i / num_minors], ptyminors[i % num_minors]);
-		snprintf(slavename, slavenamesize, "/dev/tty%c%c", ptymajors[i / num_minors], ptyminors[i % num_minors]);
+		snprintf(pty_device_name, pty_device_name_size, "/dev/tty%c%c", ptymajors[i / num_minors], ptyminors[i % num_minors]);
 
-		/* Open the master descriptor */
+		/* Open the pty user file descriptor */
 
-		if ((*masterfd = open(buf, O_RDWR | O_NOCTTY)) == -1)
+		if ((*pty_user_fd = open(buf, O_RDWR | O_NOCTTY)) == -1)
 		{
 			/* Try SCO style naming */
 			snprintf(buf, sizeof buf, "/dev/ptyp%d", i);
-			snprintf(slavename, slavenamesize, "/dev/ttyp%d", i);
+			snprintf(pty_device_name, pty_device_name_size, "/dev/ttyp%d", i);
 
-			if ((*masterfd = open(buf, O_RDWR | O_NOCTTY)) == -1)
+			if ((*pty_user_fd = open(buf, O_RDWR | O_NOCTTY)) == -1)
 				continue;
 		}
 
-		/* Set slave ownership and permissions to real uid of process */
+		/* Set pty device ownership and permissions to the real uid of the process */
 
-		pty_set_owner(slavename, getuid());
+		pty_set_owner(pty_device_name, getuid());
 
-		/* Open the slave descriptor */
+		/* Open the pty process file descriptor */
 
-		if ((*slavefd = open(slavename, O_RDWR | O_NOCTTY)) == -1)
+		if ((*pty_process_fd = open(pty_device_name, O_RDWR | O_NOCTTY)) == -1)
 		{
-			close(*masterfd);
+			close(*pty_user_fd);
 			return -1;
 		}
 
@@ -506,39 +529,51 @@ int pty_open(int *masterfd, int *slavefd, char *slavename, size_t slavenamesize,
 #endif /* HAVE__GETPTY */
 #endif /* HAVE_OPENPTY */
 
-	/* The master's terminal may have echo on, turn it off */
-	/* But this returns EINVAL on Solaris-10 so let it fail */
+	/* The pty user terminal may have echo on. Turn it off. */
+	/* But this returns EINVAL on Solaris-10 so let it fail. */
 
-	if (tcgetattr(*masterfd, master_termios) != -1)
+	/* Turning echo off causes some coproc module tests to fail
+	** on Linux after coproc_pty_open() is called. We write to
+	** it and then call read_timeout() and nothing happens.
+	** But I'd expect /bin/cat to write what it has read.
+	** The terminal echo shouldn't be required. And anyway,
+	** shouldn't the process end be doing the echo? And the tests
+	** only fail when run as root. What's going on here?
+	** Calling vhangup() in pty_make_controlling_tty() was
+	** causing the problem, but only when we turn off echo.
+	** Without vhangup(), it's fine.
+	*/
+
+	if (tcgetattr(*pty_user_fd, pty_user_termios) != -1)
 	{
-		if (master_termios->c_lflag & ECHO)
+		if (pty_user_termios->c_lflag & ECHO)
 		{
-			master_termios->c_lflag &= ~ECHO;
+			pty_user_termios->c_lflag &= ~ECHO;
 
-			if (tcsetattr(*masterfd, TCSANOW, master_termios) == -1)
+			if (tcsetattr(*pty_user_fd, TCSANOW, pty_user_termios) == -1)
 			{
-				close(*masterfd);
-				close(*slavefd);
+				close(*pty_user_fd);
+				close(*pty_process_fd);
 				return -1;
 			}
 		}
 	}
 
-	/* Set the slave's terminal attributes if requested */
+	/* Set the pty process file descriptor's terminal attributes if requested */
 
-	if (slave_termios && tcsetattr(*slavefd, TCSANOW, slave_termios) == -1)
+	if (pty_device_termios && tcsetattr(*pty_process_fd, TCSANOW, pty_device_termios) == -1)
 	{
-		close(*masterfd);
-		close(*slavefd);
+		close(*pty_user_fd);
+		close(*pty_process_fd);
 		return -1;
 	}
 
-	/* Set the slave's window size if required */
+	/* Set the pty process file descriptor's window size if required */
 
-	if (slave_winsize && ioctl(*slavefd, TIOCSWINSZ, slave_winsize) == -1)
+	if (pty_device_winsize && ioctl(*pty_process_fd, TIOCSWINSZ, pty_device_winsize) == -1)
 	{
-		close(*masterfd);
-		close(*slavefd);
+		close(*pty_user_fd);
+		close(*pty_process_fd);
 		return -1;
 	}
 
@@ -547,9 +582,9 @@ int pty_open(int *masterfd, int *slavefd, char *slavename, size_t slavenamesize,
 
 /*
 
-=item C<int pty_release(const char *slavename)>
+=item C<int pty_release(const char *pty_device_name)>
 
-Releases the slave tty device whose name is in C<slavename>. Its ownership
+Releases the pty device whose name is in C<pty_device_name>. Its ownership
 is returned to root, and its permissions set to C<rw-rw-rw->. Note that only
 root can execute this function successfully on most systems. On success,
 returns C<0>. On error, returns C<-1> with C<errno> set appropriately.
@@ -558,15 +593,15 @@ returns C<0>. On error, returns C<-1> with C<errno> set appropriately.
 
 */
 
-int pty_release(const char *slavename)
+int pty_release(const char *pty_device_name)
 {
-	if (!slavename)
+	if (!pty_device_name)
 		return set_errno(EINVAL);
 
-	if (chown(slavename, (uid_t)0, (gid_t)0) == -1)
+	if (chown(pty_device_name, (uid_t)0, (gid_t)0) == -1)
 		return -1;
 
-	if (chmod(slavename, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) == -1)
+	if (chmod(pty_device_name, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) == -1)
 		return -1;
 
 	return 0;
@@ -574,31 +609,31 @@ int pty_release(const char *slavename)
 
 /*
 
-=item C<int pty_set_owner(const char *slavename, uid_t uid)>
+=item C<int pty_set_owner(const char *pty_device_name, uid_t uid)>
 
-Changes the ownership of the slave pty device referred to by C<slavename> to
-the user id, C<uid>. Group ownership of the slave pty device will be changed
-to the C<tty> group if it exists. Otherwise, it will be changed to the given
-user's primary group. The slave pty device's permissions are set to
-C<rw--w---->. Note that only root can execute this function successfully on
-most systems. Also note that the ownership of the device is automatically
-set to the real uid of the process by I<pty_open(3)> and I<pty_fork(3)>. The
-permissions are also set automatically by these functions. So
-I<pty_set_owner(3)> is only needed when the device needs to be owned by some
-user other than the real user. On success, returns C<0>. On error, returns
-C<-1> with C<errno> set appropriately.
+Changes the ownership of the pty device referred to by C<pty_device_name> to
+the user id, C<uid>. Group ownership of the pty device will be changed to
+the C<tty> group if it exists. Otherwise, it will be changed to the given
+user's primary group. The pty device's permissions are set to C<rw--w---->.
+Note that only root can execute this function successfully on most systems.
+Also note that the ownership of the device is automatically set to the real
+uid of the process by I<pty_open(3)> and I<pty_fork(3)>. The permissions are
+also set automatically by these functions. So I<pty_set_owner(3)> is only
+needed when the device needs to be owned by some user other than the real
+user. On success, returns C<0>. On error, returns C<-1> with C<errno> set
+appropriately.
 
 =cut
 
 */
 
-int pty_set_owner(const char *slavename, uid_t uid)
+int pty_set_owner(const char *pty_device_name, uid_t uid)
 {
 	mode_t mode = S_IRUSR | S_IWUSR | S_IWGRP;
 	struct stat status[1];
 	int gid;
 
-	if (stat(slavename, status) == -1)
+	if (stat(pty_device_name, status) == -1)
 		return -1;
 
 	if ((gid = groupname2gid("tty")) == -1)
@@ -608,12 +643,12 @@ int pty_set_owner(const char *slavename, uid_t uid)
 	}
 
 	if (status->st_uid != uid || status->st_gid != gid)
-		if (chown(slavename, uid, gid) == -1)
+		if (chown(pty_device_name, uid, gid) == -1)
 			if (errno != EROFS || status->st_uid != uid)
 				return -1;
 
 	if ((status->st_mode & (S_IRWXU | S_IRWXG | S_IRWXO)) != mode)
-		if (chmod(slavename, mode) == -1)
+		if (chmod(pty_device_name, mode) == -1)
 			if (errno != EROFS || (status->st_mode & (S_IRGRP | S_IROTH)))
 				return -1;
 
@@ -622,26 +657,27 @@ int pty_set_owner(const char *slavename, uid_t uid)
 
 /*
 
-=item C<int pty_make_controlling_tty(int *slavefd, const char *slavename)>
+=item C<int pty_make_controlling_tty(int *pty_process_fd, const char *pty_device_name)>
 
-Makes the slave pty the controlling terminal. C<*slavefd> contains the
-descriptor for the slave side of a pseudo terminal. The descriptor of the
-resulting controlling terminal will be stored in C<*slavefd>. C<slavename>
-is the device name of the slave side of the pseudo terminal. On success,
-returns C<0>. On error, returns C<-1> with C<errno> set appropriately.
+Makes the pty process file descriptor the controlling terminal.
+C<*pty_process_fd> contains the descriptor for the process side of a pseudo
+terminal. The descriptor of the resulting controlling terminal will be
+stored in C<*pty_process_fd>. C<pty_device_name> is the device name of the
+process side of the pseudo terminal. On success, returns C<0>. On error,
+returns C<-1> with C<errno> set appropriately.
 
 =cut
 
 */
 
-int pty_make_controlling_tty(int *slavefd, const char *slavename)
+int pty_make_controlling_tty(int *pty_process_fd, const char *pty_device_name)
 {
 	int fd;
 #ifdef USE_VHANGUP
 	void (*old)(int);
 #endif /* USE_VHANGUP */
 
-	if (!slavefd || *slavefd < 0 || !slavename)
+	if (!pty_process_fd || *pty_process_fd < 0 || !pty_device_name)
 		return set_errno(EINVAL);
 
 	/* First disconnect from the old controlling tty */
@@ -669,7 +705,7 @@ int pty_make_controlling_tty(int *slavefd, const char *slavename)
 
 	/* Make it our controlling tty */
 #ifdef TIOCSCTTY
-	if (ioctl(*slavefd, TIOCSCTTY, NULL) == -1)
+	if (ioctl(*pty_process_fd, TIOCSCTTY, NULL) == -1)
 		return -1;
 #endif /* TIOCSCTTY */
 #ifdef HAVE_NEWS4
@@ -681,11 +717,11 @@ int pty_make_controlling_tty(int *slavefd, const char *slavename)
 	signal(SIGHUP, old);
 #endif /* USE_VHANGUP */
 	/* Why do this? */
-	if ((fd = open(slavename, O_RDWR)) >= 0)
+	if ((fd = open(pty_device_name, O_RDWR)) >= 0)
 	{
 #ifdef USE_VHANGUP
-	close(*slavefd);
-	*slavefd = fd;
+	close(*pty_process_fd);
+	*pty_process_fd = fd;
 #else /* USE_VHANGUP */
 	close(fd);
 #endif /* USE_VHANGUP */
@@ -702,10 +738,10 @@ int pty_make_controlling_tty(int *slavefd, const char *slavename)
 
 /*
 
-=item C<int pty_change_window_size(int masterfd, int row, int col, int xpixel, int ypixel)>
+=item C<int pty_change_window_size(int pty_user_fd, int row, int col, int xpixel, int ypixel)>
 
 Changes the window size associated with the pseudo terminal referred to by
-C<masterfd>. The C<row>, C<col>, C<xpixel> and C<ypixel> specify the new
+C<pty_user_fd>. The C<row>, C<col>, C<xpixel> and C<ypixel> specify the new
 window size. On success, returns C<0>. On error, returns C<-1> with C<errno>
 set appropriately.
 
@@ -713,11 +749,11 @@ set appropriately.
 
 */
 
-int pty_change_window_size(int masterfd, int row, int col, int xpixel, int ypixel)
+int pty_change_window_size(int pty_user_fd, int row, int col, int xpixel, int ypixel)
 {
 	struct winsize win;
 
-	if (masterfd < 0 || row < 0 || col < 0 || xpixel < 0 || ypixel < 0)
+	if (pty_user_fd < 0 || row < 0 || col < 0 || xpixel < 0 || ypixel < 0)
 		return set_errno(EINVAL);
 
 	win.ws_row = row;
@@ -725,93 +761,96 @@ int pty_change_window_size(int masterfd, int row, int col, int xpixel, int ypixe
 	win.ws_xpixel = xpixel;
 	win.ws_ypixel = ypixel;
 
-	return ioctl(masterfd, TIOCSWINSZ, &win);
+	return ioctl(pty_user_fd, TIOCSWINSZ, &win);
 }
 
 /*
 
-=item C<pid_t pty_fork(int *masterfd, char *slavename, size_t slavenamesize, const struct termios *slave_termios, const struct winsize *slave_winsize)>
+=item C<pid_t pty_fork(int *pty_user_fd, char *pty_device_name, size_t pty_device_name_size, const struct termios *pty_device_termios, const struct winsize *pty_device_winsize)>
 
 A safe version of I<forkpty(3)>. Creates a pseudo terminal and then calls
-I<fork(2)>. In the parent process, the slave side of the pseudo terminal is
-closed. In the child process, the master side of the pseudo terminal is
-closed and the slave side is made the controlling terminal. It is duplicated
-onto standard input, output and error and then closed. The master side of
-the pseudo terminal is stored in C<*masterfd> for the parent process. The
-device name of the slave side of the pseudo terminal is stored in the buffer
-pointed to by C<slavename> which must be able to hold at least 64 bytes.
-C<slavenamesize> is the size of the buffer pointed to by C<slavename>. No
-more than C<slavenamesize> bytes will be written to C<slavename>, including
-the terminating C<nul> byte. If C<slave_termios> is not null, it is passed
-to I<tcsetattr(3)> with the command C<TCSANOW> to set the terminal
-attributes of the slave device. If C<slave_winsize> is not null, it is
-passed to I<ioctl(2)> with the command C<TIOCSWINSZ> to set the window size
-of the slave device. On success, returns C<0> to the child process and
-returns the process id of the child process to the parent process. On error,
-returns C<-1> with C<errno> set appropriately.
+I<fork(2)>. In the parent process, the process side of the pseudo terminal
+is closed. In the child process, the user side of the pseudo terminal is
+closed and the process side is made the controlling terminal. It is
+duplicated onto standard input, output and error and then closed. The user
+(or controlling process) side of the pseudo terminal is stored in
+C<*pty_user_fd> for the parent process. The device name of the process side
+of the pseudo terminal is stored in the buffer pointed to by
+C<pty_device_name> which must be able to hold at least 64 bytes.
+C<pty_device_name_size> is the size of the buffer pointed to by
+C<pty_device_name>. No more than C<pty_device_name_size> bytes will be
+written to C<pty_device_name>, including the terminating C<nul> byte. If
+C<pty_device_termios> is not null, it is passed to I<tcsetattr(3)> with the
+command C<TCSANOW> to set the terminal attributes of the process side of the
+pseudo terminal device. If C<pty_device_winsize> is not null, it is passed to
+I<ioctl(2)> with the command C<TIOCSWINSZ> to set the window size of the
+process side of the pseudo terminal device. On success, returns C<0> to the
+child process and returns the process id of the child process to the parent
+process. On error, returns C<-1> with C<errno> set appropriately.
 
 =cut
 
 */
 
-pid_t pty_fork(int *masterfd, char *slavename, size_t slavenamesize, const struct termios *slave_termios, const struct winsize *slave_winsize)
+pid_t pty_fork(int *pty_user_fd, char *pty_device_name, size_t pty_device_name_size, const struct termios *pty_device_termios, const struct winsize *pty_device_winsize)
 {
-	int slavefd;
+	int pty_process_fd;
 	pid_t pid;
 
 	/*
-	** Note: we don't use forkpty() because it closes the master in the
-	** child process before making the slave the controlling terminal of the
-	** child process and this can prevent the slave from becoming the
-	** controlling terminal (but I have no idea why).
+	** Note: we don't use forkpty() because it closes the pty user side file
+	** desriptor in the child process before making the process side of the
+	** pseudo terminal the controlling terminal of the child process and
+	** this can prevent the pty process side file descriptor from becoming
+	** the controlling terminal (but I have no idea why).
 	*/
 
-	if (pty_open(masterfd, &slavefd, slavename, slavenamesize, slave_termios, slave_winsize) == -1)
+	if (pty_open(pty_user_fd, &pty_process_fd, pty_device_name, pty_device_name_size, pty_device_termios, pty_device_winsize) == -1)
 		return -1;
 
 	switch (pid = fork())
 	{
 		case -1:
-			pty_release(slavename);
-			close(slavefd);
-			close(*masterfd);
+			pty_release(pty_device_name);
+			close(pty_process_fd);
+			close(*pty_user_fd);
 			return -1;
 
 		case 0:
 		{
-			/* Make the slave our controlling tty */
+			/* Make the process side of the pty our controlling tty */
 
-			if (pty_make_controlling_tty(&slavefd, slavename) == -1)
+			if (pty_make_controlling_tty(&pty_process_fd, pty_device_name) == -1)
 				_exit(EXIT_FAILURE);
 
 			/* Redirect stdin, stdout and stderr from the pseudo tty */
 
-			if (slavefd != STDIN_FILENO && dup2(slavefd, STDIN_FILENO) == -1)
+			if (pty_process_fd != STDIN_FILENO && dup2(pty_process_fd, STDIN_FILENO) == -1)
 				_exit(EXIT_FAILURE);
 
-			if (slavefd != STDOUT_FILENO && dup2(slavefd, STDOUT_FILENO) == -1)
+			if (pty_process_fd != STDOUT_FILENO && dup2(pty_process_fd, STDOUT_FILENO) == -1)
 				_exit(EXIT_FAILURE);
 
-			if (slavefd != STDERR_FILENO && dup2(slavefd, STDERR_FILENO) == -1)
+			if (pty_process_fd != STDERR_FILENO && dup2(pty_process_fd, STDERR_FILENO) == -1)
 				_exit(EXIT_FAILURE);
 
 			/* Close the extra descriptor for the pseudo tty */
 
-			if (slavefd != STDIN_FILENO && slavefd != STDOUT_FILENO && slavefd != STDERR_FILENO)
-				close(slavefd);
+			if (pty_process_fd != STDIN_FILENO && pty_process_fd != STDOUT_FILENO && pty_process_fd != STDERR_FILENO)
+				close(pty_process_fd);
 
-			/* Close the master side of the pseudo tty in the child */
+			/* Close the user side of the pseudo tty in the child */
 
-			close(*masterfd);
+			close(*pty_user_fd);
 
 			return 0;
 		}
 
 		default:
 		{
-			/* Close the slave side of the pseudo tty in the parent */
+			/* Close the process side of the pseudo tty in the parent */
 
-			close(slavefd);
+			close(pty_process_fd);
 
 			return pid;
 		}
@@ -835,10 +874,10 @@ Invalid arguments were passed to one of the functions.
 
 =item C<ENOTTY>
 
-I<openpty(3)> or I<open("/dev/ptc")> returned a slave descriptor for which
-I<ttyname(3)> failed to return the slave device name. I<open("/dev/ptmx")>
-returned a master descriptor for which I<ptsname(3)> failed to return the
-slave device name.
+I<openpty(3)> or I<open("/dev/ptc")> returned a pty process file descriptor
+for which I<ttyname(3)> failed to return the pty device name.
+I<open("/dev/ptmx")> returned a pty user file descriptor for which
+I<ptsname(3)> failed to return the pty device name.
 
 =item C<ENOENT>
 
@@ -847,8 +886,8 @@ terminal.
 
 =item C<ENOSPC>
 
-The device name of the slave side of the pseudo terminal was too large to
-fit in the C<slavename> buffer passed to I<pty_open(3)> or I<pty_fork(3)>.
+The device name of the process side of the pseudo terminal was too large to
+fit in the C<pty_device_name> buffer passed to I<pty_open(3)> or I<pty_fork(3)>.
 
 =item C<ENXIO>
 
@@ -881,8 +920,8 @@ A very simple pty program:
     struct termios stdin_termios;
     struct winsize stdin_winsize;
     int havewin = 0;
-    char slavename[64];
-    int masterfd;
+    char pty_device_name[64];
+    int pty_user_fd;
     pid_t pid;
 
     int tty_raw(int fd)
@@ -914,7 +953,7 @@ A very simple pty program:
         struct winsize winsize;
 
         if (ioctl(STDIN_FILENO, TIOCGWINSZ, &winsize) != -1)
-            ioctl(masterfd, TIOCSWINSZ, &winsize);
+            ioctl(pty_user_fd, TIOCSWINSZ, &winsize);
     }
 
     int main(int ac, char **av)
@@ -928,11 +967,11 @@ A very simple pty program:
         if (isatty(STDIN_FILENO))
             havewin = ioctl(STDIN_FILENO, TIOCGWINSZ, &stdin_winsize) != -1;
 
-        switch (pid = pty_fork(&masterfd, slavename, sizeof slavename, NULL, havewin ? &stdin_winsize : NULL))
+        switch (pid = pty_fork(&pty_user_fd, pty_device_name, sizeof pty_device_name, NULL, havewin ? &stdin_winsize : NULL))
         {
             case -1:
                 fprintf(stderr, "pty: pty_fork() failed (%s)\n", strerror(errno));
-                pty_release(slavename);
+                pty_release(pty_device_name);
                 return EXIT_FAILURE;
 
             case 0:
@@ -941,7 +980,7 @@ A very simple pty program:
 
             default:
             {
-                int infd = STDIN_FILENO;
+                int in_fd = STDIN_FILENO;
                 int status;
 
                 if (isatty(STDIN_FILENO))
@@ -954,7 +993,7 @@ A very simple pty program:
                     signal_set_handler(SIGWINCH, 0, winch);
                 }
 
-                while (masterfd != -1)
+                while (pty_user_fd != -1)
                 {
                     fd_set readfds[1];
                     int maxfd;
@@ -964,13 +1003,13 @@ A very simple pty program:
 
                     FD_ZERO(readfds);
 
-                    if (infd != -1)
-                        FD_SET(infd, readfds);
+                    if (in_fd != -1)
+                        FD_SET(in_fd, readfds);
 
-                    if (masterfd != -1)
-                        FD_SET(masterfd, readfds);
+                    if (pty_user_fd != -1)
+                        FD_SET(pty_user_fd, readfds);
 
-                    maxfd = (masterfd > infd) ? masterfd : infd;
+                    maxfd = (pty_user_fd > in_fd) ? pty_user_fd : in_fd;
 
                     signal_handle_all();
 
@@ -980,11 +1019,11 @@ A very simple pty program:
                     if (n == -1 && errno == EINTR)
                         continue;
 
-                    if (infd != -1 && FD_ISSET(infd, readfds))
+                    if (in_fd != -1 && FD_ISSET(in_fd, readfds))
                     {
-                        if ((bytes = read(infd, buf, BUFSIZ)) > 0)
+                        if ((bytes = read(in_fd, buf, BUFSIZ)) > 0)
                         {
-                            if (masterfd != -1 && write(masterfd, buf, bytes) == -1)
+                            if (pty_user_fd != -1 && write(pty_user_fd, buf, bytes) == -1)
                                 break;
                         }
                         else if (n == -1 && errno == EINTR)
@@ -993,14 +1032,14 @@ A very simple pty program:
                         }
                         else
                         {
-                            infd = -1;
+                            in_fd = -1;
                             continue;
                         }
                     }
 
-                    if (masterfd != -1 && FD_ISSET(masterfd, readfds))
+                    if (pty_user_fd != -1 && FD_ISSET(pty_user_fd, readfds))
                     {
-                        if ((bytes = read(masterfd, buf, BUFSIZ)) > 0)
+                        if ((bytes = read(pty_user_fd, buf, BUFSIZ)) > 0)
                         {
                             if (write(STDOUT_FILENO, buf, bytes) == -1)
                                 break;
@@ -1011,8 +1050,8 @@ A very simple pty program:
                         }
                         else
                         {
-                            close(masterfd);
-                            masterfd = -1;
+                            close(pty_user_fd);
+                            pty_user_fd = -1;
                             continue;
                         }
                     }
@@ -1021,16 +1060,16 @@ A very simple pty program:
                 if (waitpid(pid, &status, 0) == -1)
                 {
                     fprintf(stderr, "pty: waitpid(%d) failed (%s)\n", (int)pid, strerror(errno));
-                    pty_release(slavename);
+                    pty_release(pty_device_name);
                     return EXIT_FAILURE;
                 }
             }
         }
 
-        pty_release(slavename);
+        pty_release(pty_device_name);
 
-        if (masterfd != -1)
-            close(masterfd);
+        if (pty_user_fd != -1)
+            close(pty_user_fd);
 
         return EXIT_SUCCESS;
     }
@@ -1087,8 +1126,8 @@ I<dup2(2)>
 int main(int ac, char **av)
 {
 	int errors = 0;
-	char slavename[64];
-	int	masterfd, slavefd;
+	char pty_device_name[64];
+	int	pty_user_fd, pty_process_fd;
 	uid_t euid = geteuid();
 	pid_t pid;
 
@@ -1096,13 +1135,13 @@ int main(int ac, char **av)
 
 	/* Test pty_open() */
 
-	if (pty_open(&masterfd, &slavefd, slavename, sizeof slavename, NULL, NULL) == -1)
+	if (pty_open(&pty_user_fd, &pty_process_fd, pty_device_name, sizeof pty_device_name, NULL, NULL) == -1)
 		++errors, printf("Test1: pty_open() failed (%s)\n", strerror(errno));
 	else
 	{
 		/* Test pty_set_owner() if root */
 
-		if (euid == 0 && pty_set_owner(slavename, getuid()) == -1)
+		if (euid == 0 && pty_set_owner(pty_device_name, getuid()) == -1)
 			++errors, printf("Test2: pty_set_owner() failed (%s)\n", strerror(errno));
 
 		/* Test pty_make_controlling_tty() and pty_change_window_size() */
@@ -1116,12 +1155,12 @@ int main(int ac, char **av)
 			case 0:
 			{
 				errors = 0;
-				close(masterfd);
+				close(pty_user_fd);
 
-				if (pty_make_controlling_tty(&slavefd, slavename) == -1)
+				if (pty_make_controlling_tty(&pty_process_fd, pty_device_name) == -1)
 					++errors, printf("Test4: pty_make_controlling_tty() failed (%s)\n", strerror(errno));
 
-				if (pty_change_window_size(slavefd, 80, 24, 800, 240) == -1)
+				if (pty_change_window_size(pty_process_fd, 80, 24, 800, 240) == -1)
 					++errors, printf("Test5: pty_change_window_size() failed (%s)\n", strerror(errno));
 
 				exit(errors);
@@ -1136,7 +1175,7 @@ int main(int ac, char **av)
 				else if (WIFSIGNALED(status))
 					++errors, printf("Test6: failed to evaluate test: child process received signal %d\n", WTERMSIG(status));
 				else
-					errors += WEXITSTATUS(status);
+					errors += (WEXITSTATUS(status) != EXIT_SUCCESS);
 
 				break;
 			}
@@ -1144,13 +1183,13 @@ int main(int ac, char **av)
 
 		/* Test pty_release() if root */
 
-		if (euid == 0 && pty_release(slavename) == -1)
+		if (euid == 0 && pty_release(pty_device_name) == -1)
 			++errors, printf("Test7: pty_release() failed (%s)\n", strerror(errno));
 	}
 
 	/* Test pty_fork() */
 
-	switch (pid = pty_fork(&masterfd, slavename, sizeof slavename, NULL, NULL))
+	switch (pid = pty_fork(&pty_user_fd, pty_device_name, sizeof pty_device_name, NULL, NULL))
 	{
 		case -1:
 			++errors, printf("Test8: pty_fork() failed (%s)\n", strerror(errno));
@@ -1168,10 +1207,10 @@ int main(int ac, char **av)
 				++errors, printf("Test9: failed to evaluate test: waitpid() failed (%s)\n", strerror(errno));
 			else if (WIFSIGNALED(status))
 				++errors, printf("Test9: failed to evaluate test: child process received signal %d\n", WTERMSIG(status));
-			else if (WEXITSTATUS(status))
+			else if (WEXITSTATUS(status) != EXIT_SUCCESS)
 				++errors, printf("Test9: pty_fork() failed to result in a tty for child\n");
 
-			if (euid == 0 && pty_release(slavename) == -1)
+			if (euid == 0 && pty_release(pty_device_name) == -1)
 				++errors, printf("Test10: pty_release() failed (%s)\n", strerror(errno));
 
 			break;

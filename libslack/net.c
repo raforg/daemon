@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2010 raf <raf@raf.org>
+* Copyright (C) 1999-2002, 2004, 2010, 2020 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -14,11 +14,9 @@
 * GNU General Public License for more details.
 *
 * You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-* or visit http://www.gnu.org/copyleft/gpl.html
+* along with this program; if not, see <https://www.gnu.org/licenses/>.
 *
-* 20100612 raf <raf@raf.org>
+* 20201111 raf <raf@raf.org>
 */
 
 /*
@@ -28,6 +26,8 @@
 I<libslack(net)> - network module
 
 =head1 SYNOPSIS
+
+    #define _GNU_SOURCE
 
     #include <slack/std.h>
     #include <slack/net.h>
@@ -125,6 +125,12 @@ I<libslack(net)> - network module
     ssize_t net_vsend(int sockfd, long timeout, const char *format, va_list args);
     ssize_t sendfd(int sockfd, const void *buf, size_t nbytes, int flags, int fd);
     ssize_t recvfd(int sockfd, void *buf, size_t nbytes, int flags, int *fd);
+    #ifdef SO_PASSCRED
+    #ifdef SCM_CREDENTIALS
+    ssize_t recvcred(int sockfd, void *buf, size_t nbytes, int flags, struct ucred *cred);
+    ssize_t recvfromcred(int sockfd, void *buf, size_t nbytes, int flags, struct sockaddr *src_addr, socklen_t *src_addrlen, struct ucred *cred);
+    #endif
+    #endif
     int mail(const char *server, const char *sender, const char *recipients, const char *subject, const char *message);
 
 =head1 DESCRIPTION
@@ -152,6 +158,10 @@ descriptors via UNIX domain sockets from one process to another.
 #define _BSD_SOURCE /* For gethostbyname_r() on Linux */
 #endif
 
+#ifndef _DEFAULT_SOURCE
+#define _DEFAULT_SOURCE /* New name for _BSD_SOURCE */
+#endif
+
 #ifndef __BSD_VISIBLE
 #define __BSD_VISIBLE 1 /* For htons(), htonl(), ntohl() on FreeBSD-8.0 */
 #endif
@@ -162,6 +172,10 @@ descriptors via UNIX domain sockets from one process to another.
 
 #ifndef _XOPEN_SOURCE_EXTENDED
 #define _XOPEN_SOURCE_EXTENDED 1  /* For msghdr.msg_control[len], CMSG_FIRSTHDR, CMSG_DATA on Solaris-10 10/09 and OpenSolaris 200906 */
+#endif
+
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE /* For receiving user credentials over UNIX domain sockets */
 #endif
 
 #include "std.h"
@@ -560,8 +574,8 @@ static int is_multicast(sockaddr_t *address)
 	switch (addr->any.sa_family)
 	{
 		case AF_INET:
-			/*return IN_MULTICAST(ntohl(*(long *)&addr->in.sin_addr));*/
 			/* Avoid dereferencing type-punned pointer to avoid gcc warning */
+			/*return IN_MULTICAST(ntohl(*(long *)&addr->in.sin_addr));*/
 			longptr = (long *)&addr->in.sin_addr;
 			return IN_MULTICAST(ntohl(*longptr));
 
@@ -3873,6 +3887,7 @@ ssize_t sendfd(int sockfd, const void *buf, size_t nbytes, int flags, int fd)
 {
 	struct msghdr mesg[1];
 	struct iovec iov[1];
+	int *intptr;
 
 #ifdef HAVE_MSGHDR_MSG_CONTROL
 
@@ -3910,8 +3925,10 @@ ssize_t sendfd(int sockfd, const void *buf, size_t nbytes, int flags, int fd)
 	cmsg->cmsg_level = SOL_SOCKET;
 	cmsg->cmsg_type = SCM_RIGHTS;
 
-	*((int *)CMSG_DATA(cmsg)) = fd;
-
+	/* Avoid dereferencing type-punned pointer to avoid gcc warning */
+	/* *((int *)CMSG_DATA(cmsg)) = fd; */
+	intptr = (int *)CMSG_DATA(cmsg);
+	*intptr = fd;
 #else
 
 	mesg->msg_accrights = (caddr_t)&fd;
@@ -4008,7 +4025,12 @@ ssize_t recvfd(int sockfd, void *buf, size_t nbytes, int flags, int *fd)
 	if ((cmsg = CMSG_FIRSTHDR(mesg)) && cmsg->cmsg_len == CMSG_LEN(sizeof(int)))
 	{
 		if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)
-			*fd = *((int *)CMSG_DATA(cmsg));
+		{
+			/* Avoid dereferencing type-punned pointer to avoid gcc warning */
+			/* *fd = *((int *)CMSG_DATA(cmsg)); */
+			int *intptr = (int *)CMSG_DATA(cmsg);
+			*fd = *intptr;
+		}
 	}
 
 #else
@@ -4020,40 +4042,55 @@ ssize_t recvfd(int sockfd, void *buf, size_t nbytes, int flags, int *fd)
 	return rc;
 }
 
-#if 0
+#ifdef SO_PASSCRED
+#ifdef SCM_CREDENTIALS
+
 /*
 
-C<ssize_t recvcred(int sockfd, void *buf, size_t nbytes, int flags, struct fcred *cred)>
+=item C<ssize_t recvcred(int sockfd, void *buf, size_t nbytes, int flags, struct ucred *cred)>
 
 Receives the user credentials of the process on the other end of the UNIX
 domain socket, C<sockfd> and stores them in C<*cred>. Equivalent to
-I<recv(2)> in all other respects. Requires that the C<LOCAL_CREDS> socket
-option (with level C<0>) has been set for C<sockfd> in advance. On datagram
-sockets, user credentials accompany every datagram. On stream sockets, user
-credentials are sent only once, the first time data is sent. On success,
-returns C<0>. On error, returns C<-1> with C<errno> set appropriately. If
-the user credentials were not provided by the kernel, C<cred> is filled with
-zero bytes (so C<fc_ngroups == 0>).
+I<recv(2)> in all other respects. Requires that the C<SO_PASSCRED> socket
+option has been set for C<sockfd> in advance. On datagram sockets, user
+credentials accompany every datagram. On stream sockets, user credentials
+are sent only once, the first time data is sent. On success, returns the number
+of bytes received. On error, returns C<-1> with C<errno> set appropriately.
+If the user credentials were not provided by the kernel, C<cred> is filled with
+zero bytes (so C<cred[0].pid == 0>).
+
+This function is only available on Linux.
+
+=cut
 
 */
 
-#ifndef MAXLOGNAME
-#define MAXLOGNAME 16
-#endif
-
-struct fcred
+ssize_t recvcred(int sockfd, void *buf, size_t nbytes, int flags, struct ucred *cred)
 {
-	uid_t fc_ruid;             /* real user id */
-	gid_t fc_rgid;             /* real group id */
-	char fc_login[MAXLOGNAME]; /* setlogin() name */
-	uid_t fc_uid;              /* effective user id */
-	short fc_ngroups;          /* number of groups */
-	gid_t fc_groups[NGROUPS];  /* supplementary group ids */
-};
+	return recvfromcred(sockfd, buf, nbytes, flags, NULL, NULL, cred);
+}
 
-#define fc_gid fc_groups[0]    /* effective group id */
+/*
 
-static ssize_t recvcred(int sockfd, void *buf, size_t nbytes, int flags, struct fcred *cred)
+=item C<ssize_t recvfromcred(int sockfd, void *buf, size_t nbytes, int flags, struct sockaddr *src_addr, socklen_t *src_addrlen, struct ucred *cred)>
+
+Receives the user credentials of the process on the other end of the UNIX
+domain socket, C<sockfd> and stores them in C<*cred>. Equivalent to
+I<recvfrom(2)> in all other respects. Requires that the C<SO_PASSCRED> socket
+option has been set for C<sockfd> in advance. On datagram sockets, user
+credentials accompany every datagram. On stream sockets, user credentials
+are sent only once, the first time data is sent. On success, returns the number
+of bytes received. On error, returns C<-1> with C<errno> set appropriately.
+If the user credentials were not provided by the kernel, C<cred> is filled with
+zero bytes (so C<cred[0].pid == 0>).
+
+This function is only available on Linux.
+
+=cut
+
+*/
+
+ssize_t recvfromcred(int sockfd, void *buf, size_t nbytes, int flags, struct sockaddr *src_addr, socklen_t *src_addrlen, struct ucred *cred)
 {
 	struct msghdr mesg[1];
 	struct iovec iov[1];
@@ -4062,17 +4099,17 @@ static ssize_t recvcred(int sockfd, void *buf, size_t nbytes, int flags, struct 
 	union
 	{
 		struct cmsghdr align;
-		char control[CMSG_SPACE(sizeof(struct fcred))];
+		char control[CMSG_SPACE(sizeof(struct ucred))];
 	}
 	control;
 
-	struct cmsghdr *cmsg;
+	struct cmsghdr *cmsg = NULL;
 
 	mesg->msg_control = control.control;
 	mesg->msg_controllen = sizeof control.control;
 
-	mesg->msg_name = NULL;
-	mesg->msg_namelen = 0;
+	mesg->msg_name = src_addr;
+	mesg->msg_namelen = (src_addrlen) ? *src_addrlen : 0;
 
 	mesg->msg_iov = iov;
 	mesg->msg_iovlen = 1;
@@ -4083,16 +4120,29 @@ static ssize_t recvcred(int sockfd, void *buf, size_t nbytes, int flags, struct 
 	if ((rc = recvmsg(sockfd, mesg, flags)) == -1)
 		return rc;
 
-	if (cred)
+	if (src_addrlen)
+		*src_addrlen = mesg->msg_namelen;
+
+	if (cred && mesg->msg_controllen >= sizeof(struct cmsghdr))
 	{
-		if (mesg->msg_controllen > sizeof(struct cmsghdr) || !(cmsg = CMSG_FIRSTHDR(mesg)) || cmsg->cmsg_len != CMSG_LEN(sizeof(struct fcred)) || cmsg->cmsg_level != SOL_SOCKET || cmsg->cmsg_type != SCM_CREDS)
-			memset(cred, 0, sizeof(struct fcred));
-		else
-			memcpy(cred, CMSG_DATA(cmsg), sizeof(struct fcred));
+		int received_credentials = 0;
+
+		for (cmsg = CMSG_FIRSTHDR(mesg); cmsg; cmsg = CMSG_NXTHDR(mesg, cmsg))
+		{
+			if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_CREDENTIALS && cmsg->cmsg_len == CMSG_LEN(sizeof(struct ucred)))
+			{
+				memcpy(cred, CMSG_DATA(cmsg), sizeof(struct ucred));
+				received_credentials = 1;
+			}
+		}
+
+		if (!received_credentials)
+			memset(cred, 0, sizeof(struct ucred));
 	}
 
 	return rc;
 }
+#endif
 #endif
 
 /*
@@ -4937,7 +4987,7 @@ Linux). The problem is that UNIX domain datagram sockets must be bound to a
 path using I<bind(2)> otherwise they can't receive any replies from the
 server (since they have no address to send messages to). Linux lets us bind
 to C<""> which is the C<AF_LOCAL> equivalent of C<INADDR_ANY>. This is
-great. No actual path is created, each client gets it's own address and the
+great. No actual path is created, each client gets its own address and the
 client doesn't need to unlink the path when it's finished. Unfortunately,
 systems like Solaris and OpenBSD (and probably many others) don't support
 this. You have to bind to an actual file system path and I<bind(2)> will
@@ -5015,7 +5065,7 @@ I<printf(3)>
 
 =head1 AUTHOR
 
-20100612 raf <raf@raf.org>
+20201111 raf <raf@raf.org>
 
 =cut
 
@@ -5024,6 +5074,10 @@ I<printf(3)>
 #endif
 
 #ifdef TEST
+
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE /* For receiving user credentials over UNIX domain sockets */
+#endif
 
 #include <fcntl.h>
 #include <pwd.h>
@@ -5493,12 +5547,11 @@ int main(int ac, char **av)
 						++errors, printf("Test41: recv(client, OLEH) failed (%s)\n", strerror(errno));
 					else if (memcmp(test, "OLEH", 4))
 						++errors, printf("Test42: recv(client, OLEH) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "OLEH");
-					if (close(client) == -1)
-						++errors, printf("Test43: close(client) failed (%s)\n", strerror(errno));
-
 					if (getsockname(client, (sockaddr_t *)&any, (void *)&size) != -1)
 						if (*any.un.sun_path)
 							unlink(any.un.sun_path);
+					if (close(client) == -1)
+						++errors, printf("Test43: close(client) failed (%s)\n", strerror(errno));
 				}
 
 				return errors;
@@ -5727,7 +5780,7 @@ int main(int ac, char **av)
 
 	/* Test packing sizes */
 
-#define TEST_SIZE(i, format, size, pformat, cast, data1, data2, data2ref, test) \
+#define TEST_SIZE(i, format, size, pformat, cast_type, data1, data2, data2ref, test) \
 	pkt_len = pack(pkt, (size), (format), (data1)); \
 	if (pkt_len == -1) \
 		++errors, printf("Test%d: pack(%d, \"%s\") failed (%s)\n", (i), (size), (format), strerror(errno)); \
@@ -5743,15 +5796,15 @@ int main(int ac, char **av)
 		else if (test) \
 		{ \
 			char a[128], b[128]; \
-			snprintf(a, 128, pformat, cast data1); \
-			snprintf(b, 128, pformat, cast data2); \
+			snprintf(a, 128, pformat, (cast_type) data1); \
+			snprintf(b, 128, pformat, (cast_type) data2); \
 			++errors, printf("Test%d: unpack(%d, \"%s\") failed (%s != %s)\n", (i), (size), (format), a, b); \
 		} \
 	}
 
-#define TEST_SINT(i, format, size, data1, data2) TEST_SIZE(i, format, size, "%ld", (signed   long), data1, data2, &data2, data2 != data1)
-#define TEST_UINT(i, format, size, data1, data2) TEST_SIZE(i, format, size, "%lu", (unsigned long), data1, data2, &data2, data2 != data1)
-#define TEST_STR(i, format, size, pformat, len, data1, data2) TEST_SIZE(i, format, size, pformat, (char *), data1, data2, data2, memcmp(data1, data2, len))
+#define TEST_SINT(i, format, size, data1, data2) TEST_SIZE(i, format, size, "%ld", signed   long, data1, data2, &data2, data2 != data1)
+#define TEST_UINT(i, format, size, data1, data2) TEST_SIZE(i, format, size, "%lu", unsigned long, data1, data2, &data2, data2 != data1)
+#define TEST_STR(i, format, size, pformat, len, data1, data2) TEST_SIZE(i, format, size, pformat, char *, data1, data2, data2, memcmp(data1, data2, len))
 
 	TEST_SINT(84, "c", 1, sc, sc2)
 	TEST_UINT(85, "c", 1, uc, uc2)
@@ -7135,8 +7188,180 @@ int main(int ac, char **av)
 	}
 #endif
 
+#ifdef SO_PASSCRED
+#ifdef SCM_CREDENTIALS
+	/* Test UNIX domain stream client and server stream sockets with recvcred() */
+
+	if ((server = net_server("/unix", unixsock, 0, 0, 0, NULL, NULL)) == -1)
+		++errors, printf("Test673: net_server(\"/unix\", \"%s\") failed: %s\n", unixsock, strerror(errno));
+	else
+	{
+		/* Turn on passing of user credentials */
+		int on = 1;
+
+		if (setsockopt(server, SOL_SOCKET, SO_PASSCRED, &on, sizeof(on)) == -1)
+			++errors, printf("Test674: setsocketopt(SO_PASSCRED) for %s failed: %s\n", unixsock, strerror(errno));
+
+		switch (pid = fork())
+		{
+			case -1:
+			{
+				printf("Failed to fork (%s)\n", strerror(errno));
+				return 1;
+			}
+
+			default:
+			{
+				int s;
+				sockaddr_any_t addr;
+				size_t addrsize = sizeof addr;
+
+				if (read_timeout(server, 5, 0) == -1 || (s = accept(server, (sockaddr_t *)&addr, (void *)&addrsize)) == -1)
+					++errors, printf("Test675: accept() failed (%s)\n", strerror(errno));
+				else
+				{
+					struct ucred cred[1];
+					char test[4];
+					ssize_t bytes;
+
+					if (read_timeout(s, 5, 0) == -1 || (bytes = recvcred(s, test, 4, 0, cred)) == -1)
+						++errors, printf("Test676: recvcred(s, HELO) failed (%s)\n", strerror(errno));
+					else if (cred->pid != pid)
+						++errors, printf("Test677: recvcred(s, HELO) failed (cred->pid == %d, expected %d)\n", (int)cred->pid, (int)pid);
+					else if (cred->uid != getuid())
+						++errors, printf("Test678: recvcred(s, HELO) failed (cred->uid == %d, expected %d)\n", (int)cred->uid, (int)getuid());
+					else if (cred->gid != getgid())
+						++errors, printf("Test679: recvcred(s, HELO) failed (cred->gid == %d, expected %d)\n", (int)cred->gid, (int)getgid());
+					else if (bytes != 4)
+						++errors, printf("Test680: recvcred(s, HELO) failed (read %d bytes, not %d bytes)\n", bytes, 4);
+					else if (memcmp(test, "HELO", 4))
+						++errors, printf("Test681: recvcred(s, HELO) failed (read \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
+					else if (write_timeout(s, 5, 0) == -1 || write(s, "OLEH", 4) == -1)
+						++errors, printf("Test2682: write(s, OLEH) failed (%s)\n", strerror(errno));
+					if (close(s) == -1)
+						++errors, printf("Test683: close(s) failed (%s)\n", strerror(errno));
+				}
+
+				errors += wait_for_child(pid);
+				break;
+			}
+
+			case 0:
+			{
+				errors = 0;
+
+				if ((client = net_client("/unix", unixsock, 0, 5, 0, 0, NULL, NULL)) == -1)
+					++errors, printf("Test684: net_client(\"/unix\", \"%s\") failed (%s)\n", unixsock, strerror(errno));
+				else
+				{
+					char test[4];
+
+					if (write_timeout(client, 5, 0) == -1 || write(client, "HELO", 4) == -1)
+						++errors, printf("Test685: write(client, HELO) failed (%s)\n", strerror(errno));
+					else if (read_timeout(client, 5, 0) == -1 || read(client, test, 4) == -1)
+						++errors, printf("Test686: read(client, OLEH) failed (%s)\n", strerror(errno));
+					else if (memcmp(test, "OLEH", 4))
+						++errors, printf("Test687: read(client, OLEH) failed (read \"%4.4s\", not \"%4.4s\")\n", test, "OLEH");
+					if (close(client) == -1)
+						++errors, printf("Test688: close(client) failed (%s)\n", strerror(errno));
+				}
+
+				return errors;
+			}
+		}
+
+		if (close(server) == -1)
+			++errors, printf("Test689: close(server) failed (%s)\n", strerror(errno));
+	}
+
+	unlink(unixsock);
+
+	/* Test UNIX domain datagram client and server datagram sockets with recvfromcred() */
+
+	if ((server = net_udp_server("/unix", unixsock, 0, 0, 0, NULL, NULL)) == -1)
+		++errors, printf("Test690: net_udp_server(\"/unix\", \"%s\") failed: %s\n", unixsock, strerror(errno));
+	else
+	{
+		/* Turn on passing of user credentials */
+		int on = 1;
+
+		if (setsockopt(server, SOL_SOCKET, SO_PASSCRED, &on, sizeof(on)) == -1)
+			++errors, printf("Test691: setsocketopt(SO_PASSCRED) for %s failed: %s\n", unixsock, strerror(errno));
+
+		switch (pid = fork())
+		{
+			case -1:
+			{
+				printf("Failed to fork (%s)\n", strerror(errno));
+				return 1;
+			}
+
+			default:
+			{
+				struct ucred cred[1];
+				char test[4];
+				ssize_t bytes;
+				sockaddr_any_t addr;
+				size_t addrsize = sizeof addr;
+
+				if (read_timeout(server, 5, 0) == -1 || (bytes = recvfromcred(server, test, 4, 0, (sockaddr_t *)&addr, (socklen_t *)&addrsize, cred)) == -1)
+					++errors, printf("Test692: recvcred(server, HELO) failed (%s)\n", strerror(errno));
+				else if (cred->pid != pid)
+					++errors, printf("Test693: recvcred(s, HELO) failed (cred->pid == %d, expected %d)\n", (int)cred->pid, (int)pid);
+				else if (cred->uid != getuid())
+					++errors, printf("Test694: recvcred(s, HELO) failed (cred->uid == %d, expected %d)\n", (int)cred->uid, (int)getuid());
+				else if (cred->gid != getgid())
+					++errors, printf("Test695: recvcred(s, HELO) failed (cred->gid == %d, expected %d)\n", (int)cred->gid, (int)getgid());
+				else if (bytes != 4)
+					++errors, printf("Test696: recvcred(s, HELO) failed (read %d bytes, not %d bytes)\n", bytes, 4);
+				else if (memcmp(test, "HELO", 4))
+					++errors, printf("Test697: recvcred(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
+				else if (write_timeout(server, 5, 0) == -1 || sendto(server, "OLEH", 4, 0, (sockaddr_t *)&addr, addrsize) == -1)
+					++errors, printf("Test699: sendto(server, OLEH) failed (%s)\n", strerror(errno));
+
+				errors += wait_for_child(pid);
+				break;
+			}
+
+			case 0:
+			{
+				errors = 0;
+
+				if ((client = net_udp_client("/unix", unixsock, 0, 0, 0, NULL, NULL)) == -1)
+					++errors, printf("Test700: net_udp_client(\"/unix\", \"%s\") failed (%s)\n", unixsock, strerror(errno));
+				else
+				{
+					char test[4];
+					sockaddr_any_t addr;
+					size_t addrsize = sizeof addr;
+
+					if (write_timeout(client, 5, 0) == -1 || send(client, "HELO", 4, 0) == -1)
+						++errors, printf("Test701: send(client, HELO) failed (%s)\n", strerror(errno));
+					else if (read_timeout(client, 5, 0) == -1 || recv(client, test, 4, 0) == -1)
+						++errors, printf("Test702: recv(client, OLEH) failed (%s)\n", strerror(errno));
+					else if (memcmp(test, "OLEH", 4))
+						++errors, printf("Test703: recv(client, OLEH) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "OLEH");
+					if (getsockname(client, (sockaddr_t *)&addr, (void *)&addrsize) != -1)
+						if (*addr.un.sun_path)
+							unlink(addr.un.sun_path);
+					if (close(client) == -1)
+						++errors, printf("Test704: close(client) failed (%s)\n", strerror(errno));
+				}
+
+				return errors;
+			}
+		}
+
+		if (close(server) == -1)
+			++errors, printf("Test705: close(server) failed (%s)\n", strerror(errno));
+	}
+
+	unlink(unixsock);
+#endif
+#endif
+
 	if (errors)
-		printf("%d/672 tests failed\n", errors);
+		printf("%d/705 tests failed\n", errors);
 	else
 		printf("All tests passed\n");
 

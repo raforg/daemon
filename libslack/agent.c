@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2010 raf <raf@raf.org>
+* Copyright (C) 1999-2002, 2004, 2010, 2020 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -14,11 +14,9 @@
 * GNU General Public License for more details.
 *
 * You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-* or visit http://www.gnu.org/copyleft/gpl.html
+* along with this program; if not, see <https://www.gnu.org/licenses/>.
 *
-* 20100612 raf <raf@raf.org>
+* 20201111 raf <raf@raf.org>
 */
 
 /*
@@ -113,6 +111,10 @@ scalable (See the SCALABILITY section for details).
 
 #ifndef _BSD_SOURCE
 #define _BSD_SOURCE /* For timercmp() in glibc and snprintf() on OpenBSD-4.7 */
+#endif
+
+#ifndef _DEFAULT_SOURCE
+#define _DEFAULT_SOURCE /* New name for _BSD_SOURCE */
 #endif
 
 #ifndef _NETBSD_SOURCE
@@ -2551,7 +2553,7 @@ I<select(2)>
 
 =head1 AUTHOR
 
-20100612 raf <raf@raf.org>
+20201111 raf <raf@raf.org>
 
 =cut
 
@@ -3328,7 +3330,7 @@ int main(int ac, char **av)
 						if (WIFSIGNALED(status))
 							++errors, printf("Test93: child failed: received signal %d\n", WTERMSIG(status));
 
-						if (WIFEXITED(status) && WEXITSTATUS(status))
+						if (WIFEXITED(status) && WEXITSTATUS(status) != EXIT_SUCCESS)
 							++errors, printf("Test94: child failed: return code = %d\n", WEXITSTATUS(status));
 
 						break;

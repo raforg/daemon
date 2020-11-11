@@ -1,7 +1,7 @@
 #
 # daemon - http://libslack.org/daemon/
 #
-# Copyright (C) 1999-2010 raf <raf@raf.org>
+# Copyright (C) 1999-2004, 2010, 2020 raf <raf@raf.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,12 +14,10 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-# or visit http://www.gnu.org/copyleft/gpl.html
+# along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
 
-# 20100612 raf <raf@raf.org>
+# 20201111 raf <raf@raf.org>
 
 # Uncomment this to override the default value of 600 seconds
 # as the minimum amount of time that a client can live if it
@@ -30,18 +28,20 @@
 # Uncomment this to override the default configuration file path
 #
 # DAEMON_DEFINES += -DCONFIG_PATH=\"/etc/daemon.conf\"
+# DAEMON_DEFINES += -DCONFIG_PATH=\"$(PREFIX)/etc/daemon.conf\"
 
 # Uncomment this to disable debugging completely
 #
 # DAEMON_DEFINES += -DNDEBUG
 
 DAEMON_NAME := daemon
-DAEMON_VERSION := 0.6.4
-DAEMON_DATE := 20100612
+DAEMON_VERSION := 0.7
+DAEMON_DATE := 20201111
 DAEMON_URL := http://libslack.org/daemon/
 DAEMON_ID := $(DAEMON_NAME)-$(DAEMON_VERSION)
 DAEMON_DIST := $(DAEMON_ID).tar.gz
-DAEMON_HTML_DIST := $(DAEMON_ID).html.tar.gz
+DAEMON_HTML_ID := $(DAEMON_ID)-html
+DAEMON_HTML_DIST := $(DAEMON_HTML_ID).tar.gz
 
 DAEMON_DEFINES += -DDAEMON_NAME=\"$(DAEMON_NAME)\"
 DAEMON_DEFINES += -DDAEMON_VERSION=\"$(DAEMON_VERSION)\"
@@ -66,7 +66,7 @@ DAEMON_MODULES := daemon
 
 DAEMON_HTMLDIR := $(DATA_INSDIR)/$(DAEMON_NAME)/doc
 
-DAEMON_CONFDIR := $(CONF_INSDIR)
+DAEMON_CONF_INSDIR := $(CONF_INSDIR)
 
 DAEMON_CFILES := $(patsubst %, $(DAEMON_SRCDIR)/%.c, $(DAEMON_MODULES))
 DAEMON_OFILES := $(patsubst %, $(DAEMON_SRCDIR)/%.o, $(DAEMON_MODULES))
@@ -74,6 +74,7 @@ DAEMON_PODFILES := $(DAEMON_CFILES)
 DAEMON_MANFILES := $(patsubst %.c, %.$(APP_MANSECT), $(DAEMON_PODFILES))
 DAEMON_HTMLFILES := $(patsubst %.c, %.$(APP_MANSECT).html, $(DAEMON_PODFILES))
 DAEMON_CONFFILE := $(DAEMON_NAME).conf
+DAEMON_CONFDIR := $(DAEMON_CONFFILE).d
 DAEMON_MANLINK := $(DAEMON_CONFFILE).$(FMT_MANSECT)
 
 ifeq ($(MAN_GZIP), 1)
@@ -126,6 +127,8 @@ DAEMON_SOL := RAFOdmn
 
 DAEMON_CPPFLAGS += $(DAEMON_DEFINES) $(patsubst %, -I%, $(DAEMON_INCDIRS))
 DAEMON_CCFLAGS += $(CCFLAGS)
+DAEMON_CCFLAGS += -Wno-comment
+# DAEMON_CCFLAGS += -Wno-pointer-bool-conversion
 # DAEMON_LDFLAGS += -pthread
 DAEMON_CFLAGS += $(DAEMON_CPPFLAGS) $(DAEMON_CCFLAGS)
 DAEMON_LIBS += slack

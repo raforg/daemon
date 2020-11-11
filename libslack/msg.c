@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2010 raf <raf@raf.org>
+* Copyright (C) 1999-2002, 2004, 2010, 2020 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -14,11 +14,9 @@
 * GNU General Public License for more details.
 *
 * You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-* or visit http://www.gnu.org/copyleft/gpl.html
+* along with this program; if not, see <https://www.gnu.org/licenses/>.
 *
-* 20100612 raf <raf@raf.org>
+* 20201111 raf <raf@raf.org>
 */
 
 /*
@@ -34,6 +32,7 @@ I<libslack(msg)> - message module
 
     typedef struct Msg Msg;
     typedef void msg_out_t(void *data, const void *mesg, size_t mesglen);
+    typedef int msg_filter_t(void **mesgp, const void *mesg, size_t mesglen);
     typedef void msg_release_t(void *data);
 
     Msg *msg_create(int type, msg_out_t *out, void *data, msg_release_t *destroy);
@@ -65,6 +64,8 @@ I<libslack(msg)> - message module
     Msg *msg_create_plex_with_locker(Locker *locker, Msg *msg1, Msg *msg2);
     int msg_add_plex(Msg *mesg, Msg *item);
     int msg_add_plex_unlocked(Msg *mesg, Msg *item);
+    Msg *msg_create_filter(msg_filter_t *filter, Msg *mesg);
+    Msg *msg_create_filter_with_locker(Locker *locker, msg_filter_t *filter, Msg *mesg);
     const char *msg_set_timestamp_format(const char *format);
     int msg_set_timestamp_format_locker(Locker *locker);
     int syslog_lookup_facility(const char *facility);
@@ -95,6 +96,10 @@ priority names and codes.
 #define _BSD_SOURCE /* For snprintf() on OpenBSD-4.7 */
 #endif
 
+#ifndef _DEFAULT_SOURCE
+#define _DEFAULT_SOURCE /* New name for _BSD_SOURCE */
+#endif
+
 #include "config.h"
 #include "std.h"
 
@@ -116,12 +121,14 @@ priority names and codes.
 typedef int MsgFDData;
 typedef struct MsgFileData MsgFileData;
 typedef struct MsgSyslogData MsgSyslogData;
+typedef struct MsgFilterData MsgFilterData;
 typedef struct MsgPlexData MsgPlexData;
 
 #define MSG_FD 1
 #define MSG_FILE 2
 #define MSG_SYSLOG 3
 #define MSG_PLEX 4
+#define MSG_FILTER 5
 
 struct Msg
 {
@@ -148,6 +155,12 @@ struct MsgPlexData
 	size_t size;   /* elements allocated */
 	size_t length; /* length of Msg list */
 	Msg **list;    /* list of Msg objects */
+};
+
+struct MsgFilterData
+{
+	msg_filter_t *filter; /* filter function */
+	Msg *mesg;            /* destination Msg */
 };
 
 typedef struct syslog_map_t syslog_map_t;
@@ -219,7 +232,7 @@ static Locker *timestamp_format_locker = NULL;
 
 Creates a I<Msg> object initialised with C<type>, C<out>, C<data> and
 C<destroy>. Client defined message handlers must specify a C<type> greater
-than C<4>. It is the caller's responsibility to deallocate the new I<Msg>
+than C<5>. It is the caller's responsibility to deallocate the new I<Msg>
 with I<msg_release(3)> or I<msg_destroy>. On success, returns the new I<Msg>
 object. On error, returns C<null>.
 
@@ -1258,6 +1271,125 @@ int msg_add_plex_unlocked(Msg *mesg, Msg *item)
 
 /*
 
+C<MsgFilterData *msg_filterdata_create(msg_filter_t *filter, Msg *mesg)>
+
+Creates the internal data needed by a I<Msg> object that sends filtered
+messages to another I<Msg> object, I<mesg>. C<filter> and C<mesg> are used
+to initialise a I<msg> object. On success, returns the data. On error,
+returns C<null> with C<errno> set appropriately.
+
+*/
+
+static MsgFilterData *msg_filterdata_create(msg_filter_t *filter, Msg *mesg)
+{
+	MsgFilterData *data;
+
+	if (!filter || !mesg)
+		return set_errnull(EINVAL);
+
+	if (!(data = mem_new(MsgFilterData)))
+		return NULL;
+
+	data->filter = filter;
+	data->mesg = mesg;
+
+	return data;
+}
+
+/*
+
+C<void msg_filterdata_release(MsgFilterData *data)>
+
+Releases (deallocates) the internal data needed by a I<Msg> object that
+sends filtered messages to another I<Msg> object.
+
+*/
+
+static void msg_filterdata_release(MsgFilterData *data)
+{
+	if (!data)
+		return;
+
+	msg_release(data->mesg);
+	mem_release(data);
+}
+
+/*
+
+C<void msg_out_filter(void *data, const void *mesg, size_t mesglen)>
+
+Filters and sends a message to another I<Msg> object. C<data> contains the
+filter function and the destination I<Msg> object. C<mesg> is the unfiltered
+message. C<mesglen> is it's length.
+
+*/
+
+static void msg_out_filter(void *data, const void *mesg, size_t mesglen)
+{
+	MsgFilterData *filter_data = data;
+	void *filtered_mesg;
+	int filtered_mesglen;
+
+	if (!filter_data || !mesg || !mesglen)
+		return;
+
+	if ((filtered_mesglen = filter_data->filter(&filtered_mesg, mesg, mesglen)) == -1)
+		return;
+
+	filter_data->mesg->out(filter_data->mesg->data, filtered_mesg, filtered_mesglen);
+	mem_release(filtered_mesg);
+}
+
+/*
+
+=item C<Msg *msg_create_filter(msg_filter_t *filter, Msg *mesg)>
+
+Creates a I<Msg> object that sends messages to I<mesg> after filtering
+messages through the I<filter> function which must dynamically create a
+modified version of its input message which will be deallocated by its
+caller. It is the caller's responsibility to deallocate the new I<Msg> with
+I<msg_release(3)> or I<msg_destroy(3)>. On success, returns the new I<Msg>
+object. On error, returns C<null> with C<errno> set appropriately.
+
+=cut
+
+*/
+
+Msg *msg_create_filter(msg_filter_t *filter, Msg *mesg)
+{
+	return msg_create_filter_with_locker(NULL, filter, mesg);
+}
+
+/*
+
+=item C<Msg *msg_create_filter_with_locker(Locker *locker, msg_filter_t *filter, Msg *mesg)>
+
+Equivalent to I<msg_create_filter(3)> except that multiple threads accessing
+the new I<Msg> will be synchronised by C<locker>.
+
+=cut
+
+*/
+
+Msg *msg_create_filter_with_locker(Locker *locker, msg_filter_t *filter, Msg *mesg)
+{
+	MsgFilterData *data;
+	Msg *newmesg;
+
+	if (!(data = msg_filterdata_create(filter, mesg)))
+		return NULL;
+
+	if (!(newmesg = msg_create_with_locker(locker, MSG_FILTER, msg_out_filter, data, (msg_release_t *)msg_filterdata_release)))
+	{
+		msg_filterdata_release(data);
+		return NULL;
+	}
+
+	return newmesg;
+}
+
+/*
+
 =item C<const char *msg_set_timestamp_format(const char *format)>
 
 Sets the I<strftime(3)> format string used when sending messages to a file.
@@ -1550,7 +1682,7 @@ I<locker(3)>
 
 =head1 AUTHOR
 
-20100612 raf <raf@raf.org>
+20201111 raf <raf@raf.org>
 
 =cut
 
@@ -1560,7 +1692,7 @@ I<locker(3)>
 
 #ifdef TEST
 
-static int verify(const char *prefix, const char *name, const char *mesg)
+static int verify(int test, const char *name, const char *mesg)
 {
 	char buf[MSG_SIZE];
 	int fd;
@@ -1568,7 +1700,7 @@ static int verify(const char *prefix, const char *name, const char *mesg)
 
 	if ((fd = open(name, O_RDONLY)) == -1)
 	{
-		printf("%s: failed to create msg file: %s (%s)\n", prefix, name, strerror(errno));
+		printf("Test%d: failed to create msg file: %s (%s)\n", test, name, strerror(errno));
 		return 1;
 	}
 
@@ -1579,17 +1711,25 @@ static int verify(const char *prefix, const char *name, const char *mesg)
 
 	if (bytes == -1)
 	{
-		printf("%s: failed to read msg file: %s (%s)\n", prefix, name, strerror(errno));
+		printf("Test%d: failed to read msg file: %s (%s)\n", test, name, strerror(errno));
 		return 1;
 	}
 
 	if (!strstr(buf, mesg))
 	{
-		printf("%s: msg file produced incorrect input:\nshould contain:\n%s\nwas:\n%s\n", prefix, mesg, buf);
+		printf("Test%d: msg file produced incorrect input:\nshould contain:\n%s\nwas:\n%s\n", test, mesg, buf);
 		return 1;
 	}
 
 	return 0;
+}
+
+static int prefix_filter(void **mesgp, const void *mesg, size_t mesglen)
+{
+	if (!mesgp || !mesg)
+		return -1;
+
+	return asprintf((char **)mesgp, "[%d] %.*s", 12345, (int)mesglen, (char *)mesg);
 }
 
 int main(int ac, char **av)
@@ -1597,13 +1737,17 @@ int main(int ac, char **av)
 	const char *msg_file_name = "./msg.file";
 	const char *msg_stdout_name = "./msg.stdout";
 	const char *msg_stderr_name = "./msg.stderr";
-	const char *mesg = "multiplexed msg to stdout, stderr, ./msg.file and syslog local0.debug\n";
+	const char *msg_filter_name = "./msg.filter";
+	const char *mesg = "multiplexed msg to stdout, stderr, ./msg.file, syslog local0.debug and ./msg.filtered\n";
 	const char *note = "\n    Note: Can't verify syslog local0.debug. Look for:";
+	void *filtered_mesg = null;
+	int filtered_mesglen = 0;
 
 	Msg *msg_stdout = msg_create_stdout();
 	Msg *msg_stderr = msg_create_stderr();
 	Msg *msg_file = msg_create_file(msg_file_name);
 	Msg *msg_syslog = msg_create_syslog(NULL, 0, LOG_LOCAL0, LOG_DEBUG);
+	Msg *msg_filter = msg_create_filter(prefix_filter, msg_create_file(msg_filter_name));
 	Msg *msg_plex = msg_create_plex(msg_stdout, msg_stderr);
 	int errors = 0;
 	int tests = 0;
@@ -1617,20 +1761,33 @@ int main(int ac, char **av)
 
 	printf("Testing: %s\n", "msg");
 
+	++tests;
 	if (!msg_stdout)
-		++errors, printf("Test1: failed to create msg_stdout");
+		++errors, printf("Test%d: failed to create msg_stdout\n", tests);
+	++tests;
 	if (!msg_stderr)
-		++errors, printf("Test2: failed to create msg_stderr");
+		++errors, printf("Test%d: failed to create msg_stderr\n", tests);
+	++tests;
 	if (!msg_file)
-		++errors, printf("Test3: failed to create msg_file");
+		++errors, printf("Test%d: failed to create msg_file\n", tests);
+	++tests;
 	if (!msg_syslog)
-		++errors, printf("Test4: failed to create msg_syslog");
+		++errors, printf("Test%d: failed to create msg_syslog\n", tests);
+	++tests;
+	if (!msg_filter)
+		++errors, printf("Test%d: failed to create msg_filter\n", tests);
+	++tests;
 	if (!msg_plex)
-		++errors, printf("Test5: failed to create msg_plex");
+		++errors, printf("Test%d: failed to create msg_plex\n", tests);
+	++tests;
 	if (msg_add_plex(msg_plex, msg_file) == -1)
-		++errors, printf("Test6: failed to add msg_file to msg_plex\n");
+		++errors, printf("Test%d: failed to add msg_file to msg_plex\n", tests);
+	++tests;
 	if (msg_add_plex(msg_plex, msg_syslog) == -1)
-		++errors, printf("Test7: failed to add msg_syslog to msg_plex\n");
+		++errors, printf("Test%d: failed to add msg_syslog to msg_plex\n", tests);
+	++tests;
+	if (msg_add_plex(msg_plex, msg_filter) == -1)
+		++errors, printf("Test%d: failed to add msg_filter to msg_plex\n", tests);
 
 	out = dup(STDOUT_FILENO);
 	freopen(msg_stdout_name, "w", stdout);
@@ -1640,9 +1797,16 @@ int main(int ac, char **av)
 	dup2(out, STDOUT_FILENO);
 	close(out);
 
-	errors += verify("Test8", msg_stdout_name, mesg);
-	errors += verify("Test9", msg_stderr_name, mesg);
-	errors += verify("Test10", msg_file_name, mesg);
+	errors += verify(++tests, msg_stdout_name, mesg);
+	errors += verify(++tests, msg_stderr_name, mesg);
+	errors += verify(++tests, msg_file_name, mesg);
+
+	filtered_mesglen = prefix_filter(&filtered_mesg, mesg, strlen(mesg));
+	if (filtered_mesg && filtered_mesglen > 0)
+	{
+		errors += verify(++tests, msg_filter_name, filtered_mesg);
+		mem_destroy(&filtered_mesg);
+	}
 
 	for (i = 0; syslog_facility_map[i].name; ++i)
 	{
@@ -1692,7 +1856,7 @@ int main(int ac, char **av)
 		++errors, printf("Test%d: syslog_parse(\"gibberish\") failed\n", tests);
 
 	if (errors)
-		printf("%d/%d tests failed\n%s\n    %s", errors, 10 + tests, note, mesg);
+		printf("%d/%d tests failed\n%s\n    %s", errors, tests, note, mesg);
 	else
 		printf("All tests passed\n%s\n    %s", note, mesg);
 
