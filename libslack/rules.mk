@@ -1,7 +1,7 @@
 #
 # libslack - http://libslack.org/
 #
-# Copyright (C) 1999-2002, 2004, 2010, 2020 raf <raf@raf.org>
+# Copyright (C) 1999-2002, 2004, 2010, 2020-2021 raf <raf@raf.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
-# 20201111 raf <raf@raf.org>
+# 20210220 raf <raf@raf.org>
 
 ifneq ($(SLACK_TARGET),./$(SLACK_NAME))
 
@@ -572,21 +572,17 @@ $(SLACK_SRCDIR)/%.o: $(SLACK_SRCDIR)/%.c
 	$(CC) $(SLACK_CFLAGS) -o $@ -c $<
 
 $(SLACK_TESTDIR)/%: $(SLACK_SRCDIR)/%.c $(SLACK_TARGET)
-	@[ -d $(SLACK_TESTDIR) ] || mkdir $(SLACK_TESTDIR)
+	@[ -d $(SLACK_TESTDIR) ] || mkdir $(SLACK_TESTDIR) 2>/dev/null || [ -d $(SLACK_TESTDIR) ]
 	$(CC) -DTEST $(SLACK_TEST_CFLAGS) -o $@ $< $(SLACK_TEST_LDFLAGS)
 
-ifneq ($(findstring quotes,$(shell $(POD2MAN) --help 2>&1)),)
-NOQUOTES := --quotes=none
-endif
-
 $(SLACK_SRCDIR)/%.$(LIB_MANSECT): $(SLACK_SRCDIR)/%.c
-	$(POD2MAN) --center='$(LIB_MANSECTNAME)' --section=$(LIB_MANSECT) $(NOQUOTES) $< > $@
+	$(POD2MAN) --section=$(LIB_MANSECT) --center='$(LIB_MANSECTNAME)' --name=$(shell basename $< .c | tr a-z A-Z) --release=$(SLACK_ID) --date=$(SLACK_DATE) --quotes=none $< > $@
 
 $(SLACK_SRCDIR)/%.$(LIB_MANSECT): $(SLACK_SRCDIR)/%.pod
-	$(POD2MAN) --center='$(LIB_MANSECTNAME)' --section=$(LIB_MANSECT) $(NOQUOTES) $< > $@
+	$(POD2MAN) --section=$(LIB_MANSECT) --center='$(LIB_MANSECTNAME)' --name=$(shell basename $< .pod | tr a-z A-Z) --release=$(SLACK_ID) --date=$(SLACK_DATE) --quotes=none $< > $@
 
 $(SLACK_SRCDIR)/%.$(APP_MANSECT): $(SLACK_SRCDIR)/%.pod
-	$(POD2MAN) --center='$(APP_MANSECTNAME)' --section=$(APP_MANSECT) $(NOQUOTES) $< > $@
+	$(POD2MAN) --section=$(APP_MANSECT) --center='$(APP_MANSECTNAME)' --name=$(shell basename $< .pod | tr a-z A-Z) --release=$(SLACK_ID) --date=$(SLACK_DATE) --quotes=none $< > $@
 
 $(SLACK_SRCDIR)/%.gz: $(SLACK_SRCDIR)/%
 	$(GZIP) $<

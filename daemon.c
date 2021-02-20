@@ -1,7 +1,7 @@
 /*
 * daemon - http://libslack.org/daemon/
 *
-* Copyright (C) 1999-2004, 2010, 2020 raf <raf@raf.org>
+* Copyright (C) 1999-2004, 2010, 2020-2021 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, see <https://www.gnu.org/licenses/>.
 *
-* 20201111 raf <raf@raf.org>
+* 20210220 raf <raf@raf.org>
 */
 
 /*
@@ -49,15 +49,15 @@ I<daemon> - turns other processes into daemons
  -e, --env="var=val"       - Set a client environment variable
  -i, --inherit             - Inherit environment variables
  -U, --unsafe              - Allow execution of unsafe executable
- -S, --safe                - Deny execution of unsafe executable
+ -S, --safe                - Disallow execution of unsafe executable
  -c, --core                - Allow core file generation
      --nocore              - Disallow core file generation (default)
 
  -r, --respawn             - Respawn the client when it terminates
  -a, --acceptable=#        - Minimum acceptable client duration (seconds)
  -A, --attempts=#          - Respawn # times on error before delay
- -L, --delay=#             - Delay between spawn attempt bursts (seconds)
- -M, --limit=#             - Maximum number of spawn attempt bursts
+ -L, --delay=#             - Delay between respawn attempt bursts (seconds)
+ -M, --limit=#             - Maximum number of respawn attempt bursts
      --idiot               - Idiot mode (trust root with the above)
 
  -f, --foreground          - Run the client in the foreground
@@ -90,7 +90,7 @@ The preparatory tasks that I<daemon> performs for other processes are:
 
 =item *
 
-First revoke any setuid or setgid privileges that I<daemon> may have been
+First, revoke any setuid or setgid privileges that I<daemon> may have been
 installed with (by system administrators who laugh in the face of danger).
 
 =item *
@@ -111,21 +111,27 @@ changed, rather than just changing the uid of the client process.
 
 Read the system configuration file(s) (C</etc/daemon.conf> and
 C</etc/daemon.conf.d/*> by default, or specified by the C<--config> option),
-unless the C<--noconfig> option was supplied. Then read the user's
+unless the C<--noconfig> option was supplied. Then read the user's personal
 configuration file(s) (C<~/.daemonrc> and C<~/.daemonrc.d/*>), if any.
-Generic options are processed first, then options specific to the daemon
-with the given name. B<Note: The root directory and the user must be set
-before access to the configuration file can be attempted so neither
-C<--chroot> nor C<--user> options may appear in the configuration file.>
+Generic options that apply to all daemons are processed first, then options
+that are specific to the daemon with the given name. B<Note: The root
+directory and the user must be set before access to the configuration
+file(s) can be attempted, so neither the C<--chroot> nor C<--user> options
+may appear in the configuration file.>
 
-On BSD systems (except macOS), the system configuration file(s) are
+On I<BSD> systems (except I<macOS>), the system configuration file(s) are
 C</usr/local/etc/daemon.conf> and C</usr/local/etc/daemon.conf.d/*> by
 default.
 
+On I<macOS>, when installed via I<macports>, the system configuration
+file(s) are C</opt/local/etc/daemon.conf> and
+C</opt/local/etc/daemon.conf.d/*>.
+
 =item *
 
-Disable core file generation to prevent leaking sensitive information in
-daemons run by I<root> (unless the C<--core> option was supplied).
+Disable core file generation to prevent leaking potentially sensitive
+information in daemons that are run by I<root> (unless the C<--core> option
+was supplied).
 
 =item *
 
@@ -135,20 +141,21 @@ Become a daemon process:
 
 =item *
 
-If I<daemon> was not invoked by I<init(8)> (i.e. pid 1) or I<inetd(8)>
-(i.e. C<stdin> is a socket):
+If I<daemon> was not invoked by I<init(8)> (i.e. parent process id 1) or
+I<inetd(8)> (i.e. C<stdin> is a socket):
 
 =over 4
 
 =item *
 
 Ignore C<SIGHUP> signals in case the current process session leader
-terminates while attached to a controlling terminal causing us to
+terminates while attached to a controlling terminal, causing us to
 receive a C<SIGHUP> signal before we start our own process session below.
 
 This can happen when I<daemon> was invoked interactively via the shell
 builtin C<exec>. When this initial process terminates below, the terminal
-emulator that invoked the shell also terminates.
+emulator that invoked the shell also terminates, so I<daemon> need to
+protect itself from that.
 
 =item *
 
@@ -161,20 +168,21 @@ Start a new process session.
 =item *
 
 Background the process again to lose process session leadership. Under
-C<SVR4> this prevents the process from ever gaining a controlling terminal.
-This is only necessary under C<SVR4> but is always done for simplicity. Note
-that ignoring C<SIGHUP> signals earlier means that when the newly created
-process session leader terminates, then even if it has a controlling
+I<SVR4>, this prevents the process from ever gaining a controlling terminal.
+This is only necessary under I<SVR4>, but is always done for simplicity.
+Note that ignoring C<SIGHUP> signals earlier means that when the newly
+created process session leader terminates, then even if it has a controlling
 terminal open, the newly backgrounded process won't receive the
 corresponding C<SIGHUP> signal that is sent to all processes in the process
-session's foreground process group because it inherited signal dispositions
+session's foreground process group, because it inherited signal dispositions
 from the initial process.
 
 =back
 
 =item *
 
-Change directory to the root directory so as not to hamper umounts.
+Change the current directory to the root directory so as not to hamper
+umounts.
 
 =item *
 
@@ -183,12 +191,12 @@ Clear the I<umask> to enable explicit file creation modes.
 =item *
 
 Close all open file descriptors. If I<daemon> was invoked by I<inetd(8)>,
-C<stdin>, C<stdout> and C<stderr> are left open since they are open to a
+C<stdin>, C<stdout> and C<stderr> are left open, because they are open to a
 socket.
 
 =item *
 
-Open C<stdin>, C<stdout> and C<stderr> to C</dev/null> in case something
+Open C<stdin>, C<stdout> and C<stderr> to C</dev/null>, in case something
 requires them to be open. Of course, this is not done if I<daemon> was
 invoked by I<inetd(8)>.
 
@@ -197,20 +205,21 @@ invoked by I<inetd(8)>.
 If the C<--name> option was supplied, create and lock a file containing the
 process id of the I<daemon> process. The presence of this locked file
 prevents two instances of a daemon with the same name from running at the
-same time. The standard location of the pidfile is C</var/run> for I<root>
-(C</etc> on I<Solaris>) and C</tmp> for normal users. If the C<--pidfiles>
-option was supplied, its argument specifies the directory in which the
-pidfile will be placed. If the C<--pidfile> option was supplied, its
-argument specifies the name of the pidfile and the directory in which it
-will be placed.
+same time. The default location of the pidfile is C</var/run> for I<root>
+(C</etc> on I<Solaris>, C</opt/local/var/run> on I<macOS> when installed via
+I<macports>), and C</tmp> for normal users. If the C<--pidfiles> option was
+supplied, its argument specifies the directory in which the pidfile will be
+placed. If the C<--pidfile> option was supplied, its argument specifies the
+name of the pidfile and the directory in which it will be placed.
 
 =back
 
 =item *
 
-If the C<--umask> option was supplied, set the umask to its argument.
-Otherwise, set the umask to C<022> to prevent clients from accidentally
-creating group or world writable files.
+If the C<--umask> option was supplied, set the I<umask> to its argument,
+which must be a valid three-digit octal mode. Otherwise, set the umask to
+C<022>, to prevent clients from accidentally creating group- or
+world-writable files.
 
 =item *
 
@@ -219,7 +228,7 @@ Set the current directory if the C<--chdir> option was supplied.
 =item *
 
 Spawn the client command and wait for it to terminate. The client command
-may be specified as command line arguments or as the argument of the
+can be specified as command line arguments, or as the argument of the
 C<--command> option. If both the C<--command> option and command line
 arguments are present, the client command is the result of appending the
 command line arguments to the argument of the C<--command> option.
@@ -227,44 +236,45 @@ command line arguments to the argument of the C<--command> option.
 =item *
 
 If the C<--output>, C<--stdout> and/or C<--stderr> options were supplied,
-the client's standard output and/or standard error are captured by I<daemon>
-and sent to the respective I<syslog> destinations.
+the client's standard output and/or standard error are captured by
+I<daemon>, and are sent to the respective I<syslog> destinations.
 
 =item *
 
 When the client terminates, I<daemon> respawns it if the C<--respawn> option
-was supplied. If the client ran for less than 300 seconds (or the value of
-the C<--acceptable> option), then I<daemon> sees this as an error. It will
-attempt to restart the client up to five times (or the value of the
-C<--attempts> option) before waiting for 300 seconds (or the value of the
-C<--delay> option). This gives the administrator the chance to correct
-whatever is preventing the client from running without overloading system
-resources. If the C<--limit> option was supplied, I<daemon> terminates after
-the specified number of spawn attempt bursts. The default is zero which
-means never give up, never surrender.
+was supplied. If the client ran for less than C<300> seconds (or the value
+of the C<--acceptable> option), then I<daemon> sees this as a failure. It
+will attempt to restart the client up to five times (or the value of the
+C<--attempts> option), before waiting for C<300> seconds (or the value of
+the C<--delay> option). This gives the system administrator the chance to
+correct whatever is preventing the client from running successfully without
+overloading system resources. If the C<--limit> option was supplied,
+I<daemon> terminates after the specified number of respawn attempt bursts.
+The default is zero, which means never give up, never surrender.
 
-When the client terminates and the C<--respawn> option wasn't supplied,
-I<daemon> terminates.
+When the client terminates, and the C<--respawn> option wasn't supplied,
+I<daemon> terminates as well.
 
 =item *
 
-If I<daemon> receives a C<SIGTERM> signal, it propagates the signal to the
+If I<daemon> receives a C<SIGTERM> signal (e.g. from a separate invocation
+of I<daemon> with the C<--stop> option), it propagates the signal to the
 client and then terminates.
 
 =item *
 
-If I<daemon> receives a C<SIGUSR1> signal (from another invocation of
-I<daemon> supplied with the C<--restart> option), it sends a C<SIGTERM>
-signal to the client. If started with the C<--respawn> option, the client
-process will be restarted after it is killed by the C<SIGTERM> signal.
+If I<daemon> receives a C<SIGUSR1> signal (from a separate invocation of
+I<daemon> with the C<--restart> option), it sends a C<SIGTERM> signal to the
+client. If it was started with the C<--respawn> option, the client process
+will be restarted after it is terminated by the C<SIGTERM> signal.
 
 =item *
 
 If the C<--foreground> option was supplied, the client process is run as a
-foreground process and is not turned into a daemon. If I<daemon> is
-connected to a terminal, so will the client process. If I<daemon> is not
-connected to a terminal but the client needs to be connected to a terminal,
-use the C<--pty> option.
+foreground process, and is not turned into a daemon at all. If I<daemon> is
+connected to a terminal, then the client process will also be connected to
+it. If I<daemon> is not connected to a terminal, but the client needs to be
+connected to a terminal, use the C<--pty> option.
 
 =back
 
@@ -283,35 +293,38 @@ Display a version message and exit.
 =item C<-v>I<[level]>, C<--verbose>I<[=level]>
 
 Set the message verbosity level to I<level> (or 1 if I<level> is not
-supplied). I<daemon> does not have any verbose messages by default so this
-has no effect unless the C<--running> or C<--list> option is supplied.
+supplied). This only effects the C<--running> and C<--list> options.
 
 =item C<-d>I<[level]>, C<--debug>I<[=level]>
 
 Set the debug message level to I<level> (or 1 if I<level> is not supplied).
-Level 1 traces high level function calls. Level 2 traces lower level
+Level 1 traces high-level function calls. Level 2 traces lower-level
 function calls and shows configuration information. Level 3 adds environment
-variables. Level 9 adds every return value from I<select(2)> to the output.
-Debug messages are sent to the destination specified by the C<--dbglog>
-option (by default, the I<syslog(3)> facility, C<daemon.debug>).
+variables. Level 9 adds every return value from I<select(2)>. Debug messages
+are sent to the destination specified by the C<--dbglog> option (by default,
+the I<syslog(3)> facility, C<daemon.debug>).
 
 =item C<-C> I<path>, C<--config=>I<path>
 
-Specify the main configuration file to use. By default, C</etc/daemon.conf>
-is the main configuration file if it exists and is not group or world
-writable and does not exist in a group or world writable directory. The
-configuration file lets you predefine options that apply to all clients and
-to specifically named clients.
+Specify the system configuration file to use. By default,
+C</etc/daemon.conf> is the system configuration file, if it exists and is
+not group- or world-writable, and does not exist in a group- or
+world-writable directory. The configuration file lets you predefine options
+that apply to all clients, and to specifically named clients.
 
-As well as the main configuration file, additional configuration files will
-be read from the directory whose path matches the main configuration file
-with C<".d"> appended to it (e.g. C</etc/daemon.conf.d>). Any file in that
-directory whose name starts with a dot character (C<".">) is ignored. The
-same checks as described above apply to these files as well.
+As well as the system configuration file, additional configuration files
+will be read from the directory whose path matches the system configuration
+file with C<".d"> appended to it (e.g. C</etc/daemon.conf.d>). Any file in
+that directory whose name starts with a dot character (C<".">) is ignored.
+The same checks as described above apply to these files as well.
 
-On BSD systems (except macOS), the system configuration file(s) are
+On I<BSD> systems (except I<macOS>), the system configuration file(s) are
 C</usr/local/etc/daemon.conf> and C</usr/local/etc/daemon.conf.d/*> by
 default.
+
+On I<macOS>, when installed via I<macports>, the system configuration
+file(s) are C</opt/local/etc/daemon.conf> and
+C</opt/local/etc/daemon.conf.d/*>.
 
 =item C<-N>, C<--noconfig>
 
@@ -323,40 +336,56 @@ C<~/.daemonrc.d/*> configuration files will be read (if they exist).
 
 Create and lock a pidfile (I<name>C<.pid>), ensuring that only one daemon
 with the given I<name> is active at the same time. The standard location of
-the pidfile is C</var/run> (C</etc> on I<Solaris>) for root and C</tmp> for
-normal users. This location can be overridden with the I<--podfiles> option.
+the pidfile is C</var/run> for root (C</etc> on I<Solaris>,
+C</opt/local/var/run> on I<macOS> when installed via I<macports>), and
+C</tmp> for normal users. This location can be overridden with the
+I<--pidfiles> option.
+
+The name may only consist of the following characters:
+
+    -._abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789
+
+While a named daemon's client process is running, there will also be a
+separate pidfile to record the process id of the client process. Its
+filename will be the same as the I<daemon> pidfile's, except that the
+filename extension will be C<.clientpid> rather than C<.pid>. The only
+reason that there should be a C<.pid> file, with no C<.clientpid> file, is
+during the delay between respawn attempts bursts.
 
 =item C<-X> I<"cmd">, C<--command=>I<"cmd">
 
 Specify the client command as an option. If a command is specified along
-with its name in the configuration file, then daemons can be started merely
-by mentioning their name:
+with its name in the configuration file, then a daemon can be invoked merely
+by mentioning its name:
 
-    daemon --name ftumpch
+    daemon --name ftumch
 
 B<Note:> If the client command is specified with the C<--command> option,
-either in the configuration file or on the command line, any additional
-command line arguments on the I<daemon> command line are appended to the
-specified client command.
+either in the configuration file, or on the command line, then any
+additional command line arguments on the I<daemon> command line are appended
+to the client command that is specified with the C<--command> option.
 
 =item C<-P> I</dir>, C<--pidfiles=>I</dir>
 
 Override the standard pidfile location. The standard pidfile location is
-C</var/run> (C</etc> on I<Solaris>) for root and C</tmp> for nomal users.
+C</var/run> for root (C</etc> on I<Solaris>, C</opt/local/var/run> on
+I<macOS> when installed via I<macports>), and C</tmp> for normal users.
 
-This option only affects the C<--name> or C<--list> option. Use this option
-if these standard locations are unacceptable but make sure you don't forget
-where you put your pidfiles. This option is best used in configuration files
-or in shell scripts, not on the command line.
+This option only affects the C<--name> and C<--list> options. Use this
+option if these standard locations are unacceptable, but make sure that you
+don't forget where you put your pidfiles. This option is best used in
+configuration files, or in shell scripts, rather than on an interactive
+command line.
 
 =item C<-F> I</path>, C<--pidfile=>I</path>
 
-Override the standard pidfile name and location. The standard pidfile location
-is described immediately above. The standard pidfile name is the argument of
-the C<--name> option followed by C<.pid>. Use this option if the standard
-pidfile name and location are unacceptable but make sure you don't forget
-where you put your pidfile. This option is best used in configuration files
-or in shell scripts, not on the command line.
+Override the standard pidfile name and location. The standard pidfile
+location is described immediately above. The standard pidfile name is the
+argument of the C<--name> option followed by C<.pid>. Use this option if the
+standard pidfile name and location are unacceptable, but make sure that you
+don't forget where you put your pidfile. This option is best used in
+configuration files, or in shell scripts, rather than on an interactive
+command line.
 
 =item C<-u> I<user[:[group]]>, C<--user=>I<user[:[group]]>
 
@@ -364,10 +393,10 @@ Run the client as a different user (and group). This only works for I<root>.
 If the argument includes a I<:group> specifier, I<daemon> will assume the
 specified group and no other. Otherwise, I<daemon> will assume all groups
 that the specified user is in. For backwards compatibility, C<"."> may be
-used instead of C<":"> to separate the user and group but since C<"."> may
+used instead of C<":"> to separate the user and group but since C<"."> can
 appear in user and group names, ambiguities can arise such as using
-C<--user=>I<u.g> with users I<u> and I<u.g> and group I<g>. With such an
-ambiguity, I<daemon> will assume the user I<u> and group I<g>. Use
+C<--user=>I<u.g> when users I<u> and I<u.g> and group I<g> all exist. With
+such an ambiguity, I<daemon> will assume the user I<u> and group I<g>. Use
 C<--user=>I<u.g:> instead for the other interpretation.
 
 =item C<-R> I<path>, C<--chroot=>I<path>
@@ -379,7 +408,8 @@ path.
 
 =item C<-D> I<path>, C<--chdir=>I<path>
 
-Change the directory to I<path> before running the client.
+Change the current directory to I<path> before running the client. The
+default current directory is the root directory (possibly after I<chroot>).
 
 =item C<-m> I<umask>, C<--umask=>I<umask>
 
@@ -401,75 +431,79 @@ to the inherited environment, rather than replacing it.
 
 =item C<-U>, C<--unsafe>
 
-Allow reading an unsafe configuration file and execution of an unsafe
-executable. A configuration file or executable is unsafe if it is group or
-world writable or is in a directory that is group or world writable
-(following symbolic links). If an executable is a script interpreted by
-another executable, then it is considered unsafe if the interpreter is
-unsafe. If the interpreter is C</usr/bin/env> (with an argument that is a
-command name to be searched for in C<$PATH>), then that command must be
-safe. By default, I<daemon(1)> will refuse to read an unsafe configuration
-file or to execute an unsafe executable when run by I<root>. This option
-overrides that behaviour and hence should never be used.
+Allow reading an unsafe configuration file, and allow the execution of an
+unsafe executable. A configuration file or executable is considered to be
+unsafe if it is group- or world-writable or is in a directory that is group-
+or world-writable (following symbolic links). If an executable is a script
+that is interpreted by another executable, then it is considered to be
+unsafe if the interpreter is unsafe. If the interpreter is C</usr/bin/env>
+(with an argument that is a command name to be searched for in C<$PATH>),
+then that command must be safe. By default, I<daemon(1)> will refuse to read
+an unsafe configuration file or to execute an unsafe executable when run by
+I<root>. This option overrides that behaviour and hence should never be
+used.
 
 =item C<-S>, C<--safe>
 
-Deny reading an unsafe configuration file and execution of an unsafe
-executable. By default, I<daemon(1)> will allow reading an unsafe
-configuration file and execution of an unsafe executable when run by
-normal users. This option overrides that behaviour.
+Disallow reading an unsafe configuration file, and disallow the execution of
+an unsafe executable. By default, I<daemon(1)> will allow reading an unsafe
+configuration file, and allow the execution of an unsafe executable, when
+run by normal users. This option overrides that behaviour.
 
 =item C<-c>, C<--core>
 
 Allow the client to create a core file. This should only be used for
-debugging as it could lead to security holes in daemons run by I<root>.
+debugging, as it could lead to security-related information disclosures by
+daemons run by I<root>.
 
 =item C<--nocore>
 
-By default, clients are prevented from creating core files. If the C<--core>
-option has been used in a configuraton file to apply to all named daemons,
-then this option may be used to restore the default behaviour for specific
-named daemons.
+By default, clients are prevented from creating a core file. If the
+C<--core> option has been used in a configuration file to apply to all named
+daemons, then this option can be used to restore the default behaviour for
+specific named daemons.
 
 =item C<-r>, C<--respawn>
 
-Respawn the client when it terminates.
+Respawn the client when it terminates. Without this option, the termination
+of a client process causes I<daemon> itself to terminate as well.
 
 =item C<-a> I<#>, C<--acceptable=>I<#>
 
-Specify the minimum acceptable duration in seconds of a client process. The
-default value is 300 seconds. It cannot be set to less than 10 seconds
-except by I<root> when used in conjunction with the C<--idiot> option. This
-option can only be used with the C<--respawn> option.
-
-less than this, it is considered to have failed.
+Specify the minimum acceptable duration of a client process, in seconds.
+This option can only be used with the C<--respawn> option. If a client
+process terminates before this threshold is reached, then it is considered
+to have failed. The default value is C<300> seconds. It cannot be set to
+less than C<10> seconds, except by I<root> when used in conjunction with the
+C<--idiot> option.
 
 =item C<-A> I<#>, C<--attempts=>I<#>
 
-Number of attempts to spawn before delaying. The default value is 5. It
-cannot be set to more than 100 attempts except by I<root> when used in
-conjunction with the C<--idiot> option. This option can only be used with
-the C<--respawn> option.
+Specify the number of attempts to respawn before delaying. This option can
+only be used with the C<--respawn> option. The default value is C<5>. It
+cannot be set to more than C<100> attempts, except by I<root> when used in
+conjunction with the C<--idiot> option.
 
 =item C<-L> I<#>, C<--delay=>I<#>
 
-Delay in seconds between each burst of spawn attempts. The default value is
-300 seconds. It cannot be set to less than 10 seconds except by I<root> when
-used in conjunction with the C<--idiot> option. This option can only be used
-with the C<--respawn> option.
+Specify the delay in seconds between each burst of respawn attempts. This
+option can only be used with the C<--respawn> option. The default value is
+C<300> seconds. It cannot be set to less than C<10> seconds except by
+I<root> when used in conjunction with the C<--idiot> option.
 
-=item C<-M> I<#>, -C<--limit=>I<#>
+=item C<-M> I<#>, C<--limit=>I<#>
 
-Limit the number of spawn attempt bursts. The default value is zero which
-means no limit. This option can only be used with the C<--respawn> option.
+Specify a limit to the number of respawn attempt bursts. This option can
+only be used with the C<--respawn> option. The default value is C<0>, which
+means no limit.
 
 =item C<--idiot>
 
 Turn on idiot mode in which I<daemon> will not enforce the minimum or
 maximum values normally imposed on the C<--acceptable>, C<--attempts> and
-C<--delay> option arguments. The C<--idiot> option must appear before any of
-these options. Only the I<root> user may use this option because it can turn
-a slight misconfiguration into a lot of wasted CPU effort and log messages,
+C<--delay> options. The C<--idiot> option must appear before any of these
+options. Only the I<root> user may use this option, because it can turn a
+slight misconfiguration into a lot of wasted CPU energy and log messages,
 somewhat akin to a self-inflicted denial of service.
 
 =item C<-f>, C<--foreground>
@@ -482,60 +516,61 @@ Connect the client to a pseudo terminal. This option can only be used with
 the C<--foreground> option. This is the default when the C<--foreground>
 option is supplied and I<daemon>'s standard input is connected to a
 terminal. This option is only necessary when the client process must be
-connected to a controlling terminal but I<daemon> itself has been run
+connected to a controlling terminal, but I<daemon> itself has been run
 without a controlling terminal (e.g. from I<cron(8)> or a pipeline).
 
-If the C<noecho> argument is supplied with this option, the client's side
-of the pseudo terminal will be set to noecho mode. Use this only if there
+If the C<noecho> argument is supplied with this option, the client's side of
+the pseudo terminal will be set to C<noecho> mode. Use this only if there
 really is a terminal involved and input is being echoed twice.
 
 =item C<-l> I<spec>, C<--errlog=>I<spec>
 
-Send I<daemon>'s standard output and error to the syslog destination or file
-specified by I<spec>. If I<spec> is a syslog destination of the form
-C<"facility.priority">, then output is sent to I<syslog(3)>. Otherwise,
-output is appended to the file whose path is given in I<spec>. By default,
-output is sent to the syslog destination, C<daemon.err>. See the C<MESSAGING>
-section below for more details.
+Send I<daemon>'s standard output and standard error to the syslog
+destination or file that is specified by I<spec>. If I<spec> is a syslog
+destination of the form C<"facility.priority">, then output is sent to
+I<syslog(3)>. Otherwise, output is appended to the file whose path is given
+in I<spec>. By default, output is sent to the syslog destination,
+C<daemon.err>. See the C<MESSAGING> section below for more details.
 
 =item C<-b> I<spec>, C<--dbglog=>I<spec>
 
-Send I<daemon>'s debug output to the syslog destination or file specified by
-I<spec>. If I<spec> is a syslog destination of the form C<"facility.priority">,
-then output is sent to I<syslog(3)>. Otherwise, output is appended to the file
-whose path is given in I<spec>. By default, output is sent to the syslog
-destination C<daemon.debug>. See the C<MESSAGING> section below for more details.
+Send I<daemon>'s debug output to the syslog destination or file that is
+specified by I<spec>. If I<spec> is a syslog destination of the form
+C<"facility.priority">, then output is sent to I<syslog(3)>. Otherwise,
+output is appended to the file whose path is given in I<spec>. By default,
+output is sent to the syslog destination C<daemon.debug>. See the
+C<MESSAGING> section below for more details.
 
 =item C<-o> I<spec>, C<--output=>I<spec>
 
-Capture the client's standard output and error and send it to the syslog
-destination or file specified by I<spec>. If I<spec> is a syslog destination
-of the form C<"facility.priority">, then output is sent to I<syslog(3)>.
-Otherwise, output is appended to the file whose path is given in I<spec>.
-By default, output is discarded unless the C<--foreground> option is present.
-In this case, the client's stdout and stderr are propagated to I<daemon>'s
-stdout and stderr respectively. See the C<MESSAGING> section below for more
-details.
+Capture the client's standard output and standard error, and send it to the
+syslog destination or file that is specified by I<spec>. If I<spec> is a
+syslog destination of the form C<"facility.priority">, then output is sent
+to I<syslog(3)>. Otherwise, output is appended to the file whose path is
+given in I<spec>. By default, output is discarded unless the C<--foreground>
+option is present, in which case, the client's stdout and stderr are
+propagated to I<daemon>'s stdout and stderr, respectively. See the
+C<MESSAGING> section below for more details.
 
 =item C<-O> I<spec>, C<--stdout=>I<spec>
 
-Capture the client's standard output and send it to the syslog destination
-or file specified by I<spec>. If I<spec> is a syslog destination of the form
-C<"facility.priority">, then output is sent to I<syslog(3)>. Otherwise,
-stdout is appended to the file whose path is given in I<spec>. By default,
-stdout is discarded unless the C<--foreground> option is present, in which
-case, the client's stdout is propagated to I<daemon>'s stdout. See the
-C<MESSAGING> section below for more details.
+Capture the client's standard output, and send it to the syslog destination
+or file that is specified by I<spec>. If I<spec> is a syslog destination of
+the form C<"facility.priority">, then output is sent to I<syslog(3)>.
+Otherwise, stdout is appended to the file whose path is given in I<spec>. By
+default, stdout is discarded unless the C<--foreground> option is present,
+in which case, the client's stdout is propagated to I<daemon>'s stdout. See
+the C<MESSAGING> section below for more details.
 
 =item C<-E> I<spec>, C<--stderr=>I<spec>
 
-Capture the client's standard error and send it to the syslog destination
-specified by I<spec>. If I<spec> is a syslog destination of the form
-C<"facility.priority">, then stderr is sent to I<syslog(3)>. Otherwise,
-stderr is appended to the file whose path is given in I<spec>. By default,
-stderr is discarded unless the C<--foreground> option is present, in this case,
-the client's stderr is propagated to I<daemon>'s stderr. See the C<MESSAGING>
-section below for more details.
+Capture the client's standard error, and send it to the syslog destination
+or file that is specified by I<spec>. If I<spec> is a syslog destination of
+the form C<"facility.priority">, then stderr is sent to I<syslog(3)>.
+Otherwise, stderr is appended to the file whose path is given in I<spec>. By
+default, stderr is discarded unless the C<--foreground> option is present,
+in which case, the client's stderr is propagated to I<daemon>'s stderr. See
+the C<MESSAGING> section below for more details.
 
 =item C<--ignore-eof>
 
@@ -543,15 +578,15 @@ After receiving a C<SIGCHLD> signal due to a stopped or restarted client
 process, don't bother reading the client's output until the end-of-file is
 reached before reaping the client process's termination status with
 I<wait(2)>. Normally, there will be little or no output after the C<SIGCHLD>
-signal because the client process has just terminated. However, the client
-process may have its own child processes keeping its output open long after
-its own termination. When this happens, by default, the client process
+signal, because the client process has just terminated. However, the client
+process might have its own child processes keeping its output open long
+after its own termination. When this happens, by default, the client process
 remains as a zombie process until its child processes terminate and close
 the output. Waiting for the client's child processes to terminate before
-considering the client stopped and before restarting a new invocation may be
-desirable. If not, this option can be used to consider the client process as
-being terminated as soon as the C<SIGCHLD> signal has been received and
-reaping its termination status with I<wait(2)> immediately.
+considering the client stopped, and before restarting a new invocation,
+might be desirable. If not, this option can be used to consider the client
+process as being terminated as soon as the C<SIGCHLD> signal has been
+received, and reaping its termination status with I<wait(2)> immediately.
 
 =item C<--read-eof>
 
@@ -559,15 +594,16 @@ After receiving a C<SIGCHLD> signal due to a stopped or restarted client
 process, continue reading the client's output until the end-of-file is
 reached before reaping the client process's termination status with
 I<wait(2)>. This is the default behaviour. Normally, there will be little or
-no output after the C<SIGCHLD> signal because the client process has just
-terminated. However, the client process may have its own child processes
+no output after the C<SIGCHLD> signal, because the client process has just
+terminated. However, the client process might have its own child processes
 keeping its output open long after its own termination. When this happens,
 the client process remains as a zombie process until its child processes
 terminate and close the output. Waiting for the client's child processes to
-terminate before considering the client stopped and before restarting a new
-invocation may be desirable. If so, but the C<--ignore-eof> option has been
-used in a configuraton file to apply to all named daemons, then this option
-may be used to restore the default behaviour for specific named daemons.
+terminate before considering the client stopped, and before restarting a new
+invocation, might be desirable. If so, but the C<--ignore-eof> option has
+been used in a configuration file to apply to all named daemons, then this
+option can be used to restore the default behaviour for specific named
+daemons.
 
 =item C<--running>
 
@@ -595,18 +631,14 @@ like this:
 This option can only be used with the C<--name> option. Note that the
 C<--chroot>, C<--user>, C<--name>, C<--pidfiles> and C<--pidfile> (and
 possibly C<--config>) options must be the same as for the target daemon.
-Note that the C<--running> option must appear before any C<--pidfile> or
-C<--pidfiles> option when checking if another user's daemon is running
-otherwise you might get an error about the pidfile directory not being
-writable.
 
 =item C<--restart>
 
-Instruct a named daemon to terminate and restart its client process by
+Instruct a named daemon to terminate and restart its client process, by
 sending it a C<SIGUSR1> signal. This will cause the named daemon to send its
 client process a C<SIGTERM> signal to stop it. If the named daemon had been
 started with the C<--restart> option, the named daemon will then restart its
-client process. Otherwise, this has the same effect as the C<--stop> option
+client process. Otherwise, this has the same effect as the C<--stop> option,
 and the named daemon's client process is not restarted.
 
 This option can only be used with the C<--name> option. Note that the
@@ -624,9 +656,9 @@ possibly C<--config>) options must be the same as for the target daemon.
 
 =item C<--signal=>I<signame>
 
-Send the given signal to a named daemon's client process. The signal may be
+Send the given signal to a named daemon's client process. The signal can be
 specified either by number or by name (with or without the "sig" prefix).
-Any signal may be sent. However, the named daemon's client process may be
+Any signal may be sent. However, the named daemon's client process might be
 ignoring some signals. For example, C<SIGHUP> will be ignored by default
 unless the client process has installed a signal handler for it.
 
@@ -635,28 +667,29 @@ C<abrt>, C<iot>, C<bus>, C<fpe>, C<kill>, C<usr1>, C<segv>, C<usr2>,
 C<pipe>, C<alrm>, C<term>, C<stkflt>, C<cld>, C<chld>, C<cont>, C<stop>,
 C<tstp>, C<ttin>, C<ttou>, C<urg>, C<xcpu>, C<xfsz>, C<vtalrm>, C<prof>,
 C<winch>, C<poll>, C<io>, C<pwr>, C<sys>, C<emt> and C<info>. Not all of
-ehem are available on all platforms.
+them are available on all platforms.
 
 =item C<--list>
 
 Print a list of the currently running named daemons whose pidfiles are in
 the applicable pidfile directory which will either be the default (i.e.
-C</var/run> for I<root> (C</etc> on I<Solaris>) and C</tmp> for normal
-users) or it will be specified by the C<--pidfiles> option. Then exit.
+C</var/run> for I<root> (C</etc> on I<Solaris>, C</opt/local/var/run> on
+I<macOS> when installed via I<macports>), and C</tmp> for normal users), or
+it will be specified by the C<--pidfiles> option. Then exit.
 
 Without the C<--verbose> option, this will only list the names of daemons
 whose pidfiles are locked, as this implies that the corresponding daemon
-must still be running. Note that pidfiles created for daemons that are not
-started by I<daemon(1)> might not be locked. An unlocked pidfile might
-indicate that I<daemon(1)> has died unexpectedly, or it might just be a
-pidfile for a daemon that was not started by I<daemon(1)>. If this might
-lead to confusion, you might want to consider using a dedicated pidfiles
-directory for daemons started by I<daemon(1)> and leave the default pidfiles
+must still be running. Note that pidfiles for daemons that were not started
+by I<daemon(1)> might not be locked. An unlocked pidfile might indicate that
+I<daemon(1)> has died unexpectedly, or it might just be a pidfile for a
+daemon that was not started by I<daemon(1)>. If this might lead to
+confusion, you might want to consider using a dedicated pidfiles directory
+for named daemons started by I<daemon(1)>, and leave the default pidfiles
 directories for other daemons that were started independently of
 I<daemon(1)>.
 
 With the C<--verbose> option, the items in the list will look like the
-output of the C<--running> option with C<--verbose> but with more detail.
+output of the C<--running> option with C<--verbose>, but with more detail.
 
 If there are no pidfiles at all, the output will look like this:
 
@@ -669,7 +702,7 @@ output will look like this, showing both process IDs:
 	name is running (pid ####) (client pid ####)
 
 If a pidfile is locked, but there is no client pidfile, that indicates that
-the the named daemon is running but its client is not (e.g. during the delay
+the named daemon is running, but its client is not (e.g. during a delay
 between respawn attempt bursts when the client is failing to start
 successfully), and the output will look like one of the following three
 options:
@@ -685,7 +718,7 @@ something other than I<daemon> (i.e. is independent of I<daemon(1)>):
 	name is running (pid ####) (independent)
 
 When it's not possible to determine the name of the executable associated
-with the I<pidfile> (i.e. On systems other than Linux without a C</proc>
+with the I<pidfile> (i.e. On systems other than I<Linux> without a C</proc>
 file system):
 
 	name is running (pid ####) (client is not running or is independent)
@@ -714,35 +747,47 @@ client command.
 C</etc/daemon.conf>, C</etc/daemon.conf.d/*> - system-wide default options
 
 C</usr/local/etc/daemon.conf>, C</usr/local/etc/daemon.conf.d/*> -
-system-wide default options on BSD systems (except macOS).
+system-wide default options on I<BSD> systems (except I<macOS>).
+
+C</opt/local/etc/daemon.conf>, C</opt/local/etc/daemon.conf.d/*> -
+system-wide default options on I<macOS> when installed via I<macports>.
 
 C<~/.daemonrc>, C<~/.daemonrc.d/*> - user-specific default options
 
-Each line of the configuration file consists of a client name or C<'*'>,
-followed by whitespace, followed by a comma separated list of options. Blank
-lines and comments (C<'#'> to end of the line) are ignored. Lines may be
-continued with a C<'\'> character at the end of the line.
+Each line of the configuration file consists of a client name (for options
+that apply to a single client) or C<'*'> (for generic options that apply to
+all clients), followed by spaces and/or tabs, followed by a comma-separated
+list of options. Any option arguments must not contain any commas. The
+commas that separate options can have spaces and tabs before and after them.
+Blank lines and comments (C<'#'> to end of the line) are ignored. Lines can
+be continued with a C<'\'> character at the end of the line.
 
 For example:
 
     *       errlog=daemon.err,output=local0.err,core
     test1   syslog=local0.debug,debug=9,verbose=9,respawn
-    test2   syslog=local0.debug,debug=9,verbose=9,respawn
+    test2   syslog=local0.debug,debug=9, \
+            verbose=9,respawn
 
-The command line options are processed first to look for a C<--config>
-option. If no C<--config> option was supplied, the default files,
-C</etc/daemon.conf> and C</etc/daemon.conf.d/*>, are used. On BSD systems
-(except macOS), the default files are C</usr/local/etc/daemon.conf> and
-C</usr/local/etc/daemon.conf.d/*>. If the user has their own configuration
-files, C<~/.daemonrc> and C<~/.daemonrc.d/*>, they are also used. If the
-configuration files contain any generic (C<'*'>) entries, their options are
-applied in order of appearance. If the C<--name> option was supplied and the
-configuration files contain any entries with the given name, their options
-are then applied in order of appearance. Finally, the command line options
-are applied again. This ensures that any generic options apply to all
-clients by default. Client specific options override generic options. User
-options override system-wide options. Command line options override
-everything else.
+The command line options are processed first, to look for a C<--config>
+option. If no C<--config> option was supplied, the default configuration
+files, C</etc/daemon.conf> and C</etc/daemon.conf.d/*>, are used. On I<BSD>
+systems (except I<macOS>), the default configuration files are
+C</usr/local/etc/daemon.conf> and C</usr/local/etc/daemon.conf.d/*>. On
+I<macOS> when installed via I<macports>, the default configuration files are
+C</opt/local/etc/daemon.conf> and C</opt/local/etc/daemon.conf.d/*>.
+If the user has their own configuration files, C<~/.daemonrc> and
+C<~/.daemonrc.d/*>, they are also used.
+
+If the configuration files contain any generic (C<'*'>) entries, their
+options are applied in order of appearance. If the C<--name> option was
+supplied, and the configuration files contain any entries for the given
+name, those options are then applied in order of appearance.
+
+Finally, the command line options are applied again. This ensures that any
+generic options apply to all clients by default. Client-specific options
+override generic options. User options override system-wide options. Command
+line options override everything else.
 
 Note that the configuration files are not opened and read until after any
 C<--chroot> and/or C<--user> command line options are processed. This means
@@ -756,10 +801,10 @@ configuration file either.
 
 =head1 MESSAGING
 
-The C<--errlog>, C<--dbglog>, C<--output>, C<--stdout> and C<--stderr> options
-all take an argument that can be either a syslog destination of the form
-C<facility.priority> or the name of a file. Here are the lists of syslog
-facilities and priorities:
+The C<--errlog>, C<--dbglog>, C<--output>, C<--stdout> and C<--stderr>
+options all take an argument that can be either a syslog destination of the
+form C<"facility.priority"> or the path to a file. Here are the lists of
+syslog facilities and priorities:
 
   Facilities:
   kern, user, mail, daemon, auth, syslog, lpr, news, uucp, cron,
@@ -768,30 +813,31 @@ facilities and priorities:
   Priorities:
   emerg, alert, crit, err, warning, notice (on some systems), info, debug.
 
-If the name of a file is supplied instead, bear in mind the fact that
-I<daemon(1)> changes to the root directory by default and so the file name
-should be supplied as an absolute path (or relative to the C<--chroot> or
-C<--chdir> option argument). Otherwise, I<daemon(1)> will attempt to create
-the file relative to its current directory. You may not have permissions to
-do that or want to even if you do.
+If the path to a file is supplied instead, bear in mind the fact that
+I<daemon(1)> changes to the root directory by default, and so the file path
+should be an absolute path (or relative to the C<--chroot> and/or C<--chdir>
+option argument). Otherwise, I<daemon(1)> will attempt to create the file
+relative to its current directory. You might not have permissions to do
+that, or want to even if you do.
 
 =head1 CAVEAT
 
 Clients can only be restarted if they were started with the C<--respawn>
 option. Using C<--restart> on a non-respawning daemon client is equivalent
-to using C<--stop>.
+to using C<--stop>. If you try to restart a named daemon, and it stops
+instead, then it probably wasn't started with the C<--respawn> option.
 
-Clients run in the foreground with a pseudo terminal don't respond to job
-control (i.e. suspending with Control-Z doesn't work). This is because the
-client belongs to an orphaned process group (it starts in its own process
-session) so the kernel won't send it C<SIGSTOP> signals. However, if the
-client is a shell that supports job control, then its subprocesses can be
-suspended.
+Clients that are run in the foreground with a pseudo terminal don't respond
+to job control (i.e. suspending with Control-Z doesn't work). This is
+because the client belongs to an orphaned process group (it starts in its
+own process session), so the kernel won't send it C<SIGSTOP> signals.
+However, if the client is a shell that supports job control, then its
+subprocesses can be suspended.
 
 In KDE, if you use C<"exec daemon"> (or just C<"exec"> without C<daemon>) in
-a shell to run a KDE application you may find that the KDE application
-sometimes doesn't run. This problem has only been seen with I<konsole(1)>
-but it may happen with other KDE applications as well. Capturing the
+a shell, to run a KDE application, you might find that the KDE application
+sometimes doesn't run. This problem has only been seen with I<konsole(1)>,
+but it might happen with other KDE applications as well. Capturing the
 standard error of the KDE application might show something like:
 
   unnamed app(9697): KUniqueApplication: Registering failed!
@@ -799,10 +845,22 @@ standard error of the KDE application might show something like:
   Error message was:  "org.freedesktop.DBus.Error.ServiceUnknown" : " "The name
                       org.kde.konsole was not provided by any .service files"
 
-A workaround seems to be to delay the termination of the initial I<daemon(1)>
-process by at least 0.4 seconds. To make this happen, set the environment
-variable C<DAEMON_INIT_EXIT_DELAY_MSEC> to the number of milliseconds by
-which to delay. For example: C<DAEMON_INIT_EXIT_DELAY_MSEC=400>.
+A workaround seems to be to delay the termination of the initial
+I<daemon(1)> process by at least 0.4 seconds. To make this happen, set the
+environment variable C<DAEMON_INIT_EXIT_DELAY_MSEC> to the number of
+milliseconds by which to delay. For example:
+C<DAEMON_INIT_EXIT_DELAY_MSEC=400>. Or you could just avoid using C<exec>
+when starting I<KDE> applications.
+
+On I<Linux> systems that have I<systemd(1)>, you might find that your
+I<daemon> processes and their client processes are terminated when you
+logout, even though they are in a different process session, and so should
+be unaffected. This is because I<systemd> has the ability to terminate all
+of your processes when you logout. Luckily, this feature is turned off by
+default in some I<Linux> distributions. However, if it is on, you can turn
+it off by adding the following line to C</etc/systemd/logind.conf>:
+
+  KillUserProcesses=no
 
 =head1 SEE ALSO
 
@@ -828,7 +886,7 @@ I<wait(2)>
 
 =head1 AUTHOR
 
-20201111 raf <raf@raf.org>
+20210220 raf <raf@raf.org>
 
 =cut
 
@@ -988,10 +1046,10 @@ static struct
 	int acceptable;    /* minimum acceptable client duration in seconds */
 	int attempts;      /* number of times to attempt respawning before delay */
 	int delay;         /* delay in seconds between respawn attempt bursts */
-	int limit;         /* number of spawn attempt bursts */
+	int limit;         /* number of respawn attempt bursts */
 	int idiot;         /* idiot mode */
 	int attempt;       /* spawn attempt counter */
-	int burst;         /* spawn attempt burst counter */
+	int burst;         /* respawn attempt burst counter */
 	int foreground;    /* run the client in the foreground? */
 	int pty;           /* allocate a pseudo terminal for the client? */
 	int noecho;        /* set client pty to noecho mode? */
@@ -1138,7 +1196,7 @@ static void handle_name_option(const char *spec)
 		return;
 
 	if (g.done_name)
-		prog_usage_msg("Misplaced option: --name=%s in config file (must be on the command line)", spec);
+		prog_usage_msg("Misplaced option: --name=%s in config file (Must be on the command line)", spec);
 
 	if (strspn(spec, ACCEPT_NAME) != strlen(spec))
 		prog_usage_msg("Invalid --name argument: '%s' (Must consist entirely of [-._a-zA-Z0-9])", spec);
@@ -1218,7 +1276,7 @@ static void handle_pidfile_option(const char *spec)
 
 C<void handle_user_option(char *spec)>
 
-Parse and store the client C<--user[.group]> option argument, C<spec>.
+Parse and store the client C<--user[:group]> option argument, C<spec>.
 
 */
 
@@ -1235,10 +1293,10 @@ static void handle_user_option(char *spec)
 		return;
 
 	if (g.done_user)
-		prog_usage_msg("Misplaced option: --user=%s in config file (must be on the command line)", spec);
+		prog_usage_msg("Misplaced option: --user=%s in config file (Must be on the command line)", spec);
 
 	if (getuid() || geteuid())
-		prog_usage_msg("Invalid option: --user (only works for root)");
+		prog_usage_msg("Invalid option: --user (Only works for root)");
 
 	if ((pos = strchr(spec, ':')) || (pos = strchr(spec, '.')))
 	{
@@ -1255,10 +1313,10 @@ static void handle_user_option(char *spec)
 	g.init_groups = (g.group == null);
 
 	if (!g.user)
-		prog_usage_msg("Invalid --user argument: '%s' (no user name)", spec);
+		prog_usage_msg("Invalid --user argument: '%s' (No user name)", spec);
 
 	if (!(pwd = getpwnam(g.user)))
-		prog_usage_msg("Invalid --user argument: '%s' (unknown user %s)", spec, g.user);
+		prog_usage_msg("Invalid --user argument: '%s' (Unknown user %s)", spec, g.user);
 
 	g.uid = pwd->pw_uid;
 	g.gid = pwd->pw_gid;
@@ -1266,7 +1324,7 @@ static void handle_user_option(char *spec)
 	if (g.group)
 	{
 		if (!(grp = getgrnam(g.group)))
-			prog_usage_msg("Invalid --user argument: '%s' (unknown group %s)", spec, g.group);
+			prog_usage_msg("Invalid --user argument: '%s' (Unknown group %s)", spec, g.group);
 
 		if (grp->gr_gid != pwd->pw_gid)
 		{
@@ -1275,7 +1333,7 @@ static void handle_user_option(char *spec)
 					break;
 
 			if (!*member)
-				prog_usage_msg("Invalid --user argument: '%s' (user %s is not in group %s)", spec, g.user, g.group);
+				prog_usage_msg("Invalid --user argument: '%s' (User %s is not in group %s)", spec, g.user, g.group);
 		}
 
 		g.gid = grp->gr_gid;
@@ -1298,7 +1356,7 @@ static void handle_chroot_option(const char *spec)
 		return;
 
 	if (g.done_chroot)
-		prog_usage_msg("Misplaced option: --chroot=%s in config file (must be on the command line)", spec);
+		prog_usage_msg("Misplaced option: --chroot=%s in config file (Must be on the command line)", spec);
 
 	g.chroot = (char *)spec;
 }
@@ -1321,7 +1379,7 @@ static void handle_umask_option(const char *spec)
 	val = strtol(spec, &end, 8);
 
 	if (end == spec || *end || val < 0 || val > 0777)
-		prog_usage_msg("Invalid --umask argument: '%s' (must be a valid octal mode)", spec);
+		prog_usage_msg("Invalid --umask argument: '%s' (Must be a valid octal mode)", spec);
 
 	g.umask = val;
 }
@@ -1383,7 +1441,7 @@ static void handle_acceptable_option(int acceptable)
 	debug((1, "handle_acceptable_option(acceptable = %d)", acceptable))
 
 	if (!g.idiot && acceptable < RESPAWN_ACCEPTABLE_MIN)
-		prog_usage_msg("Invalid --acceptable argument: %d (less than %d)\n", acceptable, RESPAWN_ACCEPTABLE_MIN);
+		prog_usage_msg("Invalid --acceptable argument: %d (Less than %d)\n", acceptable, RESPAWN_ACCEPTABLE_MIN);
 
 	g.acceptable = acceptable;
 }
@@ -1392,7 +1450,7 @@ static void handle_acceptable_option(int acceptable)
 
 C<static void handle_attempts_option(int attempts)>
 
-Store the positive C<--attempts> option argument, C<attempts>.
+Store the C<--attempts> option argument, C<attempts>.
 
 */
 
@@ -1401,7 +1459,7 @@ static void handle_attempts_option(int attempts)
 	debug((1, "handle_attempts_option(attempts = %d)", attempts))
 
 	if (!g.idiot && (attempts < RESPAWN_ATTEMPTS_MIN || attempts > RESPAWN_ATTEMPTS_MAX))
-		prog_usage_msg("Invalid --attempts argument: %d (not between %d and %d)", attempts, RESPAWN_ATTEMPTS_MIN, RESPAWN_ATTEMPTS_MAX);
+		prog_usage_msg("Invalid --attempts argument: %d (Not between %d and %d)", attempts, RESPAWN_ATTEMPTS_MIN, RESPAWN_ATTEMPTS_MAX);
 
 	g.attempts = attempts;
 }
@@ -1419,7 +1477,7 @@ static void handle_delay_option(int delay)
 	debug((1, "handle_delay_option(delay = %d)", delay))
 
 	if (!g.idiot && delay < RESPAWN_DELAY_MIN)
-		prog_usage_msg("Invalid --delay argument: %d (less than %d)\n", delay, RESPAWN_DELAY_MIN);
+		prog_usage_msg("Invalid --delay argument: %d (Less than %d)\n", delay, RESPAWN_DELAY_MIN);
 
 	g.delay = delay;
 }
@@ -1437,7 +1495,7 @@ static void handle_limit_option(int limit)
 	debug((1, "handle_limit_option(limit = %d)", limit))
 
 	if (limit < RESPAWN_LIMIT_MIN)
-		prog_usage_msg("Invalid --limit argument: %d (less than %d)\n", limit, RESPAWN_LIMIT_MIN);
+		prog_usage_msg("Invalid --limit argument: %d (Less than %d)\n", limit, RESPAWN_LIMIT_MIN);
 
 	g.limit = limit;
 }
@@ -1455,7 +1513,7 @@ static void handle_idiot_option(void)
 	debug((1, "handle_idiot_option()"))
 
 	if (g.initial_uid)
-		prog_usage_msg("Invalid option: --idiot (is only for root)");
+		prog_usage_msg("Invalid option: --idiot (Only for root)");
 
 	g.idiot = 1;
 }
@@ -1590,7 +1648,7 @@ static void handle_stderr_option(const char *spec)
 
 C<static void handle_read_eof_option(void)>
 
-Restore read_eof mode.
+Restore I<read_eof> mode.
 
 */
 
@@ -1605,7 +1663,7 @@ static void handle_read_eof_option(void)
 
 C<static void handle_ignore_eof_option(void)>
 
-Turn off read_eof mode.
+Turn off I<read_eof> mode.
 
 */
 
@@ -1829,7 +1887,7 @@ static void handle_signal_option(const char *signame)
 
 C<Option daemon_optab[];>
 
-Application specific command line options.
+Application-specific command line options.
 
 */
 
@@ -1888,7 +1946,7 @@ static Option daemon_optab[] =
 		no_argument, OPT_NONE, OPT_VARIABLE, &g.unsafe, null
 	},
 	{
-		"safe", 'S', null, "Deny execution of unsafe executable",
+		"safe", 'S', null, "Disallow execution of unsafe executable",
 		no_argument, OPT_NONE, OPT_VARIABLE, &g.safe, null
 	},
 	{
@@ -1912,11 +1970,11 @@ static Option daemon_optab[] =
 		required_argument, OPT_INTEGER, OPT_FUNCTION, null, (func_t *)handle_attempts_option
 	},
 	{
-		"delay", 'L', "#", "Delay between spawn attempt bursts (seconds)",
+		"delay", 'L', "#", "Delay between respawn attempt bursts (seconds)",
 		required_argument, OPT_INTEGER, OPT_FUNCTION, null, (func_t *)handle_delay_option
 	},
 	{
-		"limit", 'M', "#", "Maximum number of spawn attempt bursts",
+		"limit", 'M', "#", "Maximum number of respawn attempt bursts",
 		required_argument, OPT_INTEGER, OPT_FUNCTION, null, (func_t *)handle_limit_option
 	},
 	{
@@ -1990,9 +2048,12 @@ static Options options[1] = {{ prog_options_table, daemon_optab }};
 
 C<Config *config_create(char *name, char *options)>
 
-Create a I<Config> object from a name and a comma separated list of C<options>.
+Create a I<Config> object from a name and a comma-separated list of C<options>.
+Space characters before or after the commas are skipped.
 
 */
+
+#define is_space(c) isspace((int)(unsigned char)(c))
 
 static Config *config_create(char *name, char *options)
 {
@@ -2029,8 +2090,22 @@ static Config *config_create(char *name, char *options)
 	for (i = 0; i < list_length(tokens); ++i)
 	{
 		char *tok = cstr((String *)list_item(tokens, i));
-		size_t size = strlen(tok) + 3;
+		size_t size, len;
 		char *option;
+
+		/* Strip leading and trailing space */
+
+		while (*tok && is_space(*tok))
+			++tok;
+
+		len = strlen(tok);
+
+		while (len && is_space(tok[len - 1]))
+			tok[--len] = nul;
+
+		/* Construct and append the command line option */
+
+		size = len + 3;
 
 		if (!(option = mem_create(size, char)))
 		{
@@ -2083,8 +2158,6 @@ the configuration file.
 
 */
 
-#define is_space(c) isspace((int)(unsigned char)(c))
-
 static void config_parse(void *obj, const char *path, char *line, size_t lineno)
 {
 	List *list = (List *)obj;
@@ -2095,10 +2168,14 @@ static void config_parse(void *obj, const char *path, char *line, size_t lineno)
 
 	debug((1, "config_parse(obj = %p, path = %s, line = \"%s\", lineno = %d)", obj, path, line, lineno))
 
+	/* Skip any leading space */
+
 	while (*s && is_space(*s))
 		++s;
 
-	while ((n - name) < 512 && *s && !is_space(*s))
+	/* Extract the daemon name (or "*" for generic options) to a buffer */
+
+	while ((n - name) < sizeof(name) - 1 && *s && !is_space(*s))
 	{
 		if (*s == '\\')
 			++s;
@@ -2107,10 +2184,24 @@ static void config_parse(void *obj, const char *path, char *line, size_t lineno)
 
 	*n = '\0';
 
+	/* Check that there is a daemon name (or "*") */
+
+	if (!*name)
+		fatal("syntax error in %s, line %d, expected * or a daemon name:\n%s", path, lineno, line);
+
+	/* Check that the daemon name isn't too long for the buffer */
+
+	if (!is_space(*s))
+		fatal("syntax error in %s, line %d, name too long:\n%s", path, lineno, line);
+
+	/* Skip space between the daemon name and options */
+
 	while (*s && is_space(*s))
 		++s;
 
-	while ((o - options) < 4096 && *s)
+	/* Extract the options to a buffer */
+
+	while ((o - options) < sizeof(options) - 1 && *s)
 	{
 		if (*s == '\\')
 			++s;
@@ -2119,8 +2210,17 @@ static void config_parse(void *obj, const char *path, char *line, size_t lineno)
 
 	*o = '\0';
 
-	if (!*name || !*options)
-		fatal("syntax error in %s, line %d:\n%s", path, lineno, line);
+	/* Check that there are options */
+
+	if (!*options)
+		fatal("syntax error in %s, line %d, expected options:\n%s", path, lineno, line);
+
+	/* Check that the options aren't too long for the buffer */
+
+	if ((o - options) == sizeof(options) - 1 && *s)
+		fatal("syntax error in %s, line %d, options too long:\n%s", path, lineno, line);
+
+	/* Append this configuration item to the list */
 
 	if (!(config = config_create(name, options)) || !list_append(list, config))
 		fatalsys("out of memory");
@@ -2668,9 +2768,9 @@ C<int construct_clientpidfile(const char *name, char **clientpidfile)>
 Constructs the clientpidfile for the given C<name> in C<clientpidfile>. If
 C<name> is already an absolute path, it is interpreted as the path of a
 pidfile and its C<.pid> suffix is just changed to C<.clientpid> in the new
-buffer. On success, returns C<0> and the resulting buffer in C<pidfile> must
-be deallocated by the caller. On error, returns C<-1> with C<errno> set
-appropriately.
+buffer. On success, returns C<0>, and the resulting buffer in
+C<clientpidfile> must be deallocated by the caller. On error, returns C<-1>
+with C<errno> set appropriately.
 
 */
 
@@ -2720,7 +2820,7 @@ static int construct_clientpidfile(const char *name, char **clientpidfile)
 C<int create_clientpidfile(void)>
 
 Like I<daemon_pidfile()> except that this creates a pidfile containing the
-client process's pid rather than the current proceess's pid and the filename
+client process's pid rather than the current process's pid and the filename
 suffix is C<.clientpid> rather than C<.pid>.
 
 */
@@ -2805,7 +2905,7 @@ appropriately.
 
 static pid_t getclientpid(const char *name)
 {
-	char *clientpidfile = NULL;
+	char *clientpidfile = null;
 	char buf[BUFSIZ];
 	ssize_t bytes;
 	int clientpid_fd;
@@ -2881,7 +2981,7 @@ static void spawn_child(void)
 			g.spawn_time = spawn_time;
 		}
 
-		/* Handle failed spawn attempts - burst, wait, burst, wait, ... */
+		/* Handle failed respawn attempts - burst, wait, burst, wait, ... */
 
 		if (spawn_time - g.spawn_time < g.acceptable)
 		{
@@ -3542,7 +3642,8 @@ static int safety_check_script(const char *cmd, char *explanation, size_t explan
 	** Note: Shell scripts without #! will still work because the
 	** coprocess functions will try /bin/sh if execve(2) fails.
 	** Since we can't tell whether or not this will happen without
-	** calling execve(2), we assume that /bin/sh is safe.
+	** calling execve(2), we assume that /bin/sh is not group- or
+	** world-writable.
 	*/
 
 	if ((fd = open(cmd, O_RDONLY)) != -1)
@@ -3681,34 +3782,34 @@ static void sanity_check(void)
 	debug((1, "sanity_check()"))
 
 	if (g.acceptable != RESPAWN_ACCEPTABLE && !g.respawn)
-		prog_usage_msg("Missing option: --respawn (required for --acceptable)");
+		prog_usage_msg("Missing option: --respawn (Required for --acceptable)");
 
 	if (g.attempts != RESPAWN_ATTEMPTS && !g.respawn)
-		prog_usage_msg("Missing option: --respawn (required for --attempts)");
+		prog_usage_msg("Missing option: --respawn (Required for --attempts)");
 
 	if (g.delay != RESPAWN_DELAY && !g.respawn)
-		prog_usage_msg("Missing option: --respawn (required for --delay)");
+		prog_usage_msg("Missing option: --respawn (Required for --delay)");
 
 	if (g.limit != RESPAWN_LIMIT && !g.respawn)
-		prog_usage_msg("Missing option: --respawn (required for --limit)");
+		prog_usage_msg("Missing option: --respawn (Required for --limit)");
 
 	if (g.idiot && !g.respawn)
-		prog_usage_msg("Missing option: --respawn (required for --idiot)");
+		prog_usage_msg("Missing option: --respawn (Required for --idiot)");
 
 	if (g.pty && !g.foreground)
-		prog_usage_msg("Missing option: --foreground (required for --pty)");
+		prog_usage_msg("Missing option: --foreground (Required for --pty)");
 
 	if (g.stop && !g.name)
-		prog_usage_msg("Missing option: --name (required for --stop)");
+		prog_usage_msg("Missing option: --name (Required for --stop)");
 
 	if (g.running && !g.name)
-		prog_usage_msg("Missing option: --name (required for --running)");
+		prog_usage_msg("Missing option: --name (Required for --running)");
 
 	if (g.restart && !g.name)
-		prog_usage_msg("Missing option: --name (required for --restart)");
+		prog_usage_msg("Missing option: --name (Required for --restart)");
 
 	if (g.signame && !g.name)
-		prog_usage_msg("Missing option: --name (required for --signal)");
+		prog_usage_msg("Missing option: --name (Required for --signal)");
 
 	if (g.list && g.name)
 		prog_usage_msg("Incompatible options: --list and --name");
@@ -3770,6 +3871,7 @@ static void sanity_check(void)
 
 		if (access(buf, W_OK) == -1)
 			prog_usage_msg("Invalid --pidfile argument: '%s' (Parent directory is not writable)", g.pidfile);
+
 		mem_release(buf);
 	}
 }
@@ -3778,7 +3880,7 @@ static void sanity_check(void)
 
 C<int strsmartcmp(const char *a, const char *b)>
 
-Compares two strings, C<a> and C<b>, ignoring the case of the characters
+Compares two strings, C<a> and C<b>, ignoring the case of the characters,
 and comparing numeric substrings numerically. It returns an integer less
 than, equal to, or greater than zero if C<a> is found to be less than,
 equal to, or greater than C<b>, respectively.
@@ -3885,8 +3987,8 @@ Tries to check if the C</proc/pid/comm> virtual file corresponding to the
 given process ID (I<pid>) contains the name C<"daemon\n">. Return C<1> if it
 does. Returns C<0> if it doesn't. Returns C<-1> if unable to open the
 virtual file. This only works on systems that support this C</proc>
-filesystem virtual file (i.e. Linux). Note: This doesn't guarantee that the
-process is an instance of this daemon program. It could conceivably be
+filesystem virtual file (i.e. I<Linux>). Note: This doesn't guarantee that
+the process is an instance of this daemon program. It could conceivably be
 another executable named I<daemon>.
 
 */
@@ -4061,7 +4163,7 @@ int msg_filter_pid_prefix(void **mesgp, const void *mesg, size_t mesglen)
 C<void init(int ac, char **av)>
 
 Initialises the program. Revokes any setuid/setgid privileges. Processes
-command line options. Processes the configuration file. Calls
+command line options. Processes the configuration file(s). Calls
 I<daemon_prevent_core()> unless the C<--core> option was supplied. Calls
 I<daemon_init()> with the C<--name> option's argument, if any. Arranges to
 have C<SIGTERM> signals propagated to the client process. And stores the
@@ -4098,7 +4200,7 @@ static void init(int ac, char **av)
 
 	prog_set_legal
 	(
-		"Copyright (C) 1999-2004, 2010, 2020 raf <raf@raf.org>\n"
+		"Copyright (C) 1999-2004, 2010, 2020-2021 raf <raf@raf.org>\n"
 		"\n"
 		"This is free software released under the terms of the GPLv2+:\n"
 		"\n"

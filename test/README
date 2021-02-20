@@ -2,7 +2,7 @@ README
 ======
 This directory contains various tests for the daemon program. Note that
 these tests do not verify their own behaviour. Most of the tests send
-messages to syslog so you have to monitor syslog destinations (e.g.
+messages to syslog, so you have to monitor syslog destinations (e.g.
 /var/log/messages). Some of the tests run in the foreground with pseudo
 terminals. A user has to be there to see that things (like window resizing)
 work. So this file describes what to expect for each test. Note that the

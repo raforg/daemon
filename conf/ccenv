@@ -1,9 +1,8 @@
 #!/bin/sh
-
 #
-# libslack - http://libslack.org/
+# daemon - http://libslack.org/daemon/
 #
-# Copyright (C) 1999-2002, 2004, 2010, 2020-2021 raf <raf@raf.org>
+# Copyright (C) 1999-2004, 2010, 2020-2021 raf <raf@raf.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,17 +18,17 @@
 # along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
 
+# Modify Makefile to use $CC as CC
+#
 # 20210220 raf <raf@raf.org>
 
-# Convert an old libslack property file into a libslack-0.5.2 property file.
-# Previously, leading spaces were kept. Now they're stripped unless quoted.
-# This script quotes leading spaces in old properties files so that they'll
-# be preserved by newer versions of libslack.
-
-if [ $# = 0 ]
+if [ "x$CC" != x ]
 then
-	echo usage: $0 '/etc/properties/* ~/.properties/*' >&2
-	exit 1
+	perl -pi \
+		-e 's/^(CC := cc)$/# $1/;' \
+		-e 's/^(CC := gcc)$/# $1/;' \
+		-e 's,^# (CC := .*other)$,CC := '"$CC"' # other,;' \
+		`find . -name Makefile`
 fi
 
-exec perl -p -i -e 's/(?<!\\)= /=\\ /' "$@"
+# vi:set ts=4 sw=4:

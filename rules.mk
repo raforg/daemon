@@ -1,7 +1,7 @@
 
 # daemon - http://libslack.org/daemon/
 #
-# Copyright (C) 1999-2004, 2010, 2020 raf <raf@raf.org>
+# Copyright (C) 1999-2004, 2010, 2020-2021 raf <raf@raf.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 # along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
 
-# 20201111 raf <raf@raf.org>
+# 20210220 raf <raf@raf.org>
 
 ifneq ($(DAEMON_TARGET),./$(DAEMON_NAME))
 
@@ -225,7 +225,7 @@ DAEMON_DEBIAN_CONTROL_CODE := perl -p -i -e ' \
 
 DAEMON_DEBIAN_COPYRIGHT_CODE := perl -p -i -e ' \
 		s/<url:\/\/example\.com>/<http:\/\/libslack.org\/daemon\/>/; \
-		s/Copyright: <years> <put author.s name and email here>/Copyright: 1999-2004, 2010, 2020 raf <raf\@raf.org>/; \
+		s/Copyright: <years> <put author.s name and email here>/Copyright: 1999-2004, 2010, 2020-2021 raf <raf\@raf.org>/; \
 		s/\s+<years> <likewise for another author>\n//; \
 		s/License: <special license>/License: GPL-2+/; \
 		s/<Put the license of the package here indented by 1 space>/This software is released under the terms of the GNU General Public License v2+:\n\n    http:\/\/www.gnu.org\/copyleft\/gpl.html   (on the Web)\n    file:\/usr\/share\/common-licenses\/GPL-2  (on Debian systems)/; \
@@ -593,12 +593,8 @@ include $(SLACK_SRCDIR)/rules.mk
 $(DAEMON_SRCDIR)/%.o: $(DAEMON_SRCDIR)/%.c
 	$(CC) $(DAEMON_CFLAGS) -o $@ -c $<
 
-ifneq ($(findstring quotes,$(shell $(POD2MAN) --help 2>&1)),)
-NOQUOTES := --quotes=none
-endif
-
 $(DAEMON_SRCDIR)/%.$(APP_MANSECT): $(DAEMON_SRCDIR)/%.c
-	$(POD2MAN) --center='$(APP_MANSECTNAME)' --section=$(APP_MANSECT) $(NOQUOTES) $< > $@
+	$(POD2MAN) --section=$(APP_MANSECT) --center='$(APP_MANSECTNAME)' --name=$(shell echo $(DAEMON_NAME) | tr a-z A-Z) --release=$(DAEMON_ID) --date=$(DAEMON_DATE) --quotes=none $< > $@
 
 $(DAEMON_SRCDIR)/%.gz: $(DAEMON_SRCDIR)/%
 	$(GZIP) $<
