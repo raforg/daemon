@@ -33,7 +33,7 @@ rather than just changing the `uid` of the client process.
 
 Read the system configuration file(s) (`/etc/daemon.conf` and
 `/etc/daemon.conf.d/*` by default, or specified by the `--config` option)
-unless the C<--noconfig> option was supplied. Then read the user's personal
+unless the `--noconfig` option was supplied. Then read the user's personal
 configuration file(s) (`~/.daemonrc` and `~/.daemonrc.d/*`), if any. Note:
 The root directory and the user must be set before access to the
 configuration file(s) can be attempted so neither `--chroot` nor `--user`
