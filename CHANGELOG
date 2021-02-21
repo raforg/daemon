@@ -1,10 +1,6 @@
 CHANGELOG
 =========
 
-0.8 (XXXXXXXX)
-
-    - Added --bind option to terminate client when user logs out (iff systemd/elogind) (for Zhao Lin)
-
 0.7.1 (20210220)
 
     - Fixed make distclean/clobber on Debian (use debian-clobber instead of clobber) (spotted by Marc Haber)
