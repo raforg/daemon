@@ -140,6 +140,10 @@ DAEMON_CFLAGS += $(DAEMON_CPPFLAGS) $(DAEMON_CCFLAGS)
 DAEMON_LIBS += slack
 DAEMON_LIBS += pthread
 DAEMON_LIBS += util
+# Uncomment this for --bind on Linux systems with systemd (e.g. Debian)
+# DAEMON_LIBS += systemd
+# Uncomment this for --bind on Linux systems with elogind (e.g. Slackware)
+# DAEMON_LIBS += elogind
 
 # Uncomment these on Solaris for sockets
 #

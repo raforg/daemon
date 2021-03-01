@@ -63,6 +63,8 @@ CLEAN_FILES += tags core Makefile.bak .makefile.bak pod2htm*
 
 DAEMON_SRCDIR := .
 DAEMON_INCDIRS := libslack
+# Uncomment this for Linux systems without systemd but with elogind (e.g. Slackware)
+# DAEMON_INCDIRS += /usr/include/elogind
 DAEMON_LIBDIRS := libslack
 include $(DAEMON_SRCDIR)/macros.mk
 

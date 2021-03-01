@@ -143,4 +143,6 @@ perl -pi \
 	-e 's/^#define (HAVE_POLL_THAT_ABORTS_WHEN_POLLFDS_IS_NULL) 1$/\/* #undef $1 *\//;' \
 	`find . -name config.h`
 
+conf/test-logind
+
 # vi:set ts=4 sw=4:

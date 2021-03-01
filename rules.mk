@@ -82,6 +82,7 @@ uninstall-daemon-conf:
 
 dist-daemon: distclean
 	@set -e; \
+	conf/test-logind --disable
 	up="`pwd`/.."; \
 	cd $(DAEMON_SRCDIR); \
 	src=`basename \`pwd\``; \

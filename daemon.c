@@ -63,6 +63,8 @@ I<daemon> - turns other processes into daemons
  -f, --foreground          - Run the client in the foreground
  -p, --pty[=noecho]        - Allocate a pseudo terminal for the client
 
+ -B, --bind                - Stop when the user's last logind session ends
+
  -l, --errlog=spec         - Send daemon's error output to syslog or file
  -b, --dbglog=spec         - Send daemon's debug output to syslog or file
  -o, --output=spec         - Send client's output to syslog or file
@@ -523,6 +525,20 @@ If the C<noecho> argument is supplied with this option, the client's side of
 the pseudo terminal will be set to C<noecho> mode. Use this only if there
 really is a terminal involved and input is being echoed twice.
 
+=item C<-B>, C<--bind>
+
+Automatically terminate the client process (and I<daemon(1)> itself) as soon
+as the user has no I<systemd-logind(8)> (or I<elogind(8)>) user sessions. In
+other words, automatically terminate when the user logs out. If the user has
+no sessions to start with, the client process will be terminated
+immediately.
+
+This option is only available on I<Linux> systems that have either
+I<systemd(1)> (e.g. I<Debian>) or I<elogind(8)> (e.g. I<Slackware>). On
+systems with I<systemd(1)>, you could instead use a I<systemd> user service,
+particularly if your user account is not allowed to have user services that
+I<linger>.
+
 =item C<-l> I<spec>, C<--errlog=>I<spec>
 
 Send I<daemon>'s standard output and standard error to the syslog
@@ -882,7 +898,9 @@ I<setgroups(2)>,
 I<initgroups(3)>,
 I<syslog(3)>,
 I<kill(2)>,
-I<wait(2)>
+I<wait(2)>,
+I<systemd-logind(8)>,
+I<elogind(8)>
 
 =head1 AUTHOR
 
@@ -939,6 +957,12 @@ I<wait(2)>
 #include <slack/list.h>
 #include <slack/str.h>
 #include <slack/fio.h>
+
+#include "config.h"
+
+#ifdef HAVE_LOGIND
+#include <systemd/sd-login.h>
+#endif
 
 /* Configuration file entries */
 
@@ -1054,6 +1078,11 @@ static struct
 	int foreground;    /* run the client in the foreground? */
 	int pty;           /* allocate a pseudo terminal for the client? */
 	int noecho;        /* set client pty to noecho mode? */
+	int bind;          /* bind the daemon to the user's logind session? */
+#ifdef HAVE_LOGIND
+	sd_login_monitor *logind_monitor; /* The systemd-logind/elogind monitor object */
+	int logind_monitor_fd;            /* The systemd-logind/elogind monitor file descriptor */
+#endif
 	int core;          /* do we allow core file generation? */
 	int unsafe;        /* executable unsafe executables as root? */
 	int safe;          /* do not execute unsafe executables? */
@@ -1131,6 +1160,11 @@ g =
 	0,                      /* foreground */
 	0,                      /* pty */
 	0,                      /* noecho */
+	0,                      /* bind */
+#ifdef HAVE_LOGIND
+	null,                   /* logind_monitor */
+	-1,                     /* logind_monitor_fd */
+#endif
 	0,                      /* core */
 	0,                      /* unsafe */
 	0,                      /* safe */
@@ -1990,6 +2024,12 @@ static Option daemon_optab[] =
 		"pty", 'p', "noecho", "Allocate a pseudo terminal for the client\n",
 		optional_argument, OPT_STRING, OPT_FUNCTION, null, (func_t *)handle_pty_option
 	},
+#ifdef HAVE_LOGIND
+	{
+		"bind", 'B', null, "Stop when the user's last logind session ends\n",
+		no_argument, OPT_NONE, OPT_VARIABLE, &g.bind, null
+	},
+#endif
 	{
 		"errlog", 'l', "spec", "Send daemon's error output to syslog or file",
 		required_argument, OPT_STRING, OPT_FUNCTION, null, (func_t *)handle_errlog_option
@@ -2447,7 +2487,8 @@ static void config(void)
 C<void term(int signo)>
 
 This function is registered as the C<SIGTERM> handler. It propagates the
-C<SIGTERM> signal to the client process and calls I<exit(3)>.
+C<SIGTERM> signal to the client process and records the fact that the client
+has been stopped. That will cause I<exit(3)> to be called later.
 I<daemon_close(3)> will be called by I<atexit(3)> to unlink the locked pid
 file (if any).
 
@@ -2661,17 +2702,57 @@ static void restore_stdin(void)
 		errorsys("failed to restore stdin terminal attributes");
 }
 
+#ifdef HAVE_LOGIND
+/*
+
+C<void unbind(void)>
+
+Unbind the client from the systemd-logind/elogind session. Close the logind
+monitor file descriptor, and release the logind monitor object.
+
+*/
+
+static void unbind(void)
+{
+	debug((1, "unbind"))
+
+	if (g.logind_monitor_fd != -1)
+	{
+		debug((2, "close g.logind_monitor_fd = %d", g.logind_monitor_fd))
+
+		close(g.logind_monitor_fd);
+		g.logind_monitor_fd = -1;
+	}
+
+	if (g.logind_monitor != null)
+	{
+		debug((2, "release g.logind_monitor"))
+
+		sd_login_monitor_unref(g.logind_monitor);
+		g.logind_monitor = null;
+	}
+
+	debug((2, "reset g.bind = 0"))
+
+	g.bind = 0;
+}
+#endif
+
 /*
 
 C<void prepare_parent(void)>
 
-Before forking, set the term and chld signal handlers.
+Before forking, set the term, chld and usr1 signal handlers.
+If --foreground and stdin isatty, prepare for the pseudo terminal.
+If --bind, setup the systemd-logind/elogind monitor.
 
 */
 
 static void prepare_parent(void)
 {
 	debug((1, "prepare_parent()"))
+
+	/* Before forking, set the term, chld and usr1 signal handlers */
 
 	debug((2, "setting sigterm action"))
 
@@ -2687,6 +2768,8 @@ static void prepare_parent(void)
 
 	if (signal_set_handler(SIGUSR1, 0, usr1) == -1)
 		fatalsys("failed to set sigusr1 action");
+
+	/* If --foreground and stdin isatty, prepare for the pseudo terminal */
 
 	if (g.foreground && isatty(STDIN_FILENO))
 	{
@@ -2718,6 +2801,55 @@ static void prepare_parent(void)
 
 		g.stdin_isatty = 1;
 	}
+
+#ifdef HAVE_LOGIND
+	/*
+	** If --bind, setup a systemd-logind/elogind monitor object and file descriptor,
+	** so we can bind the client to the duration of the user's logind session.
+	**
+	** If it fails, continue unbound. This seems more resilient than
+	** treating it as a fatal error, and refusing to continue. But it does
+	** mean that the client will continue to run after the user logs out.
+	** That might be a problem in some cases. Naming the daemon to ensure a
+	** singleton client might help in such cases.
+	**
+	** Is another option needed to make such a failure fatal?
+	** Are these calls likely to ever fail? Only if out of memory.
+	** If that happens, we'll probably fail to start the client anyway.
+	*/
+
+	if (g.bind)
+	{
+		int ret;
+
+		debug((2, "sd_login_monitor_new(\"uid\")"))
+
+		if ((ret = sd_login_monitor_new("uid", &g.logind_monitor)) < 0)
+		{
+			errno = -ret;
+			errorsys("failed to bind to the logind session (continuing unbound): sd_login_monitor_new");
+			unbind();
+		}
+	}
+
+	if (g.bind)
+	{
+		int ret;
+
+		debug((2, "sd_login_monitor_get_fd"))
+
+		if ((ret = sd_login_monitor_get_fd(g.logind_monitor)) < 0)
+		{
+			errno = -ret;
+			errorsys("failed to bind to the logind session (continuing unbound): sd_login_monitor_get_fd");
+			unbind();
+		}
+		else
+		{
+			g.logind_monitor_fd = ret;
+		}
+	}
+#endif
 }
 
 /*
@@ -3152,6 +3284,12 @@ static void examine_child(void)
 	else
 	{
 		debug((2, "%schild terminated, exiting", (g.terminated) ? "daemon and " : ""))
+
+#ifdef HAVE_LOGIND
+		if (g.bind)
+			unbind();
+#endif
+
 		exit(EXIT_SUCCESS);
 	}
 }
@@ -3160,12 +3298,12 @@ static void examine_child(void)
 
 C<void run(void)>
 
-The main run loop. Calls I<prepare_environment()>, I<prepare_parent()> and
-I<spawn_child()>. Send the client's stdout/stderr to syslog or a file (or to
-the user) if necessary. Send any input to the client if necessary. Handle
-any signals that arrive in the meantime. When there is no more to read from
-the client (either the client has died or it has closed stdout and stderr),
-just wait for the client to terminate.
+The main run loop. Calls I<prepare_parent()> and I<spawn_child()>. Send the
+client's stdout/stderr to syslog or a file (or to the user) if necessary.
+Send any input to the client if necessary. Handle any signals that arrive in
+the meantime. When there is no more to read from the client (either the
+client has died or it has closed stdout and stderr), just wait for the
+client to terminate.
 
 */
 
@@ -3261,6 +3399,17 @@ static void run(void)
 						maxfd = g.err;
 				}
 			}
+
+#ifdef HAVE_LOGIND
+			if (g.bind)
+			{
+				debug((9, "select() preparation readfds += g.logind_monitor_fd = fd %d", g.logind_monitor_fd))
+
+				FD_SET(g.logind_monitor_fd, readfds);
+				if (g.logind_monitor_fd > maxfd)
+					maxfd = g.logind_monitor_fd;
+			}
+#endif
 
 			debug((2, "select(%s)", (g.pty_user_fd != -1) ? "pty" : "pipes"))
 
@@ -3521,6 +3670,48 @@ static void run(void)
 					g.stdin_eof = 1;
 				}
 			}
+
+#ifdef HAVE_LOGIND
+			if (g.bind && !g.terminated)
+			{
+				int ret;
+
+				if ((ret = sd_login_monitor_flush(g.logind_monitor)) < 0)
+				{
+					errno = -ret;
+					errorsys("failed to reset logind monitor fd (continuing unbound): sd_login_monitor_flush");
+					unbind();
+				}
+				else
+				{
+					uid_t uid = g.uid ? g.uid : getuid();
+					int num_sessions = sd_uid_get_sessions(uid, 0, null);
+
+					if (num_sessions < 0)
+					{
+						errno = -num_sessions;
+						errorsys("failed to count logind sessions (continuing unbound): sd_uid_get_sessions(%d)", uid);
+						unbind();
+					}
+
+					/*
+					** Stop the client if the user has logged out.
+					** Note: If there is no user session when we start,
+					** this will terminate the client immediately.
+					** Should we wait until there has been a logind session
+					** before looking for the absense of a logind session?
+					*/
+
+					if (num_sessions == 0)
+					{
+						debug((2, "bound to logind session that no longer exists, automatically terminating"))
+
+						unbind();
+						term(SIGTERM);
+					}
+				}
+			}
+#endif
 		}
 
 		debug((2, "no more output, just wait for child to terminate"))
@@ -3545,7 +3736,7 @@ static void show(void)
 
 	debug((2, "options:"))
 
-	debug((2, " config %s, noconfig %d, name %s, command \"%s\", pidfiles %s, pidfile %s, uid %d, gid %d, init_groups %d, chroot %s, chdir %s, umask %o, inherit %s, respawn %s, acceptable %d, attempts %d, delay %d, limit %d, idiot %d, foreground %s, pty %s, noecho %s, stdout %s%s%s%s, stderr %s%s%s%s, errlog %s%s%s%s, dbglog %s%s%s%s, core %s, unsafe %s, safe %s, read_eof %s, stop %s, running %s, restart %s, signame %s, signo %d, list %s, verbose %d, debug %d",
+	debug((2, " config %s, noconfig %d, name %s, command \"%s\", pidfiles %s, pidfile %s, uid %d, gid %d, init_groups %d, chroot %s, chdir %s, umask %o, inherit %s, respawn %s, acceptable %d, attempts %d, delay %d, limit %d, idiot %d, foreground %s, pty %s, noecho %s, bind %s, stdout %s%s%s%s, stderr %s%s%s%s, errlog %s%s%s%s, dbglog %s%s%s%s, core %s, unsafe %s, safe %s, read_eof %s, stop %s, running %s, restart %s, signame %s, signo %d, list %s, verbose %d, debug %d",
 		g.config ? g.config : "<none>",
 		g.noconfig,
 		g.name ? g.name : "<none>",
@@ -3568,6 +3759,7 @@ static void show(void)
 		g.foreground ? "yes" : "no",
 		g.pty ? "yes" : "no",
 		g.noecho ? "yes" : "no",
+		g.bind ? "yes" : "no",
 		g.client_outlog ? syslog_facility_str(g.client_outlog) : "",
 		g.client_outlog ? "." : "",
 		g.client_outlog ? syslog_priority_str(g.client_outlog) : "",
