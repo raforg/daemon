@@ -922,6 +922,7 @@ I<wait(2)>
 #ifdef _RESTORE_POSIX_SOURCE
 #define _POSIX_SOURCE
 #endif
+#include <sys/ttydefaults.h>
 #include <dirent.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
