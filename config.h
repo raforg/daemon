@@ -25,6 +25,9 @@
 /* Define if we have systemd's logind or elogind (i.e. libsystemd or libelogind) */
 /* #undef HAVE_LOGIND */
 
+/* Define if we have <sys/ttydefaults.h> and need it for CEOF in musl libc (Linux only)  */
+#define HAVE_SYS_TTYDEFAULTS_H 1
+
 #endif
 
 /* vi:set ts=4 sw=4: */

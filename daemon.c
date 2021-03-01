@@ -940,7 +940,9 @@ I<elogind(8)>
 #ifdef _RESTORE_POSIX_SOURCE
 #define _POSIX_SOURCE
 #endif
+#ifdef HAVE_SYS_TTYDEFAULTS_H /* For CEOF in musl libc (Linux only) */
 #include <sys/ttydefaults.h>
+#endif
 #include <dirent.h>
 #include <sys/wait.h>
 #include <sys/stat.h>

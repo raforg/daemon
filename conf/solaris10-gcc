@@ -170,4 +170,8 @@ perl -pi \
 	-e 's/^\/\* #undef (HAVE_POLL_THAT_ABORTS_WHEN_POLLFDS_IS_NULL) \*\/$/#define $1 1/;' \
 	`find . -name config.h`
 
+perl -pi \
+	-e 's/^#define (HAVE_SYS_TTYDEFAULTS_H) 1$/\/\* #undef $1 \*\//;' \
+	config.h
+
 # vi:set ts=4 sw=4:

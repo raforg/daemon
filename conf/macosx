@@ -143,6 +143,10 @@ perl -pi \
 	-e 's/^\/\* #undef (HAVE_POLL_THAT_ABORTS_WHEN_POLLFDS_IS_NULL) \*\/$/#define $1 1/;' \
 	`find . -name config.h`
 
+perl -pi \
+	-e 's/^#define (HAVE_SYS_TTYDEFAULTS_H) 1$/\/\* #undef $1 \*\//;' \
+	config.h
+
 # Old versions of macOS (e.g. 10.6.8) don't handle some newer clang -Wno-* options.
 # But don't test if macports (which uses a newer compiler than Xcode's).
 # We know it's macports because CC is set.
