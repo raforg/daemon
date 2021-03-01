@@ -26,6 +26,11 @@ case "`uname -a`" in
 	Linux*)
 		echo "Configuring for linux"
 		conf/linux
+		if [ -f /etc/slackware-version ]
+		then
+			echo "Configuring for slackware"
+			conf/slackware
+		fi
 		;;
 
 	GNU/kFreeBSD*)
