@@ -229,7 +229,7 @@ DAEMON_DEBIAN_COPYRIGHT_CODE := perl -p -i -e ' \
 		s/Copyright: <years> <put author.s name and email here>/Copyright: 1999-2004, 2010, 2020-2021 raf <raf\@raf.org>/; \
 		s/\s+<years> <likewise for another author>\n//; \
 		s/License: <special license>/License: GPL-2+/; \
-		s/<Put the license of the package here indented by 1 space>/This software is released under the terms of the GNU General Public License v2+:\n\n    http:\/\/www.gnu.org\/copyleft\/gpl.html   (on the Web)\n    file:\/usr\/share\/common-licenses\/GPL-2  (on Debian systems)/; \
+		s/<Put the license of the package here indented by 1 space>/This software is released under the terms of the GNU General Public License v2+:\n\n    https:\/\/www.gnu.org\/licenses\/   (on the Web)\n    file:\/usr\/share\/common-licenses\/GPL-2  (on Debian systems)/; \
 		s/ <This follows the format of Description: lines in control file>\n//; \
 		s/ <Including paragraphs>\n//; \
 		s/\#.*//'

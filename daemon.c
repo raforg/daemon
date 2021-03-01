@@ -4399,7 +4399,7 @@ static void init(int ac, char **av)
 		"\n"
 		"This is free software released under the terms of the GPLv2+:\n"
 		"\n"
-		"    http://www.gnu.org/copyleft/gpl.html\n"
+		"    https://www.gnu.org/licenses/\n"
 		"\n"
 		"There is no warranty; not even for merchantability or fitness\n"
 		"for a particular purpose.\n"
