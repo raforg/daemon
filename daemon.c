@@ -379,6 +379,9 @@ don't forget where you put your pidfiles. This option is best used in
 configuration files, or in shell scripts, rather than on an interactive
 command line.
 
+The pidfile location will be created automatically only if it is within the
+user's home directory.
+
 =item C<-F> I</path>, C<--pidfile=>I</path>
 
 Override the standard pidfile name and location. The standard pidfile
@@ -388,6 +391,9 @@ standard pidfile name and location are unacceptable, but make sure that you
 don't forget where you put your pidfile. This option is best used in
 configuration files, or in shell scripts, rather than on an interactive
 command line.
+
+The pidfile location will be created automatically only if it is within the
+user's home directory.
 
 =item C<-u> I<user[:[group]]>, C<--user=>I<user[:[group]]>
 
@@ -1403,6 +1409,76 @@ static char *expand(const char *input)
 
 /*
 
+C<void prepare_pidfiles(const char *path)>
+
+If C<path> refers to a directory within the user's home directory that
+doesn't exist yet, create it.
+
+*/
+
+static void prepare_pidfiles(const char *path)
+{
+	struct stat status[1];
+	struct passwd *pwd;
+	const char *homedir;
+	size_t homelen;
+	char *dir = null;
+	const char *start, *end;
+
+	debug((1, "prepare_pidfiles(%s)", path))
+
+	/* Does path already exist? */
+
+	if (stat(path, status) == 0)
+		return;
+
+	/* Get the user's home directory */
+
+	if (!(pwd = getpwuid(g.uid ? g.uid : getuid())))
+		return;
+
+	homedir = pwd->pw_dir;
+	homelen = strlen(homedir);
+
+	/* Is path within it? */
+
+	if (!(strncmp(path, homedir, homelen) == 0 && path[homelen] == '/'))
+		return;
+
+	/* Create it */
+
+	for (start = path + homelen + 1;; start = end + 1)
+	{
+		if ((end = strchr(start, PATH_SEP)))
+		{
+			if (asprintf(&dir, "%.*s", (int)(end - path), path) == -1)	
+				fatalsys("failed to prepare pidfiles location");
+		}
+		else
+		{
+			if (!(dir = mem_strdup(path)))
+				fatalsys("failed to prepare pidfiles location");
+		}
+
+		debug((2, "dir %s", dir))
+
+		if (stat(dir, status) == -1)
+		{
+			debug((2, "mkdir %s", dir))
+
+			if (mkdir(dir, S_IRUSR | S_IWUSR | S_IXUSR) == -1)
+				fatalsys("failed to create directory %s", dir);
+		}
+
+		free(dir);
+
+		if (!end)
+			break;
+	}
+}
+
+/*
+
 C<void handle_config_option(const char *spec)>
 
 Store the C<--config> option argument, C<spec>.
@@ -1493,6 +1569,8 @@ static void handle_pidfiles_option(const char *spec)
 	if (*spec != PATH_SEP)
 		prog_usage_msg("Invalid --pidfiles argument: '%s' (Must be an absolute directory path)", spec);
 
+	prepare_pidfiles(spec);
+
 	if (stat(spec, status) == -1 || !S_ISDIR(status->st_mode))
 		prog_usage_msg("Invalid --pidfiles argument: '%s' (Directory does not exist)", spec);
 
@@ -1534,6 +1612,7 @@ static void handle_pidfile_option(const char *spec)
 		fatalsys("out of memory");
 
 	snprintf(buf, size, "%.*s", (int)size - 1, spec);
+	prepare_pidfiles(buf);
 
 	if (stat(buf, status) == -1 || !S_ISDIR(status->st_mode))
 		prog_usage_msg("Invalid --pidfile argument: '%s' (Parent directory does not exist)", spec);
