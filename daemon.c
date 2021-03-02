@@ -1357,7 +1357,7 @@ static char *expand(const char *input)
 
 	for (i = 0; i < len; ++i)
 	{
-		if (expanding[i] == '~' && (i == 0 || is_space(expanding[i - 1]) || expanding[i - 1] == ':'))
+		if (expanding[i] == '~' && (i == 0 || is_space(expanding[i - 1]) || expanding[i - 1] == ':' || expanding[i - 1] == '='))
 		{
 			size_t usernamelen = strcspn(expanding + i + 1, ":/ \t");
 			struct passwd *pwd;
