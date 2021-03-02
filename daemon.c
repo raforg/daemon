@@ -508,6 +508,13 @@ options. Only the I<root> user may use this option, because it can turn a
 slight misconfiguration into a lot of wasted CPU energy and log messages,
 somewhat akin to a self-inflicted denial of service.
 
+Idiot mode also allows the I<root> user to expand environment variable
+notation (e.g. C<$VAR> and C<${VAR}>) in command line option arguments, and
+in configuration files. By default, internal environment variable expansion
+is only performed for normal users. Note that this doesn't apply to any such
+expansion performed earlier by the shell that invokes I<daemon(1)>. See the
+C<EXPANSION> section below for more details.
+
 =item C<-f>, C<--foreground>
 
 Run the client in the foreground. The client is not turned into a daemon.
@@ -758,6 +765,35 @@ As with all other programs, a C<--> argument signifies the end of options.
 Any options that appear on the command line after C<--> are part of the
 client command.
 
+=head1 EXPANSION
+
+Some simple shell-like expansion is performed internally on the arguments of
+the command line options with a text argument (but not the options with a
+numeric argument).
+
+Environment variable notation, such as C<$VAR> or C<${VAR}>, is expanded.
+Then user home directory notation, such as C<~> or C<~user>, is expanded.
+File name expansion (i.e. globbing) is NOT performed internally. Neither are
+any of your login shell's other wonderful expansions. This is very basic.
+
+This might not be of much use on the command line, since I<daemon> is
+normally invoked via a shell, which will first perform all of its usual
+expansions. It might even be undesirable to perform expansion internally
+after the shell has already done so (e.g. if you refer to any directory
+names that actually contain the C<'$'> character, or if you use any
+environment variables whose values contain the C<'$'> character, which is
+unlikely).
+
+But it can be useful in configuration files. See the C<FILES> section below
+for more details. It can also be useful when I<daemon> is invoked directly
+by another program without the use of a shell.
+
+By default, environment variable expansion is not performed for the I<root>
+user, even if the environment variable was defined in the configuration
+files. The C<--idiot> option can be used to change this behaviour, and allow
+the expansion of environment variables for the I<root> user. Home directory
+notation expansion is performed for all users.
+
 =head1 FILES
 
 C</etc/daemon.conf>, C</etc/daemon.conf.d/*> - system-wide default options
@@ -770,20 +806,48 @@ system-wide default options on I<macOS> when installed via I<macports>.
 
 C<~/.daemonrc>, C<~/.daemonrc.d/*> - user-specific default options
 
-Each line of the configuration file consists of a client name (for options
-that apply to a single client) or C<'*'> (for generic options that apply to
-all clients), followed by spaces and/or tabs, followed by a comma-separated
-list of options. Any option arguments must not contain any commas. The
-commas that separate options can have spaces and tabs before and after them.
+Each line of the configuration file is either an environment variable
+definition, or a configuration directive.
+
+Environment variable definitions consist of the variable name, followed
+immediately by C<'='> and the value of the variable. They look like they do
+in shell, except that there is no quoting or other shell syntax. Environment
+variable values can include simple environment variable notation (e.g.
+C<$VAR> or C<${VAR}>), and user home directory notation (e.g. C<~> or
+C<~user>). These will be expanded internally by I<daemon>. See the
+C<EXPANSION> section above for more details.
+
+Note that any environment variables that are defined in the configuration
+file, which are subsequently used explicitly in another environment variable
+definition or in an option argument, will have these expansions performed
+multiple times. Avoid environment variables whose values can change again if
+expansion is performed multiple times.
+
+Example:
+
+    PATH=/usr/bin:/usr/sbin:$HOME/bin:~app/bin
+    PIDFILES=~/.run
+
+Configuration directives consist of a client name (for options that apply to
+a single client), or C<'*'> (for generic options that apply to all clients),
+followed by spaces and/or tabs, followed by a comma-separated list of
+options. Any option arguments must not contain any commas. The commas that
+separate options can have spaces and tabs before and after them. Option
+arguments that are text (but not numbers) can include simple environment
+variable notation (e.g. C<$VAR> or C<${VAR}>), and user home directory
+notation (e.g. C<~> or C<~user>). These will be expanded internally by
+I<daemon>. See the C<EXPANSION> section above for more details.
+
 Blank lines and comments (C<'#'> to end of the line) are ignored. Lines can
 be continued with a C<'\'> character at the end of the line.
 
-For example:
+Example:
 
     *       errlog=daemon.err,output=local0.err,core
     test1   syslog=local0.debug,debug=9,verbose=9,respawn
     test2   syslog=local0.debug,debug=9, \
-            verbose=9,respawn
+            verbose=9,respawn, \
+            pidfiles=$PIDFILES
 
 The command line options are processed first, to look for a C<--config>
 option. If no C<--config> option was supplied, the default configuration
@@ -1209,9 +1273,154 @@ g =
 	0                       /* list */
 };
 
+#define is_space(c) isspace((int)(unsigned char)(c))
+
 /*
 
-C<static void handle_name_option(const char *spec)>
+C<char *expand(const char *input)>
+
+Returns a dynamically allocated string containing the contents of the
+C<input> string with simple environment variables replaced with their values
+(e.g. C<$VARNAME> or C<${VARNAME}>) and shell-style user home directory
+notation (e.g. C<~> and C<~username>) replaced with the path to the home
+directory. It is the caller's responsibility to deallocate it with
+I<free(3)> or I<mem_release(3)> or I<mem_destroy(3)>. It is strongly
+recommended to use I<mem_destroy(3)>, because it also sets the pointer
+variable to C<null>.
+
+*/
+
+static char *expand(const char *input)
+{
+	char *expanding = null;
+	char *expanded = null;
+	int i, len;
+
+	/* Check arguments */
+
+	if (!input)
+		return set_errnull(EINVAL);
+
+	/* Replace simple environment variables: $VARNAME or ${VARNAME} */
+
+	expanding = mem_strdup(input);
+	len = strlen(expanding);
+
+	/* But not for root, unless --idiot */
+
+	if (!g.idiot && (getuid() == 0 || geteuid() == 0))
+		return expanding;
+
+	for (i = 0; i < len; ++i)
+	{
+		if (expanding[i] == '$')
+		{
+			int braces;
+			size_t varnamelen;
+			char *varname = null;
+			char *varvalue = null;
+			size_t valuelen;
+
+			braces = (expanding[i + 1] == '{') ? 1 : 0;
+			varnamelen = strspn(expanding + i + 1 + braces, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_");
+
+			if (varnamelen == 0)
+				continue;
+
+			if (asprintf(&varname, "%.*s", (int)varnamelen, expanding + i + 1 + braces) == -1)
+				fatalsys("failed to expand");
+
+			varvalue = getenv(varname);
+
+			debug((2, "getenv %s=%s", varname, varvalue))
+
+			mem_destroy(&varname);
+
+			if (!varvalue)
+				varvalue = "";
+
+			if (asprintf(&expanded, "%.*s%s%s", i, expanding, varvalue, expanding + i + 1 + braces + varnamelen + braces) == -1)
+				fatalsys("failed to expand");
+
+			free(expanding);
+			expanding = expanded;
+			expanded = null;
+
+			valuelen = strlen(varvalue);
+			len -= 1 + braces + varnamelen + braces;
+			len += valuelen;
+			i += valuelen - 1;
+		}
+	}
+
+	/* Replace home directory notation: ~ or ~username */
+
+	for (i = 0; i < len; ++i)
+	{
+		if (expanding[i] == '~' && (i == 0 || is_space(expanding[i - 1]) || expanding[i - 1] == ':'))
+		{
+			size_t usernamelen = strcspn(expanding + i + 1, ":/ \t");
+			struct passwd *pwd;
+			
+			if (usernamelen)
+			{
+				char *username = null;
+
+				if (asprintf(&username, "%.*s", (int)usernamelen, expanding + i + 1) == -1)
+					fatalsys("failed to expand");
+
+				pwd = getpwnam(username);
+				free(username);
+			}
+			else
+			{
+				uid_t uid = g.uid ? g.uid : getuid();
+
+				pwd = getpwuid(uid);
+			}
+
+			if (pwd)
+			{
+				size_t homedirlen;
+
+				if (asprintf(&expanded, "%.*s%s%s", i, expanding, pwd->pw_dir, expanding + i + 1 + usernamelen) == -1)
+					fatalsys("failed to expand");
+
+				free(expanding);
+				expanding = expanded;
+				expanded = null;
+
+				homedirlen = strlen(pwd->pw_dir);
+				len -= 1 + usernamelen;
+				len += homedirlen;
+				i += homedirlen -  1;
+			}
+		}
+	}
+
+	return expanding;
+}
+
+/*
+
+C<void handle_config_option(const char *spec)>
+
+Store the C<--config> option argument, C<spec>.
+
+*/
+
+static void handle_config_option(const char *spec)
+{
+	debug((1, "handle_config_option(spec = %s)", spec))
+
+	g.config = expand(spec);
+
+	debug((2, "config = %s", g.config))
+}
+
+/*
+
+C<void handle_name_option(const char *spec)>
 
 Store the C<--name> option argument, C<spec>.
 
@@ -1235,15 +1444,36 @@ static void handle_name_option(const char *spec)
 	if (g.done_name)
 		prog_usage_msg("Misplaced option: --name=%s in config file (Must be on the command line)", spec);
 
+	spec = expand(spec);
+
 	if (strspn(spec, ACCEPT_NAME) != strlen(spec))
 		prog_usage_msg("Invalid --name argument: '%s' (Must consist entirely of [-._a-zA-Z0-9])", spec);
 
 	g.name = (char *)spec;
+
+	debug((2, "name = %s", g.name))
 }
 
 /*
 
-C<static void handle_pidfiles_option(const char *spec)>
+C<void handle_command_option(const char *spec)>
+
+Store the C<--command> option argument, C<spec>.
+
+*/
+
+static void handle_command_option(const char *spec)
+{
+	debug((1, "handle_command_option(spec = %s)", spec))
+
+	g.command = expand(spec);
+
+	debug((2, "command = %s", g.command))
+}
+
+/*
+
+C<void handle_pidfiles_option(const char *spec)>
 
 Store the C<--pidfiles> option argument, C<spec>.
 
@@ -1254,6 +1484,8 @@ static void handle_pidfiles_option(const char *spec)
 	struct stat status[1];
 
 	debug((1, "handle_pidfiles_option(spec = %s)", spec))
+
+	spec = expand(spec);
 
 	if (strspn(spec, ACCEPT_PATH) != strlen(spec))
 		prog_usage_msg("Invalid --pidfiles argument: '%s' (Must consist entirely of [-._a-zA-Z0-9/])", spec);
@@ -1267,11 +1499,13 @@ static void handle_pidfiles_option(const char *spec)
 	/* Check directory writability later in sanity_check() after all options have been seen */
 
 	g.pidfiles = (char *)spec;
+
+	debug((2, "pidfiles = %s", g.pidfiles))
 }
 
 /*
 
-C<static void handle_pidfile_option(const char *spec)>
+C<void handle_pidfile_option(const char *spec)>
 
 Store the C<--pidfile> option argument, C<spec>.
 
@@ -1284,6 +1518,8 @@ static void handle_pidfile_option(const char *spec)
 	size_t size;
 
 	debug((1, "handle_pidfile_option(spec = %s)", spec))
+
+	spec = expand(spec);
 
 	if (strspn(spec, ACCEPT_PATH) != strlen(spec))
 		prog_usage_msg("Invalid --pidfile argument: '%s' (Must consist entirely of [-._a-zA-Z0-9/])", spec);
@@ -1307,17 +1543,19 @@ static void handle_pidfile_option(const char *spec)
 	/* Check parent directory writability later in sanity_check() after all options have been seen */
 
 	g.pidfile = (char *)spec;
+
+	debug((2, "pidfile = %s", g.pidfile))
 }
 
 /*
 
-C<void handle_user_option(char *spec)>
+C<void handle_user_option(const char *spec)>
 
 Parse and store the client C<--user[:group]> option argument, C<spec>.
 
 */
 
-static void handle_user_option(char *spec)
+static void handle_user_option(const char *spec)
 {
 	struct passwd *pwd;
 	struct group *grp;
@@ -1335,10 +1573,15 @@ static void handle_user_option(char *spec)
 	if (getuid() || geteuid())
 		prog_usage_msg("Invalid option: --user (Only works for root)");
 
+	spec = expand(spec);
+
+	debug((2, "user = %s", spec))
+
 	if ((pos = strchr(spec, ':')) || (pos = strchr(spec, '.')))
 	{
 		if (pos > spec)
 			snprintf(g.user = g.userbuf, BUFSIZ, "%*.*s", (int)(pos - spec), (int)(pos - spec), spec);
+
 		if (*++pos)
 			snprintf(g.group = g.groupbuf, BUFSIZ, "%s", pos);
 	}
@@ -1379,7 +1622,7 @@ static void handle_user_option(char *spec)
 
 /*
 
-C<static void handle_chroot_option(const char *spec)>
+C<void handle_chroot_option(const char *spec)>
 
 Store the C<--chroot> option argument, C<spec>.
 
@@ -1395,12 +1638,31 @@ static void handle_chroot_option(const char *spec)
 	if (g.done_chroot)
 		prog_usage_msg("Misplaced option: --chroot=%s in config file (Must be on the command line)", spec);
 
-	g.chroot = (char *)spec;
+	g.chroot = expand(spec);
+
+	debug((2, "chroot = %s", g.chroot))
 }
 
 /*
 
-C<static void handle_umask_option(const char *spec)>
+C<void handle_chdir_option(const char *spec)>
+
+Store the C<--chdir> option argument, C<spec>.
+
+*/
+
+static void handle_chdir_option(const char *spec)
+{
+	debug((1, "handle_chdir_option(spec = %s)", spec))
+
+	g.chdir = expand(spec);
+
+	debug((2, "chdir = %s", g.chdir))
+}
+
+/*
+
+C<void handle_umask_option(const char *spec)>
 
 Parse and store the C<--umask> option argument, C<spec>.
 
@@ -1413,17 +1675,20 @@ static void handle_umask_option(const char *spec)
 
 	debug((1, "handle_umask_option(spec = %s)", spec))
 
+	spec = expand(spec);
 	val = strtol(spec, &end, 8);
 
 	if (end == spec || *end || val < 0 || val > 0777)
 		prog_usage_msg("Invalid --umask argument: '%s' (Must be a valid octal mode)", spec);
 
 	g.umask = val;
+
+	debug((2, "umask = %03o", g.umask))
 }
 
 /*
 
-C<static void handle_env_option(const char *var)>
+C<void handle_env_option(const char *var)>
 
 Store the C<--env> option argument, C<var>.
 
@@ -1436,13 +1701,17 @@ static void handle_env_option(const char *var)
 	if (g.env == null && !(g.env = list_create(null)))
 		fatalsys("failed to create environment list");
 
+	var = expand(var);
+
 	if (!list_append(g.env, (void *)var))
 		fatalsys("failed to add '%s' to environment list", var);
+
+	debug((2, "env += %s", var))
 }
 
 /*
 
-C<static void handle_inherit_option(void)>
+C<void handle_inherit_option(void)>
 
 Process the C<--inherit> option. Add the contents of C<environ> to the list
 of environment variables to be used by the client.
@@ -1467,7 +1736,37 @@ static void handle_inherit_option(void)
 
 /*
 
-C<static void handle_acceptable_option(int acceptable)>
+C<void handle_core_option(void)>
+
+Allow core file generation.
+
+*/
+
+static void handle_core_option(void)
+{
+	debug((1, "handle_core_option()"))
+
+	g.core = 1;
+}
+
+/*
+
+C<void handle_nocore_option(void)>
+
+Disallow core file generation (default).
+
+*/
+
+static void handle_nocore_option(void)
+{
+	debug((1, "handle_nocore_option()"))
+
+	g.core = 0;
+}
+
+/*
+
+C<void handle_acceptable_option(int acceptable)>
 
 Store the C<--acceptable> option argument, C<acceptable>.
 
@@ -1485,7 +1784,7 @@ static void handle_acceptable_option(int acceptable)
 
 /*
 
-C<static void handle_attempts_option(int attempts)>
+C<void handle_attempts_option(int attempts)>
 
 Store the C<--attempts> option argument, C<attempts>.
 
@@ -1503,7 +1802,7 @@ static void handle_attempts_option(int attempts)
 
 /*
 
-C<static void handle_delay_option(int delay)>
+C<void handle_delay_option(int delay)>
 
 Store the C<--delay> option argument, C<delay>.
 
@@ -1521,7 +1820,7 @@ static void handle_delay_option(int delay)
 
 /*
 
-C<static void handle_limit_option(int limit)>
+C<void handle_limit_option(int limit)>
 
 Store the C<--limit> option argument, C<limit>.
 
@@ -1539,7 +1838,7 @@ static void handle_limit_option(int limit)
 
 /*
 
-C<static void handle_idiot_option(void)>
+C<void handle_idiot_option(void)>
 
 Store the C<--idiot> option argument if allowed.
 
@@ -1557,20 +1856,24 @@ static void handle_idiot_option(void)
 
 /*
 
-C<static void handle_pty_option(int arg)>
+C<void handle_pty_option(const char *arg)>
 
 Store the C<--pty> option argument, C<arg>.
 
 */
 
-static void handle_pty_option(char *arg)
+static void handle_pty_option(const char *arg)
 {
-	debug((1, "handle_pty_option(arg = %s)", arg))
+	debug((1, "handle_pty_option(arg = %s)", (arg) ? arg : ""))
 
 	g.pty = 1;
 
 	if (arg)
 	{
+		arg = expand(arg);
+
+		debug((2, "pty %s", arg))
+
 		if (strcmp(arg, "noecho"))
 			prog_usage_msg("Invalid --pty argument: '%s' (Only 'noecho' is supported)", arg);
 
@@ -1617,7 +1920,10 @@ static void handle_errlog_option(const char *spec)
 {
 	debug((1, "handle_errlog_option(spec = %s)", spec))
 
+	spec = expand(spec);
 	store_syslog("errlog", spec, &g.daemon_err, &g.daemon_errlog);
+
+	debug((2, "errlog %s", spec))
 }
 
 /*
@@ -1632,7 +1938,10 @@ static void handle_dbglog_option(const char *spec)
 {
 	debug((1, "handle_dbglog_option(spec = %s)", spec))
 
+	spec = expand(spec);
 	store_syslog("dbglog", spec, &g.daemon_dbg, &g.daemon_dbglog);
+
+	debug((2, "dbglog %s", spec))
 }
 
 /*
@@ -1647,8 +1956,11 @@ static void handle_output_option(const char *spec)
 {
 	debug((1, "handle_output_option(spec = %s)", spec))
 
+	spec = expand(spec);
 	store_syslog("output", spec, &g.client_out, &g.client_outlog);
 	store_syslog("output", spec, &g.client_err, &g.client_errlog);
+
+	debug((2, "output %s", spec))
 }
 
 /*
@@ -1663,7 +1975,10 @@ static void handle_stdout_option(const char *spec)
 {
 	debug((1, "handle_stdout_option(spec = %s)", spec))
 
+	spec = expand(spec);
 	store_syslog("stdout", spec, &g.client_out, &g.client_outlog);
+
+	debug((2, "stdout %s", spec))
 }
 
 /*
@@ -1678,27 +1993,15 @@ static void handle_stderr_option(const char *spec)
 {
 	debug((1, "handle_stderr_option(spec = %s)", spec))
 
+	spec = expand(spec);
 	store_syslog("stderr", spec, &g.client_err, &g.client_errlog);
+
+	debug((2, "stderr %s", spec))
 }
 
 /*
 
-C<static void handle_read_eof_option(void)>
-
-Restore I<read_eof> mode.
-
-*/
-
-static void handle_read_eof_option(void)
-{
-	debug((1, "handle_read_eof_option()"))
-
-	g.read_eof = 1;
-}
-
-/*
-
-C<static void handle_ignore_eof_option(void)>
+C<void handle_ignore_eof_option(void)>
 
 Turn off I<read_eof> mode.
 
@@ -1713,37 +2016,22 @@ static void handle_ignore_eof_option(void)
 
 /*
 
-C<static void handle_core_option(void)>
+C<void handle_read_eof_option(void)>
 
-Allow core file generation.
+Restore I<read_eof> mode.
 
 */
 
-static void handle_core_option(void)
+static void handle_read_eof_option(void)
 {
-	debug((1, "handle_core_option()"))
+	debug((1, "handle_read_eof_option()"))
 
-	g.core = 1;
+	g.read_eof = 1;
 }
 
 /*
 
-C<static void handle_nocore_option(void)>
-
-Disallow core file generation (default).
-
-*/
-
-static void handle_nocore_option(void)
-{
-	debug((1, "handle_nocore_option()"))
-
-	g.core = 0;
-}
-
-/*
-
-C<static void handle_signal_option(const char *signame)>
+C<void handle_signal_option(const char *signame)>
 
 Store the C<--signal> option argument, C<signame>.
 
@@ -1888,7 +2176,11 @@ static void handle_signal_option(const char *signame)
 	debug((1, "handle_signal_option(signame = %s)", signame))
 
 	errno = 0;
+	signame = expand(signame);
 	signo = strtol(signame, &endptr, 10);
+
+	debug((2, "signal %s", signame))
+
 	if (errno == 0 && *signame && !*endptr && signo > 0 && signo < SIG_MAX)
 	{
 		g.signame = (char *)signame;
@@ -1932,11 +2224,11 @@ static Option daemon_optab[] =
 {
 	{
 		"config", 'C', "path", "Specify the configuration file",
-		required_argument, OPT_STRING, OPT_VARIABLE, &g.config, null
+		required_argument, OPT_STRING, OPT_FUNCTION, null, (func_t *)handle_config_option
 	},
 	{
 		"noconfig", 'N', null, "Bypass the system configuration file",
-		no_argument, OPT_INTEGER, OPT_VARIABLE, &g.noconfig, null
+		no_argument, OPT_NONE, OPT_VARIABLE, &g.noconfig, null
 	},
 	{
 		"name", 'n', "name", "Guarantee a single named instance",
@@ -1944,7 +2236,7 @@ static Option daemon_optab[] =
 	},
 	{
 		"command", 'X', "\"cmd\"", "Specify the client command as an option",
-		required_argument, OPT_STRING, OPT_VARIABLE, &g.command, null
+		required_argument, OPT_STRING, OPT_FUNCTION, null, (func_t *)handle_command_option
 	},
 	{
 		"pidfiles", 'P', "/dir", "Override standard pidfile location",
@@ -1964,7 +2256,7 @@ static Option daemon_optab[] =
 	},
 	{
 		"chdir", 'D', "path", "Run the client in directory path",
-		required_argument, OPT_STRING, OPT_VARIABLE, &g.chdir, null
+		required_argument, OPT_STRING, OPT_FUNCTION, null, (func_t *)handle_chdir_option
 	},
 	{
 		"umask", 'm', "umask", "Run the client with the given umask",
@@ -1992,7 +2284,7 @@ static Option daemon_optab[] =
 	},
 	{
 		"nocore", nul, null, "Disallow core file generation (default)\n",
-		no_argument, OPT_INTEGER, OPT_FUNCTION, null, (func_t *)handle_nocore_option
+		no_argument, OPT_NONE, OPT_FUNCTION, null, (func_t *)handle_nocore_option
 	},
 	{
 		"respawn", 'r', null, "Respawn the client when it terminates",
@@ -2095,8 +2387,6 @@ Create a I<Config> object from a name and a comma-separated list of C<options>.
 Space characters before or after the commas are skipped.
 
 */
-
-#define is_space(c) isspace((int)(unsigned char)(c))
 
 static Config *config_create(char *name, char *options)
 {
@@ -2216,9 +2506,9 @@ static void config_parse(void *obj, const char *path, char *line, size_t lineno)
 	while (*s && is_space(*s))
 		++s;
 
-	/* Extract the daemon name (or "*" for generic options) to a buffer */
+	/* Extract the daemon name (or "*" for generic options, or the environment variable name) to a buffer */
 
-	while ((n - name) < sizeof(name) - 1 && *s && !is_space(*s))
+	while ((n - name) < sizeof(name) - 1 && *s && !is_space(*s) && *s != '=')
 	{
 		if (*s == '\\')
 			++s;
@@ -2227,10 +2517,38 @@ static void config_parse(void *obj, const char *path, char *line, size_t lineno)
 
 	*n = '\0';
 
-	/* Check that there is a daemon name (or "*") */
+	/* Check that there is a daemon name (or "*" or an environment variable name) */
 
 	if (!*name)
 		fatal("syntax error in %s, line %d, expected * or a daemon name:\n%s", path, lineno, line);
+
+	/* Define environment variables */
+
+	if (*s == '=')
+	{
+		char *expanded;
+		char *definition = null;
+
+		/* Check that it's a valid identifier */
+
+		if (strspn(name, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_") != (n - name) || strspn(name, "0123456789") == 1)
+			fatal("syntax error in %s, line %d, invalid environment variable name:\n%s", path, lineno, line);
+
+		/* Expand the value */
+
+		expanded = expand(s + 1);
+
+		if (asprintf(&definition, "%s=%s", name, expanded) == -1)
+			fatalsys("failed to parse %s", path);
+
+		free(expanded);
+
+		debug((2, "putenv %s", definition))
+
+		putenv(definition); /* Leak to environ */
+
+		return;
+	}
 
 	/* Check that the daemon name isn't too long for the buffer */
 
@@ -2316,7 +2634,9 @@ C<void config_load(List **conf, const char *configfile)>
 
 Loads the contents of C<configfile> into the list pointed to by C<*conf> if
 it is safe to do so. The list C<*conf> is created if necessary. It is the
-caller's responsibility to deallocate it.
+caller's responsibility to deallocate it with I<list_release(3)> or
+I<list_destroy(3)>. It is strongly recommended to use I<list_destroy(3)>,
+because it also sets the pointer variable to C<null>.
 
 */
 
@@ -2593,7 +2913,7 @@ static void winch(int signo)
 
 /*
 
-C<static void prepare_environment(void)>
+C<void prepare_environment(void)>
 
 Convert the environment variables specified on the command line into a form
 suitable for passing to I<execve(2)>.
@@ -3738,7 +4058,7 @@ static void show(void)
 
 	debug((2, "options:"))
 
-	debug((2, " config %s, noconfig %d, name %s, command \"%s\", pidfiles %s, pidfile %s, uid %d, gid %d, init_groups %d, chroot %s, chdir %s, umask %o, inherit %s, respawn %s, acceptable %d, attempts %d, delay %d, limit %d, idiot %d, foreground %s, pty %s, noecho %s, bind %s, stdout %s%s%s%s, stderr %s%s%s%s, errlog %s%s%s%s, dbglog %s%s%s%s, core %s, unsafe %s, safe %s, read_eof %s, stop %s, running %s, restart %s, signame %s, signo %d, list %s, verbose %d, debug %d",
+	debug((2, " config %s, noconfig %d, name %s, command \"%s\", pidfiles %s, pidfile %s, uid %d, gid %d, init_groups %d, chroot %s, chdir %s, umask %03o, inherit %s, respawn %s, acceptable %d, attempts %d, delay %d, limit %d, idiot %d, foreground %s, pty %s, noecho %s, bind %s, stdout %s%s%s%s, stderr %s%s%s%s, errlog %s%s%s%s, dbglog %s%s%s%s, core %s, unsafe %s, safe %s, read_eof %s, stop %s, running %s, restart %s, signame %s, signo %d, list %s, verbose %d, debug %d",
 		g.config ? g.config : "<none>",
 		g.noconfig,
 		g.name ? g.name : "<none>",
@@ -3988,9 +4308,6 @@ static void sanity_check(void)
 	if (g.limit != RESPAWN_LIMIT && !g.respawn)
 		prog_usage_msg("Missing option: --respawn (Required for --limit)");
 
-	if (g.idiot && !g.respawn)
-		prog_usage_msg("Missing option: --respawn (Required for --idiot)");
-
 	if (g.pty && !g.foreground)
 		prog_usage_msg("Missing option: --foreground (Required for --pty)");
 
@@ -4084,7 +4401,7 @@ equal to, or greater than C<b>, respectively.
 
 #define to_lower(c)  tolower((int)(unsigned char)(c))
 
-int strsmartcmp(const char **ah, const char **bh)
+static int strsmartcmp(const char **ah, const char **bh)
 {
 	const char *a = *ah;
 	const char *b = *bh;
@@ -4188,7 +4505,7 @@ another executable named I<daemon>.
 
 */
 
-int is_daemon(pid_t pid)
+static int is_daemon(pid_t pid)
 {
 	char fname[64], buf[BUFSIZ];
 	ssize_t bytes;
@@ -4221,7 +4538,7 @@ returns C<-1> with I<errno> set appropriately.
 
 */
 
-int list(void)
+static int list(void)
 {
 	const char *default_pid_dir = (getuid()) ? USER_PID_DIR : ROOT_PID_DIR;
 	const char *pid_dir = (g.pidfiles) ? g.pidfiles : default_pid_dir;
@@ -4348,7 +4665,7 @@ id into debug messages.
 
 */
 
-int msg_filter_pid_prefix(void **mesgp, const void *mesg, size_t mesglen)
+static int msg_filter_pid_prefix(void **mesgp, const void *mesg, size_t mesglen)
 {
 	return asprintf((char **)mesgp, "[pid %d] %*.*s", (int)getpid(), (int)mesglen, (int)mesglen, (char *)mesg);
 }
@@ -4709,7 +5026,7 @@ static void init(int ac, char **av)
 
 	/* Set umask */
 
-	debug((2, "setting umask to %o", g.umask))
+	debug((2, "setting umask to %03o", g.umask))
 
 	umask(g.umask);
 
