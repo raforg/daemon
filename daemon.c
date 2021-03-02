@@ -650,12 +650,12 @@ If the named daemon is running but its client process is not (there might be
 a delay between respawn attempt bursts), the output will look like this,
 showing only the daemon process's ID:
 
-	daemon:  name is running (pid 7455) (client is not running)
+    daemon:  name is running (pid 7455) (client is not running)
 
 If the named daemon is not running at all, the output will look
 like this:
 
-	daemon:  name is not running
+    daemon:  name is not running
 
 This option can only be used with the C<--name> option. Note that the
 C<--chroot>, C<--user>, C<--name>, C<--pidfiles> and C<--pidfile> (and
@@ -728,7 +728,7 @@ If a pidfile is locked, and there is a corresponding client pidfile, that
 indicates that the named daemon and its client are both running, and the
 output will look like this, showing both process IDs:
 
-	name is running (pid ####) (client pid ####)
+    name is running (pid ####) (client pid ####)
 
 If a pidfile is locked, but there is no client pidfile, that indicates that
 the named daemon is running, but its client is not (e.g. during a delay
@@ -739,18 +739,18 @@ options:
 When we can tell that the pidfile is for a process whose executable name is
 I<daemon>:
 
-	name is running (pid ####) (client is not running)
+    name is running (pid ####) (client is not running)
 
 When we can tell that the pidfile is for a process whose executable name is
 something other than I<daemon> (i.e. is independent of I<daemon(1)>):
 
-	name is running (pid ####) (independent)
+    name is running (pid ####) (independent)
 
 When it's not possible to determine the name of the executable associated
 with the I<pidfile> (i.e. On systems other than I<Linux> without a C</proc>
 file system):
 
-	name is running (pid ####) (client is not running or is independent)
+    name is running (pid ####) (client is not running or is independent)
 
 If a pidfile is not locked, and the applicable pidfiles directory is the
 default, that indicates either that the daemon has unexpectedly terminated,
