@@ -297,12 +297,15 @@ debian-clobber::
 
 $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE):
 	@echo '# /etc/daemon.conf: system-wide daemon(1) configuration.' > $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE); \
-	echo '# See daemon(1) for full documentation.' >> $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE); \
+	echo '# See daemon(1) or daemon.conf(5) for full documentation.' >> $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE); \
 	echo '#' >> $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE); \
-	echo '# Format: <name|"*"> <option(","option)*>' >> $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE); \
+	echo '# Format:' >> $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE); \
+	echo '# VAR=value' >> $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE); \
+	echo '# <name|"*"> <option(","option)*>' >> $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE); \
 	echo '#' >> $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE); \
-	echo '# Examples:' >> $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE); \
-	echo '# *      pidfiles=/var/tmp' >> $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE); \
+	echo '# Example:' >> $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE); \
+	echo '# PATH=$$PATH:~/bin' >> $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE); \
+	echo '# *      pidfiles=~/.pidfiles' >> $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE); \
 	echo '# name   respawn,command=/usr/bin/command args' >> $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE); \
 	echo '' >> $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE)
 
