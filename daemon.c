@@ -1314,48 +1314,48 @@ static char *expand(const char *input)
 
 	/* But not for root, unless --idiot */
 
-	if (!g.idiot && (getuid() == 0 || geteuid() == 0))
-		return expanding;
-
-	for (i = 0; i < len; ++i)
+	if (g.idiot || (getuid() && geteuid()))
 	{
-		if (expanding[i] == '$')
+		for (i = 0; i < len; ++i)
 		{
-			int braces;
-			size_t varnamelen;
-			char *varname = null;
-			char *varvalue = null;
-			size_t valuelen;
+			if (expanding[i] == '$')
+			{
+				int braces;
+				size_t varnamelen;
+				char *varname = null;
+				char *varvalue = null;
+				size_t valuelen;
 
-			braces = (expanding[i + 1] == '{') ? 1 : 0;
-			varnamelen = strspn(expanding + i + 1 + braces, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_");
+				braces = (expanding[i + 1] == '{') ? 1 : 0;
+				varnamelen = strspn(expanding + i + 1 + braces, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_");
 
-			if (varnamelen == 0)
-				continue;
+				if (varnamelen == 0)
+					continue;
 
-			if (asprintf(&varname, "%.*s", (int)varnamelen, expanding + i + 1 + braces) == -1)
-				fatalsys("failed to expand");
+				if (asprintf(&varname, "%.*s", (int)varnamelen, expanding + i + 1 + braces) == -1)
+					fatalsys("failed to expand");
 
-			varvalue = getenv(varname);
+				varvalue = getenv(varname);
 
-			debug((2, "getenv %s=%s", varname, varvalue))
+				debug((2, "getenv %s=%s", varname, varvalue))
 
-			mem_destroy(&varname);
+				mem_destroy(&varname);
 
-			if (!varvalue)
-				varvalue = "";
+				if (!varvalue)
+					varvalue = "";
 
-			if (asprintf(&expanded, "%.*s%s%s", i, expanding, varvalue, expanding + i + 1 + braces + varnamelen + braces) == -1)
-				fatalsys("failed to expand");
+				if (asprintf(&expanded, "%.*s%s%s", i, expanding, varvalue, expanding + i + 1 + braces + varnamelen + braces) == -1)
+					fatalsys("failed to expand");
 
-			free(expanding);
-			expanding = expanded;
-			expanded = null;
+				free(expanding);
+				expanding = expanded;
+				expanded = null;
 
-			valuelen = strlen(varvalue);
-			len -= 1 + braces + varnamelen + braces;
-			len += valuelen;
-			i += valuelen - 1;
+				valuelen = strlen(varvalue);
+				len -= 1 + braces + varnamelen + braces;
+				len += valuelen;
+				i += valuelen - 1;
+			}
 		}
 	}
 
@@ -1399,7 +1399,7 @@ static char *expand(const char *input)
 				homedirlen = strlen(pwd->pw_dir);
 				len -= 1 + usernamelen;
 				len += homedirlen;
-				i += homedirlen -  1;
+				i += homedirlen - 1;
 			}
 		}
 	}
