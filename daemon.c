@@ -938,13 +938,14 @@ milliseconds by which to delay. For example:
 C<DAEMON_INIT_EXIT_DELAY_MSEC=400>. Or you could just avoid using C<exec>
 when starting I<KDE> applications.
 
-On I<Linux> systems that have I<systemd(1)>, you might find that your
-I<daemon> processes and their client processes are terminated when you
-logout, even though they are in a different process session, and so should
-be unaffected. This is because I<systemd> has the ability to terminate all
-of your processes when you logout. Luckily, this feature is turned off by
-default in some I<Linux> distributions. However, if it is on, you can turn
-it off by adding the following line to C</etc/systemd/logind.conf>:
+On I<Linux> systems that have I<systemd(1)> or I<elogind(8)>, you might find
+that your I<daemon> processes and their client processes are terminated when
+you logout, even though they are in a different process session, and so
+should be unaffected. This is because I<systemd> has the ability to
+terminate all of your processes when you logout. Luckily, this feature is
+turned off by default in some I<Linux> distributions. However, if it is on,
+you can turn it off by adding the following line to
+C</etc/systemd/logind.conf> (or C</etc/elogind/logind.conf>):
 
   KillUserProcesses=no
 
