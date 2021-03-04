@@ -22,7 +22,7 @@
 # PREFIX/CONF_INSDIR/CONFIG_PATH/ROOT_PID_DIR together.
 # But can be reversed with --prefix=default.
 #
-# 20210220 raf <raf@raf.org>
+# 20210304 raf <raf@raf.org>
 
 # Strip off the leading "--prefix=" from the command line option
 prefix="${1#--prefix=}"

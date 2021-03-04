@@ -20,7 +20,7 @@
 
 # Modify Makefile to use $CC as CC
 #
-# 20210220 raf <raf@raf.org>
+# 20210304 raf <raf@raf.org>
 
 if [ "x$CC" != x ]
 then

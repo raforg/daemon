@@ -1,6 +1,19 @@
 CHANGELOG
 =========
 
+0.8 (20210304)
+
+    - Fixed formatting typo in README.md
+    - Added support for (Linux only) musl libc by including <sys/ttydefaults.h> for CEOF (by Baruch Siach)
+    - Added --bind option to terminate when the user logs out (iff systemd/elogind) (with ZhaoLin1457 et al.)
+    - Added Slackware-specific configuration
+    - Added expansion of $VAR and ~user notation in command line option arguments and configuration files
+    - Added environment variable definitions in configuration files
+    - Automatically create --pidfiles or --pidfile directory if it's under the user's home directory
+    - Updated README.md (improved notes on --stop and --restart, and added --signal --running --list --bind)
+    - Added configure --help, --destdir, --enable-logind and --disable-logind options
+    - Fixed $(DESTDIR) use in makefiles to interoperate with configure --prefix
+
 0.7.1 (20210220)
 
     - Fixed make distclean/clobber on Debian (use debian-clobber instead of clobber) (spotted by Marc Haber)
@@ -391,6 +404,6 @@ CHANGELOG
     URL: http://libslack.org/daemon
     URL: http://raf.org/daemon
     GIT: https://github.com/raforg/daemon
-    Date: 20210220
+    Date: 20210304
     Author: raf <raf@raf.org>
 

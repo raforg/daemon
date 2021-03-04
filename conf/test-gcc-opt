@@ -20,7 +20,7 @@
 
 # Test if the supplied gcc argument is supported
 #
-# 20210220 raf <raf@raf.org>
+# 20210304 raf <raf@raf.org>
 
 option="$1"
 gcc -E -xc /dev/null -Werror $option >/dev/null 2>/dev/null

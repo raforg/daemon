@@ -20,7 +20,7 @@
 
 # Modify Makefile to compile/install on Slackware (after conf/linux)
 #
-# 20210220 raf <raf@raf.org>
+# 20210304 raf <raf@raf.org>
 
 perl -pi \
 	-e 's{^(PREFIX := ).*$}{$1/usr};' \

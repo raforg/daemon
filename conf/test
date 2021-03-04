@@ -20,7 +20,7 @@
 
 # Modify macros.mk and config.h to exercise optional code
 #
-# 20210220 raf <raf@raf.org>
+# 20210304 raf <raf@raf.org>
 
 perl -pi \
 	-e 's/^# (GETOPT := getopt)$/$1/;' \

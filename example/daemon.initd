@@ -18,7 +18,7 @@
 # along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
 
-# 20210220 raf <raf@raf.org>
+# 20210304 raf <raf@raf.org>
 
 # This is an example /etc/init.d script that shows how to use daemon(1)
 # in that context. Note that this would need to be modified quite a bit

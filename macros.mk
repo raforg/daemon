@@ -17,7 +17,7 @@
 # along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
 
-# 20210220 raf <raf@raf.org>
+# 20210304 raf <raf@raf.org>
 
 # Uncomment this to override the default value of 300 seconds
 # as the minimum amount of time that a non-root client can live
@@ -35,8 +35,8 @@
 # DAEMON_DEFINES += -DNDEBUG
 
 DAEMON_NAME := daemon
-DAEMON_VERSION := 0.7.1
-DAEMON_DATE := 20210220
+DAEMON_VERSION := 0.8
+DAEMON_DATE := 20210304
 DAEMON_URL := http://libslack.org/daemon/
 DAEMON_ID := $(DAEMON_NAME)-$(DAEMON_VERSION)
 DAEMON_DIST := $(DAEMON_ID).tar.gz

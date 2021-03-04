@@ -16,7 +16,7 @@
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, see <https://www.gnu.org/licenses/>.
 *
-* 20210220 raf <raf@raf.org>
+* 20210304 raf <raf@raf.org>
 */
 
 #ifndef DAEMON_CONFIG_H

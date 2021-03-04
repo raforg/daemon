@@ -20,7 +20,7 @@
 
 # Modify Makefile, macros.mk and config.h to compile on NetBSD
 #
-# 20210220 raf <raf@raf.org>
+# 20210304 raf <raf@raf.org>
 
 perl -pi \
 	-e 's/^(\S+ \+= xnet)$/# $1/;' \

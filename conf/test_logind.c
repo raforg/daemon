@@ -24,7 +24,7 @@
 * all of these functions and types available. On Linux systems
 * with systemd, it needs to be linkd again
 *
-* 20210220 raf <raf@raf.org>
+* 20210304 raf <raf@raf.org>
 */
 
 #include <stdlib.h>

@@ -18,7 +18,7 @@
 # along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
 
-# 20210220 raf <raf@raf.org>
+# 20210304 raf <raf@raf.org>
 
 # This is a local version of install for OpenSolaris because it doesn't have
 # /usr/ucb/install and the normal Solaris install program is weird and

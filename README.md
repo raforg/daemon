@@ -161,6 +161,6 @@ The `--list` option reports all the currently running named *daemon* processes.
     URL: http://libslack.org/daemon
     URL: http://raf.org/daemon
     GIT: https://github.com/raforg/daemon
-    Date: 20210220
+    Date: 20210304
     Author: raf <raf@raf.org>
 

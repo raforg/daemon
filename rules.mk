@@ -17,7 +17,7 @@
 # along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
 
-# 20210220 raf <raf@raf.org>
+# 20210304 raf <raf@raf.org>
 
 ifneq ($(DAEMON_TARGET),./$(DAEMON_NAME))
 
