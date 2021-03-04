@@ -60,6 +60,9 @@ It just has hard-coded settings for certain platforms.
 It does not accept all of the usual command line options.
 However, it does accept certain options:
 
+    --help
+    Print a help message showing these options, then exit
+
     --prefix=/opt/local
     Changes the installation prefix to a non-standard one (needed for macports).
     This also changes the directory that the config file is installed in.
@@ -69,6 +72,11 @@ However, it does accept certain options:
 
     --enable-test
     Include backup implementations of several functions (unnecessary)
+
+    --disable-logind
+    On Linux systems where libsystemd or libelogind headers and libraries
+    are installed, they are detected and used for daemon's --bind option.
+    This option prevents this.
 
 To install daemon and its manpage (in /usr/local by default):
 

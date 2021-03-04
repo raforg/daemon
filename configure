@@ -22,6 +22,33 @@
 
 die() { echo "$0: $@" >&2; exit 1; }
 
+for opt in "$@"
+do
+	case "$opt" in
+		--help|-h)
+			echo "$0 [options]"
+			echo "options:"
+			echo "  --help           - Print this message then exit"
+			echo "  --prefix=/path   - Override platform-specific installation prefix"
+			echo "  --enable-test    - Include backup implementations of some functions (unnecessary)"
+			echo "  --disable-logind - Disable logind/elogind support"
+			echo
+			echo "This configure script knows what to do for several platforms:"
+			echo
+			echo "  Linux, macOS, FreeBSD, NetBSD, OpenBSD, kFreeBSD, Solaris, GNU/Hurd"
+			echo ""
+			echo "To override the standard installation prefix, use --prefix (e.g. /opt/local)"
+			echo ""
+			echo "On Linux systems with libsystemd or libelogind headers/libs, they are used."
+			echo "To prevent this, use --disable-logind"
+			echo ""
+			echo "If set, \$CC will override the compiler in the Makefile."
+			echo ""
+			exit 0
+			;;
+	esac
+done
+
 case "`uname -a`" in
 	Linux*)
 		echo "Configuring for linux"
@@ -106,6 +133,10 @@ do
 		--enable-test)
 			echo "Configuring to include backup function implementations."
 			conf/test
+			;;
+		--disable-logind)
+			echo "Disabling systemd-logind/elogind support"
+			conf/test-logind --disable
 			;;
 		*)
 			echo "$0: Unknown argument: $@" >&2
