@@ -29,8 +29,8 @@ POD2HTML := pod2html
 GZIP := gzip -f -9
 
 DESTDIR :=
-PREFIX := $(DESTDIR)/usr/local
-# PREFIX := $(DESTDIR)/usr/pkg
+PREFIX := /usr/local
+# PREFIX := /usr/pkg
 APP_INSDIR := $(PREFIX)/bin
 LIB_INSDIR := $(PREFIX)/lib
 MAN_SYSDIR := $(PREFIX)/share/man
@@ -42,7 +42,7 @@ MAN_INSDIR := $(MAN_LOCDIR)
 endif
 HDR_INSDIR := $(PREFIX)/include
 DATA_INSDIR := $(PREFIX)/share
-CONF_INSDIR := $(DESTDIR)/etc
+CONF_INSDIR := /etc
 APP_MANSECT := 1
 LIB_MANSECT := 3
 FMT_MANSECT := 5

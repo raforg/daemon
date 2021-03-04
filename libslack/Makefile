@@ -29,8 +29,8 @@ POD2HTML := pod2html
 GZIP := gzip -f -9
 
 DESTDIR :=
-PREFIX := $(DESTDIR)/usr/local
-# PREFIX := $(DESTDIR)/usr/pkg
+PREFIX := /usr/local
+# PREFIX := /usr/pkg
 APP_INSDIR := $(PREFIX)/bin
 LIB_INSDIR := $(PREFIX)/lib
 MAN_SYSDIR := $(PREFIX)/share/man

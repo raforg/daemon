@@ -42,7 +42,7 @@ do
 			echo "Note: For --prefix=default and --prefix=/usr, /etc and /var/run are still used."
 			echo "For other values, these paths are affected by the prefix."
 			echo ""
-			echo "To override the makefile \$(DESTDIR) prefix to \$(PREFIX), use --destdir."
+			echo "To override the makefile \$(DESTDIR), use --destdir."
 			echo "This is for building packages and doesn't affect paths in the final binary."
 			echo ""
 			echo "On Linux systems with libsystemd or libelogind headers and libs, they are used."

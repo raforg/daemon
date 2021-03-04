@@ -71,7 +71,7 @@ However, it does accept certain options:
     file is installed under the prefix.
 
     --destdir
-    Changes the $(DESTDIR) prefix to $(PREFIX) for building packages.
+    Changes the makefile $(DESTDIR) for building packages.
     It doesn't affect any paths in the final binary.
 
     --enable-test

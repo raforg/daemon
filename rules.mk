@@ -41,42 +41,42 @@ html-daemon: $(DAEMON_HTMLFILES)
 install-daemon: install-daemon-bin install-daemon-man
 
 install-daemon-bin:
-	mkdir -p $(APP_INSDIR)
-	install -m 755 $(DAEMON_TARGET) $(APP_INSDIR)
-	case "$$DEB_BUILD_OPTIONS" in *nostrip*);; *) strip $(patsubst %, $(APP_INSDIR)/%, $(notdir $(DAEMON_TARGET)));; esac
+	mkdir -p $(DESTDIR)$(APP_INSDIR)
+	install -m 755 $(DAEMON_TARGET) $(DESTDIR)$(APP_INSDIR)
+	case "$$DEB_BUILD_OPTIONS" in *nostrip*);; *) strip $(patsubst %, $(DESTDIR)$(APP_INSDIR)/%, $(notdir $(DAEMON_TARGET)));; esac
 
 install-daemon-man: man-daemon
-	@mkdir -p $(APP_MANDIR); \
-	install -m 644 $(DAEMON_MANFILES) $(APP_MANDIR); \
-	mkdir -p $(FMT_MANDIR); \
-	rm -f $(FMT_MANDIR)/$(notdir $(DAEMON_MANLINK)); \
-	ln -s ../man$(APP_MANSECT)/$(notdir $(DAEMON_MANFILES)) $(FMT_MANDIR)/$(notdir $(DAEMON_MANLINK))
+	@mkdir -p $(DESTDIR)$(APP_MANDIR); \
+	install -m 644 $(DAEMON_MANFILES) $(DESTDIR)$(APP_MANDIR); \
+	mkdir -p $(DESTDIR)$(FMT_MANDIR); \
+	rm -f $(DESTDIR)$(FMT_MANDIR)/$(notdir $(DAEMON_MANLINK)); \
+	ln -s ../man$(APP_MANSECT)/$(notdir $(DAEMON_MANFILES)) $(DESTDIR)$(FMT_MANDIR)/$(notdir $(DAEMON_MANLINK))
 
 install-daemon-html: html-daemon
-	@mkdir -p $(DAEMON_HTMLDIR); \
-	install -m 644 $(DAEMON_HTMLFILES) $(DAEMON_HTMLDIR)
+	@mkdir -p $(DESTDIR)$(DAEMON_HTMLDIR); \
+	install -m 644 $(DAEMON_HTMLFILES) $(DESTDIR)$(DAEMON_HTMLDIR)
 
 install-daemon-conf: $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE)
-	@mkdir -p $(DAEMON_CONF_INSDIR); \
-	[ -f $(DAEMON_CONF_INSDIR)/$(DAEMON_CONFFILE) ] || install -m 644 $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE) $(DAEMON_CONF_INSDIR); \
-	[ -d $(DAEMON_CONF_INSDIR)/$(DAEMON_CONFDIR) ] || mkdir $(DAEMON_CONF_INSDIR)/$(DAEMON_CONFDIR)
+	@mkdir -p $(DESTDIR)$(DAEMON_CONF_INSDIR); \
+	[ -f $(DESTDIR)$(DAEMON_CONF_INSDIR)/$(DAEMON_CONFFILE) ] || install -m 644 $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE) $(DESTDIR)$(DAEMON_CONF_INSDIR); \
+	[ -d $(DESTDIR)$(DAEMON_CONF_INSDIR)/$(DAEMON_CONFDIR) ] || mkdir $(DESTDIR)$(DAEMON_CONF_INSDIR)/$(DAEMON_CONFDIR)
 
 .PHONY: uninstall-daemon uninstall-daemon-bin uninstall-daemon-man uninstall-daemon-html uninstall-daemon-conf
 
 uninstall-daemon: uninstall-daemon-bin uninstall-daemon-man
 
 uninstall-daemon-bin:
-	rm -f $(patsubst %, $(APP_INSDIR)/%, $(notdir $(DAEMON_TARGET)))
+	rm -f $(patsubst %, $(DESTDIR)$(APP_INSDIR)/%, $(notdir $(DAEMON_TARGET)))
 
 uninstall-daemon-man:
-	@rm -f $(patsubst %, $(APP_MANDIR)/%, $(notdir $(DAEMON_MANFILES))) \
-	$(FMT_MANDIR)/$(notdir $(DAEMON_MANLINK))
+	@rm -f $(patsubst %, $(DESTDIR)$(APP_MANDIR)/%, $(notdir $(DAEMON_MANFILES))) \
+	$(DESTDIR)$(FMT_MANDIR)/$(notdir $(DAEMON_MANLINK))
 
 uninstall-daemon-html:
-	@rm -f $(patsubst %, $(DAEMON_HTMLDIR)/%, $(notdir $(DAEMON_HTMLFILES)))
+	@rm -f $(patsubst %, $(DESTDIR)$(DAEMON_HTMLDIR)/%, $(notdir $(DAEMON_HTMLFILES)))
 
 uninstall-daemon-conf:
-	@rm -rf $(DAEMON_CONF_INSDIR)/$(DAEMON_CONFFILE) $(DAEMON_CONF_INSDIR)/$(DAEMON_CONFDIR)
+	@rm -rf $(DESTDIR)$(DAEMON_CONF_INSDIR)/$(DAEMON_CONFFILE) $(DESTDIR)$(DAEMON_CONF_INSDIR)/$(DAEMON_CONFDIR)
 
 .PHONY: dist-daemon dist-html-daemon rpm-daemon deb-daemon sol-daemon obsd-daemon fbsd-daemon nbsd-daemon osx-daemon
 
@@ -539,15 +539,15 @@ help::
 	echo " man-$(DAEMON_NAME)           -- makes the $(DAEMON_NAME) manpages"; \
 	echo " html-$(DAEMON_NAME)          -- makes the $(DAEMON_NAME) manpages in html"; \
 	echo " install-daemon        -- installs $(DAEMON_NAME) and its manpage"; \
-	echo " install-daemon-bin    -- installs $(DAEMON_NAME) in $(APP_INSDIR)"; \
-	echo " install-daemon-man    -- installs the $(DAEMON_NAME) manpage in $(APP_MANDIR)"; \
-	echo " install-daemon-html   -- installs the $(DAEMON_NAME) html manpage in $(DAEMON_HTMLDIR)"; \
-	echo " install-daemon-conf   -- installs the $(DAEMON_NAME).conf{,.d} file/directory in $(DAEMON_CONF_INSDIR)"; \
+	echo " install-daemon-bin    -- installs $(DAEMON_NAME) in $(DESTDIR)$(APP_INSDIR)"; \
+	echo " install-daemon-man    -- installs the $(DAEMON_NAME) manpage in $(DESTDIR)$(APP_MANDIR)"; \
+	echo " install-daemon-html   -- installs the $(DAEMON_NAME) html manpage in $(DESTDIR)$(DAEMON_HTMLDIR)"; \
+	echo " install-daemon-conf   -- installs the $(DAEMON_NAME).conf{,.d} file/directory in $(DESTDIR)$(DAEMON_CONF_INSDIR)"; \
 	echo " uninstall-daemon      -- uninstalls $(DAEMON_NAME) and its manpage"; \
-	echo " uninstall-daemon-bin  -- uninstalls $(DAEMON_NAME) from $(APP_INSDIR)"; \
-	echo " uninstall-daemon-man  -- uninstalls the $(DAEMON_NAME) manpage from $(APP_MANDIR)"; \
-	echo " uninstall-daemon-html -- uninstalls the $(DAEMON_NAME) html manpage from $(DAEMON_HTMLDIR)"; \
-	echo " uninstall-daemon-conf -- uninstalls the $(DAEMON_NAME).conf{,.d} file/directory from $(DAEMON_CONF_INSDIR)"; \
+	echo " uninstall-daemon-bin  -- uninstalls $(DAEMON_NAME) from $(DESTDIR)$(APP_INSDIR)"; \
+	echo " uninstall-daemon-man  -- uninstalls the $(DAEMON_NAME) manpage from $(DESTDIR)$(APP_MANDIR)"; \
+	echo " uninstall-daemon-html -- uninstalls the $(DAEMON_NAME) html manpage from $(DESTDIR)$(DAEMON_HTMLDIR)"; \
+	echo " uninstall-daemon-conf -- uninstalls the $(DAEMON_NAME).conf{,.d} file/directory from $(DESTDIR)$(DAEMON_CONF_INSDIR)"; \
 	echo " dist-daemon           -- makes a source tarball for daemon+libslack"; \
 	echo " dist-html-daemon      -- makes a tarball of daemon's html manpages"; \
 	echo " rpm-daemon            -- makes source and binary rpm packages for daemon"; \

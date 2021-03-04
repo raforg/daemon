@@ -32,11 +32,11 @@ prefix="${1#--prefix=}"
 if [ "$prefix" = "default" ]
 then
 	perl -pi \
-		-e 's{^(PREFIX := \$\(DESTDIR\)).*$}{$1/usr/local}' \
+		-e 's{^(PREFIX := ).*$}{$1/usr/local}' \
 		`find . -name Makefile`
 else
 	perl -pi \
-		-e 's{^(PREFIX := \$\(DESTDIR\)).*$}{$1'"$prefix"'}' \
+		-e 's{^(PREFIX := ).*$}{$1'"$prefix"'}' \
 		`find . -name Makefile`
 fi
 
