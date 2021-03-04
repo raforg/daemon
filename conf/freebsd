@@ -58,6 +58,7 @@ perl -pi \
 	-e 's/^# (\w*LIBS \+= util)$/$1/;' \
 	-e 's/^# (\w*LDFLAGS \+= -pthread)$/$1/;' \
 	-e 's/^MAN_GZIP := 0$/MAN_GZIP := 1/;' \
+	-e 's/^(MAN_SYSDIR\s*:=).*$/$1 \$(PREFIX)\/share\/man/;' \
 	-e 's/^(MAN_LOCDIR\s*:=).*$/$1 \$(PREFIX)\/man/;' \
 	-e 's/^CONF_INSDIR := \/etc$/CONF_INSDIR := \$(PREFIX)\/etc/;' \
 	-e 's/^# (PREFIX := \/usr\/local)$/$1/;' \

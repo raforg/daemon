@@ -58,10 +58,12 @@ perl -pi \
 	-e 's/^# (\w*LIBS \+= util)$/$1/;' \
 	-e 's/^(\w*LDFLAGS \+= -pthread)$/# $1/;' \
 	-e 's/^MAN_GZIP := 0$/MAN_GZIP := 1/;' \
+	-e 's/^(MAN_SYSDIR\s*:=).*$/$1 \$(PREFIX)\/share\/man/;' \
 	-e 's/^(MAN_LOCDIR\s*:=).*$/$1 \$(PREFIX)\/share\/man/;' \
 	-e 's/^CONF_INSDIR := \$\(PREFIX\)\/etc$/CONF_INSDIR := \/etc/;' \
 	-e 's/^# (PREFIX := \/usr\/local)$/$1/;' \
 	-e 's/^(PREFIX := \/usr\/pkg)$/# $1/;' \
+	-e 's/^(PREFIX := ).*$/$1\/usr\/local/;' \
 	-e 's/^(DAEMON_DEFINES \+= -DCONFIG_PATH=\\"\$\(PREFIX\)\/etc\/daemon\.conf\\")$/# $1/;' \
 	`find . -name Makefile` \
 	`find . -name macros.mk`

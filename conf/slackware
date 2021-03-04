@@ -18,11 +18,13 @@
 # along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
 
-# Modify Makefile, macros.mk and config.h to compile on Slackware (after conf/linux)
+# Modify Makefile to compile/install on Slackware (after conf/linux)
 #
 # 20210220 raf <raf@raf.org>
 
 perl -pi \
+	-e 's{^(PREFIX := ).*$}{$1/usr};' \
+	-e 's/^(MAN_SYSDIR\s*:=).*$/$1 \$(PREFIX)\/man/;' \
 	-e 's/^(MAN_LOCDIR\s*:=).*$/$1 \$(PREFIX)\/man/;' \
 	`find . -name Makefile`
 
