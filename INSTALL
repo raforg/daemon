@@ -70,8 +70,12 @@ However, it does accept certain options:
     Otherwise (e.g. --prefix=/usr/local or --prefix=/opt/local), the config
     file is installed under the prefix.
 
+    --destdir
+    Changes the $(DESTDIR) prefix to $(PREFIX) for building packages.
+    It doesn't affect any paths in the final binary.
+
     --enable-test
-    Include backup implementations of several functions (unnecessary)
+    Includes backup implementations of several functions (unnecessary)
 
     --disable-logind
     On Linux systems where libsystemd or libelogind headers and libraries

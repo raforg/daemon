@@ -30,19 +30,27 @@ do
 			echo "options:"
 			echo "  --help           - Print this message then exit"
 			echo "  --prefix=/path   - Override platform-specific installation prefix"
-			echo "  --enable-test    - Include backup implementations of some functions (unnecessary)"
-			echo "  --disable-logind - Disable logind/elogind support"
+			echo "  --destdir=/path  - Override DESTDIR in Makefile for building packages"
+			echo "  --enable-test    - Include backup implementations of some functions (don't)"
+			echo "  --disable-logind - Disable logind/elogind support (i.e. --bind option)"
 			echo
 			echo "This configure script knows what to do for several platforms:"
 			echo
 			echo "  Linux, macOS, FreeBSD, NetBSD, OpenBSD, kFreeBSD, Solaris, GNU/Hurd"
 			echo ""
-			echo "To override the standard installation prefix, use --prefix (e.g. /opt/local)"
+			echo "To override a platform-specific install prefix, use --prefix (e.g. /opt/local)."
+			echo "Note: For --prefix=default and --prefix=/usr, /etc and /var/run are still used."
+			echo "For other values, these paths are affected by the prefix."
 			echo ""
-			echo "On Linux systems with libsystemd or libelogind headers/libs, they are used."
+			echo "To override the makefile \$(DESTDIR) prefix to \$(PREFIX), use --destdir."
+			echo "This is for building packages and doesn't affect paths in the final binary."
+			echo ""
+			echo "On Linux systems with libsystemd or libelogind headers and libs, they are used."
 			echo "To prevent this, use --disable-logind"
 			echo ""
-			echo "If set, \$CC will override the compiler in the Makefile."
+			echo "If set here, \$CC will override the compiler in the Makefile."
+			echo ""
+			echo "\$CPPFLAGS, \$CFLAGS and \$LDFLAGS additions need to be supplied to make later."
 			echo ""
 			exit 0
 			;;
@@ -129,6 +137,10 @@ do
 		--prefix=*)
 			echo "Configuring $opt"
 			conf/prefix "$opt"
+			;;
+		--destdir=*)
+			echo "Configuring $opt"
+			conf/destdir "$opt"
 			;;
 		--enable-test)
 			echo "Configuring to include backup function implementations."
