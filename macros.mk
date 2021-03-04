@@ -19,11 +19,11 @@
 
 # 20210220 raf <raf@raf.org>
 
-# Uncomment this to override the default value of 600 seconds
+# Uncomment this to override the default value of 300 seconds
 # as the minimum amount of time that a non-root client can live
 # if it is to be respawned
 #
-# DAEMON_DEFINES += -DRESPAWN_THRESHOLD=600
+# DAEMON_DEFINES += -DRESPAWN_ACCEPTABLE=300
 
 # Uncomment this to override the default configuration file path
 #
