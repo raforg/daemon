@@ -59,7 +59,7 @@ Become a daemon process:
       receive a `SIGHUP` signal before we start our own process session below.
       This can happen when *daemon* was invoked interactively via the shell
       builtin `exec`. When this initial process terminates below, the terminal
-      emulator that invoked the shell also terminates, do *daemon* needs to
+      emulator that invoked the shell also terminates, so *daemon* needs to
 	  protect itself from that.
 
     * Background the process to lose process group leadership.
@@ -130,20 +130,31 @@ is zero, which means never give up, never surrender.
 When the client terminates, and the `--respawn` option wasn't supplied,
 *daemon* terminates as well.
 
-If *daemon* receives a `SIGTERM` signal (e.g. from a separate invocation of
-*daemon* with the `--stop` option), it propagates the signal to the client
-and then terminates.
-
-If *daemon* receives a `SIGUSR1` signal (from a separate invocation of
-*daemon* with the `--restart` option), it sends a `SIGTERM` signal to the
-client. If it was started with the `--respawn` option, the client process
-will be restarted after it is terminated by the `SIGTERM` signal.
-
 If the `--foreground` option was supplied, the client process is run as a
 foreground process, and is not turned into a daemon at all. If *daemon* is
 connected to a terminal, then the client process will also be connected to
 it. If *daemon* is not connected to a terminal, but the client needs to be
 connected to a terminal, use the `--pty` option.
+
+If the `--bind` option was supplied, on systems with *systemd-logind* or
+*elogind*, the client process will be terminated when the user logs out.
+
+The `--stop` option sends a `SIGTERM` signal to a currently running named
+*daemon*, which causes it to terminate its client process (with a `SIGTERM`
+signal), and to then terminate itself.
+
+The `--restart` option sends a `SIGUSR1` signal to a currently running named
+*daemon*, which causes it to terminate its client process (with a `SIGTERM`
+signal). If the named *daemon* was started with the `--respawn` option, it
+will then restart the client. Otherwise, it will terminate itself.
+
+The `--signal` option sends a user-specified signal directly to a currently
+running named *daemon*'s client process.
+
+The `--running` option reports whether or not a given named *daemon* process
+is currently running.
+
+The `--list` option reports all the currently running named *daemon* processes.
 
 --------------------------------------------------------------------------------
 
