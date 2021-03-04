@@ -74,13 +74,16 @@ However, it does accept certain options:
     Changes the makefile $(DESTDIR) for building packages.
     It doesn't affect any paths in the final binary.
 
-    --enable-test
-    Includes backup implementations of several functions (unnecessary)
+    --enable-logind
+    On Linux systems where libsystemd or libelogind headers and libraries
+    are installed, this option will use them for daemon's --bind option.
+    It isn't enabled by default.
 
     --disable-logind
-    On Linux systems where libsystemd or libelogind headers and libraries
-    are installed, they are detected and used for daemon's --bind option.
-    This option prevents this.
+    This option undoes the effects of --enable-logind.
+
+    --enable-test
+    Includes backup implementations of several functions (unnecessary)
 
 To install daemon and its manpage (in /usr/local by default):
 

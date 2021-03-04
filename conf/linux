@@ -147,6 +147,4 @@ perl -pi \
 	-e 's/^\/\* #undef (HAVE_SYS_TTYDEFAULTS_H) \*\/$/#define $1 1/;' \
 	config.h
 
-conf/test-logind
-
 # vi:set ts=4 sw=4:
