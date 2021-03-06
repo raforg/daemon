@@ -856,6 +856,7 @@ I<printf(3)>
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/resource.h>
 
 #include "str.h"
 
@@ -1041,7 +1042,6 @@ int main(int ac, char **av)
 
 		default:
 		{
-			struct stat statbuf[1];
 			int status;
 
 			if (waitpid(pid, &status, 0) == -1)
@@ -1051,18 +1051,28 @@ int main(int ac, char **av)
 			}
 
 			if (!WIFSIGNALED(status) || WTERMSIG(status) != SIGABRT)
+			{
 				++errors, printf("Test8: failed: %s %d\n",
 					WIFSIGNALED(status) ? "received signal" : "exit code",
 					WIFSIGNALED(status) ? WTERMSIG(status) : WEXITSTATUS(status));
-
-			if (stat(core, statbuf) == -1 && errno == ENOENT &&
-				stat(core2, statbuf) == -1 && errno == ENOENT)
-				++errors, printf("Test8: failed: no core file produced (ulimit?)\n");
-			else
-			{
-				unlink(core);
-				unlink(core2);
 			}
+
+			/* Check for core dump, but ulimit might prevent them */
+
+#ifdef WCOREDUMP
+			if (WIFSIGNALED(status) && !WCOREDUMP(status))
+			{
+				struct rlimit limit[1] = {{ 0, 0 }};
+
+				if (getrlimit(RLIMIT_CORE, limit) != -1 && limit->rlim_cur != 0)
+					printf("Warning: dump() produced no core file (even though ulimit -c %d)\n", limit->rlim_cur);
+			}
+#endif
+
+			/* Core files might be anywhere these days, but they might be here */
+
+			unlink(core);
+			unlink(core2);
 		}
 	}
 
@@ -1140,7 +1150,6 @@ int main(int ac, char **av)
 
 		default:
 		{
-			struct stat statbuf[1];
 			int status;
 
 			if (waitpid(pid, &status, 0) == -1)
@@ -1155,14 +1164,22 @@ int main(int ac, char **av)
 					WIFSIGNALED(status) ? "received signal" : "exit code",
 					WIFSIGNALED(status) ? WTERMSIG(status) : WEXITSTATUS(status));
 
-			if (stat(core, statbuf) == -1 && errno == ENOENT &&
-				stat(core2, statbuf) == -1 && errno == ENOENT)
-				++errors, printf("Test12: failed: no core file produced (ulimit?)\n");
-			else
+			/* Check for core dump, but ulimit might prevent them */
+
+#ifdef WCOREDUMP
+			if (WIFSIGNALED(status) && !WCOREDUMP(status))
 			{
-				unlink(core);
-				unlink(core2);
+				struct rlimit limit[1] = {{ 0, 0 }};
+
+				if (getrlimit(RLIMIT_CORE, limit) != -1 && limit->rlim_cur != 0)
+					printf("Warning: dump() produced no core file (even though ulimit -c %d)\n", limit->rlim_cur);
 			}
+#endif
+
+			/* Core files might be anywhere these days, but they might be here */
+
+			unlink(core);
+			unlink(core2);
 		}
 	}
 
@@ -1232,7 +1249,6 @@ int main(int ac, char **av)
 
 		default:
 		{
-			struct stat statbuf[1];
 			int status;
 
 			if (waitpid(pid, &status, 0) == -1)
@@ -1247,14 +1263,22 @@ int main(int ac, char **av)
 					WIFSIGNALED(status) ? "received signal" : "exit code",
 					WIFSIGNALED(status) ? WTERMSIG(status) : WEXITSTATUS(status));
 
-			if (stat(core, statbuf) == -1 && errno == ENOENT &&
-				stat(core2, statbuf) == -1 && errno == ENOENT)
-				++errors, printf("Test14: failed: no core file produced (ulimit?)\n");
-			else
+			/* Check for core dump, but ulimit might prevent them */
+
+#ifdef WCOREDUMP
+			if (WIFSIGNALED(status) && !WCOREDUMP(status))
 			{
-				unlink(core);
-				unlink(core2);
+				struct rlimit limit[1] = {{ 0, 0 }};
+
+				if (getrlimit(RLIMIT_CORE, limit) != -1 && limit->rlim_cur != 0)
+					printf("Warning: dump() produced no core file (even though ulimit -c %d)\n", limit->rlim_cur);
 			}
+#endif
+
+			/* Core files might be anywhere these days, but they might be here */
+
+			unlink(core);
+			unlink(core2);
 		}
 	}
 
