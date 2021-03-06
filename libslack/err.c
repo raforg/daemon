@@ -1013,9 +1013,9 @@ int main(int ac, char **av)
 			}
 
 			if (!WIFEXITED(status) || WEXITSTATUS(status) != EXIT_FAILURE)
-				++errors, printf("Test7: failed: %s %d\n",
+				++errors, printf("Test7: failed: %s %d (expected: exit code %d)\n",
 					WIFSIGNALED(status) ? "received signal" : "exit code",
-					WIFSIGNALED(status) ? WTERMSIG(status) : WEXITSTATUS(status));
+					WIFSIGNALED(status) ? WTERMSIG(status) : WEXITSTATUS(status), EXIT_FAILURE);
 		}
 	}
 
@@ -1052,9 +1052,9 @@ int main(int ac, char **av)
 
 			if (!WIFSIGNALED(status) || WTERMSIG(status) != SIGABRT)
 			{
-				++errors, printf("Test8: failed: %s %d\n",
+				++errors, printf("Test8: failed: %s %d (expected: received signal %d)\n",
 					WIFSIGNALED(status) ? "received signal" : "exit code",
-					WIFSIGNALED(status) ? WTERMSIG(status) : WEXITSTATUS(status));
+					WIFSIGNALED(status) ? WTERMSIG(status) : WEXITSTATUS(status), SIGABRT);
 			}
 
 			/* Check for core dump, but ulimit might prevent them */
@@ -1120,9 +1120,9 @@ int main(int ac, char **av)
 			}
 
 			if (!WIFEXITED(status) || WEXITSTATUS(status) != EXIT_FAILURE)
-				++errors, printf("Test11: failed: %s %d\n",
+				++errors, printf("Test11: failed: %s %d (expected: exit code %d)\n",
 					WIFSIGNALED(status) ? "received signal" : "exit code",
-					WIFSIGNALED(status) ? WTERMSIG(status) : WEXITSTATUS(status));
+					WIFSIGNALED(status) ? WTERMSIG(status) : WEXITSTATUS(status), EXIT_FAILURE);
 		}
 	}
 
@@ -1160,9 +1160,9 @@ int main(int ac, char **av)
 			}
 
 			if (!WIFSIGNALED(status) || WTERMSIG(status) != SIGABRT)
-				++errors, printf("Test12: failed: %s %d\n",
+				++errors, printf("Test12: failed: %s %d (expected: received signal %d)\n",
 					WIFSIGNALED(status) ? "received signal" : "exit code",
-					WIFSIGNALED(status) ? WTERMSIG(status) : WEXITSTATUS(status));
+					WIFSIGNALED(status) ? WTERMSIG(status) : WEXITSTATUS(status), SIGABRT);
 
 			/* Check for core dump, but ulimit might prevent them */
 
@@ -1219,9 +1219,9 @@ int main(int ac, char **av)
 			}
 
 			if (!WIFEXITED(status) || WEXITSTATUS(status) != EXIT_SUCCESS)
-				++errors, printf("Test13: failed: %s %d\n",
+				++errors, printf("Test13: failed: %s %d (expected: exit code %d)\n",
 					WIFSIGNALED(status) ? "received signal" : "exit code",
-					WIFSIGNALED(status) ? WTERMSIG(status) : WEXITSTATUS(status));
+					WIFSIGNALED(status) ? WTERMSIG(status) : WEXITSTATUS(status), EXIT_SUCCESS);
 		}
 	}
 
@@ -1259,9 +1259,9 @@ int main(int ac, char **av)
 			}
 
 			if (!WIFSIGNALED(status) || WTERMSIG(status) != SIGABRT)
-				++errors, printf("Test14: failed: %s %d\n",
+				++errors, printf("Test14: failed: %s %d (expected: received signal %d)\n",
 					WIFSIGNALED(status) ? "received signal" : "exit code",
-					WIFSIGNALED(status) ? WTERMSIG(status) : WEXITSTATUS(status));
+					WIFSIGNALED(status) ? WTERMSIG(status) : WEXITSTATUS(status), SIGABRT);
 
 			/* Check for core dump, but ulimit might prevent them */
 
