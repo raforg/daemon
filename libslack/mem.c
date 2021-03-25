@@ -1636,12 +1636,20 @@ int main(int ac, char **av)
 					++errors, printf("Test65: pool_destroy_secure(32) failed: memory not cleared\n");
 				else
 				{
-					++errors, printf("Test65: pool_destroy_secure(32) failed: memory not cleared (possibly - or maybe the already-deallocated memory has just been reused by now)\n");
+					int i, num_nuls = 0;
+
+					for (i = 0; i < 32; i++)
+						if (((unsigned char *)whitebox)[i] == '\0')
+							++num_nuls;
+
+					if (num_nuls < 32 - 8)
 					{
-						int i;
+						++errors, printf("Test65: pool_destroy_secure(32) failed: memory not cleared (possibly - or maybe the already-deallocated memory has just been reused by now)\n");
 						printf("content = \"");
+
 						for (i = 0; i < 32; i++)
 							printf("\\x%02x", ((unsigned char *)whitebox)[i]);
+
 						printf("\" (should be all or mostly \\x00)\n");
 					}
 				}
