@@ -1793,7 +1793,7 @@ int main(int ac, char **av)
 			printf("\n"); \
 			if (stat(result, result_status) != -1 && stat(abs_path, abs_status) != -1 && result_status->st_ino == abs_status->st_ino) \
 				printf("        But they have the same inode (%d)\n", (int)abs_status->st_ino); \
-				printf("        Does your pwd return canonical paths?\n\n"); \
+			printf("        Does your pwd return canonical paths?\n\n"); \
 			free(result); \
 		} \
 	}
