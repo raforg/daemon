@@ -1065,7 +1065,7 @@ int main(int ac, char **av)
 				struct rlimit limit[1] = {{ 0, 0 }};
 
 				if (getrlimit(RLIMIT_CORE, limit) != -1 && limit->rlim_cur != 0)
-					printf("Warning: dump() produced no core file (even though ulimit -c %d)\n", limit->rlim_cur);
+					printf("Warning: dump() produced no core file (even though ulimit -c %d)\n", (int)limit->rlim_cur);
 			}
 #endif
 
@@ -1172,7 +1172,7 @@ int main(int ac, char **av)
 				struct rlimit limit[1] = {{ 0, 0 }};
 
 				if (getrlimit(RLIMIT_CORE, limit) != -1 && limit->rlim_cur != 0)
-					printf("Warning: dump() produced no core file (even though ulimit -c %d)\n", limit->rlim_cur);
+					printf("Warning: dump() produced no core file (even though ulimit -c %d)\n", (int)limit->rlim_cur);
 			}
 #endif
 
@@ -1271,7 +1271,7 @@ int main(int ac, char **av)
 				struct rlimit limit[1] = {{ 0, 0 }};
 
 				if (getrlimit(RLIMIT_CORE, limit) != -1 && limit->rlim_cur != 0)
-					printf("Warning: dump() produced no core file (even though ulimit -c %d)\n", limit->rlim_cur);
+					printf("Warning: dump() produced no core file (even though ulimit -c %d)\n", (int)limit->rlim_cur);
 			}
 #endif
 
