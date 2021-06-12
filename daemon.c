@@ -4126,12 +4126,13 @@ static void run(void)
 
 C<void show(void)>
 
-Emit a debug message that shows the current configuration.
+Emit debug messages that show the current configuration.
 
 */
 
 static void show(void)
 {
+#ifndef NDEBUG
 	int i;
 
 	debug((1, "show()"))
@@ -4197,7 +4198,9 @@ static void show(void)
 	if (g.cmd)
 	{
 		for (i = 0; g.cmd[i]; ++i)
+		{
 			debug((2, " argv[%d] = \"%s\"", i, g.cmd[i]))
+		}
 	}
 
 	if (g.cmdpath)
@@ -4211,6 +4214,7 @@ static void show(void)
 	{
 		debug((3, " %s", (g.environ ? g.environ : environ)[i]))
 	}
+#endif
 }
 
 /*

@@ -1868,10 +1868,12 @@ static void handle_verbose_option(int *arg)
 	prog_set_verbosity_level(arg ? *arg : 1);
 }
 
+#ifndef NDEBUG
 static void handle_debug_option(int *arg)
 {
 	prog_set_debug_level(arg ? *arg : 1);
 }
+#endif
 
 static Option prog_optab[] =
 {
