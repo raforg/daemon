@@ -40,10 +40,10 @@
 #undef check
 
 #ifdef NDEBUG
-#define debug(args) do {} while (0);
-#define vdebug(args) do {} while (0);
-#define debugsys(args) do {} while (0);
-#define vdebugsys(args) do {} while (0);
+#define debug(args) ;
+#define vdebug(args) ;
+#define debugsys(args) ;
+#define vdebugsys(args) ;
 #define check(cond, mesg) (void_cast(0))
 #else
 #define debug(args) debugf args;

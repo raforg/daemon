@@ -766,12 +766,20 @@ with extra parentheses. e.g.
 
     debug((1, "rc=%d", rc))
 
+Note that the I<debug()> macro always generates its own semicolon. This used
+to only be the case when C<NDEBUG> was not defined, but it is now
+consistent.
+
 =item C< #define vdebug(args)>
 
 Calls I<vdebugf(3)> unless C<NDEBUG> is defined. C<args> must be supplied
 with extra parentheses. e.g.
 
     vdebug((1, format, args))
+
+Note that the I<vdebug()> macro always generates its own semicolon. This
+used to only be the case when C<NDEBUG> was not defined, but it is now
+consistent.
 
 =item C< #define debugsys(args)>
 
@@ -780,12 +788,20 @@ with extra parentheses. e.g.
 
     debugsys((1, "fd=%d", fd))
 
+Note that the I<debugsys()> macro always generates its own semicolon. This
+used to only be the case when C<NDEBUG> was not defined, but it is now
+consistent.
+
 =item C< #define vdebugsys(args)>
 
 Calls I<vdebugsysf(3)> unless C<NDEBUG> is defined. C<args> must be supplied
 with extra parentheses. e.g.
 
     vdebugsys((1, format, args))
+
+Note that the I<vdebugsys()> macro always generates its own semicolon. This
+used to only be the case when C<NDEBUG> was not defined, but it is now
+consistent.
 
 =item C< #define check(cond, mesg)>
 
