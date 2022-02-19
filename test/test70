@@ -1,0 +1,38 @@
+#!/bin/sh
+
+[ -d pidfiles ] || mkdir pidfiles
+
+../daemon -N -n test70 --pidfiles="`pwd`"/pidfiles -- sleep 60
+sleep 1
+
+echo "After first daemon starts (expect test70.pid and test70.clientpid, note inodes)"
+ls -laspi pidfiles/test70* 2>/dev/null
+echo
+
+oldpid="`cat pidfiles/test70.pid`"
+
+echo "After test70.pid deleted (expect only test70.clientpid, same inode)"
+rm pidfiles/test70.pid
+ls -laspi pidfiles/test70* 2>/dev/null
+echo
+
+echo "After second daemon starts (expect test70.pid and test70.clientpid, both with new inodes)"
+../daemon -N -n test70 --pidfiles="`pwd`"/pidfiles -- sleep 60
+sleep 1
+ls -laspi pidfiles/test70* 2>/dev/null
+echo
+
+newpid="`cat pidfiles/test70.pid`"
+
+echo "After first daemon is terminated (expect no change, two files, same new inodes)"
+kill `echo $oldpid`
+sleep 1
+ls -laspi pidfiles/test70* 2>/dev/null
+echo
+
+echo "After second daemon is terminated (expect no files)"
+kill `echo $newpid`
+sleep 1
+ls -laspi pidfiles/test70* 2>/dev/null
+echo
+

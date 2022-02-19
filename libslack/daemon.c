@@ -107,11 +107,17 @@ static struct
 {
 	pthread_mutex_t lock; /* Mutex lock for structure */
 	char *pidfile;        /* Name of the locked pid file */
+	int pid_fd;           /* Open file descriptor of the pid file */
+	dev_t pid_dev;        /* Device that the pid file is on */
+	ino_t pid_inode;      /* Inode of the pid file */
 }
 g =
 {
-	PTHREAD_MUTEX_INITIALIZER,
-	NULL
+	PTHREAD_MUTEX_INITIALIZER, /* lock */
+	NULL,                      /* pidfile */
+	-1,                        /* pid_fd */
+	(dev_t)0,                  /* pid_dev */
+	(ino_t)0                   /* pid_inode */
 };
 
 #define ptry(action) { int err = (action); if (err) return set_errno(err); }
@@ -608,7 +614,7 @@ static int daemon_construct_pidfile(const char *name, char **pidfile)
 	char *suffix = ".pid";
 	size_t size;
 
-	/* Copnstruct the pidfile */
+	/* Construct the pidfile */
 
 	path_len = limit_path();
 	pid_dir = (getuid()) ? USER_PID_DIR : ROOT_PID_DIR;
@@ -683,13 +689,13 @@ static int daemon_lock_pidfile(char *pidfile)
 
 	/*
 	** The pidfile may have been unlinked, after we opened it, by another daemon
-	** process that was dying between the last open() and the fcntl(). There's
-	** no use hanging on to a locked file that doesn't exist (and there's
-	** nothing to stop another daemon process from creating and locking a
-	** new instance of the file. So, if the pidfile has been deleted, we
-	** abandon this lock and start again. Note that it may have been deleted
-	** and subsequently re-created by yet another daemon process just starting
-	** up so check that that hasn't happened as well by comparing inode
+	** process that was dying between the last open() and the fcntl(). But that
+	** shouldn't happen any more. There's no use hanging on to a locked file that
+	** doesn't exist (and there's nothing to stop another daemon process from
+	** creating and locking a new instance of the file. So, if the pidfile has
+	** been deleted, we abandon this lock and start again. Note that it may have
+	** been deleted and subsequently re-created by yet another daemon process just
+	** starting up, so check that that hasn't happened as well by comparing inode
 	** numbers. If it has, we also abandon this lock and start again.
 	*/
 
@@ -725,6 +731,11 @@ static int daemon_lock_pidfile(char *pidfile)
 
 	fcntl_set_fdflag(pid_fd, FD_CLOEXEC);
 
+	/* Record its dev and inode so we know not to delete the wrong pidfile later */
+
+	g.pid_dev = statbuf_fd->st_dev;
+	g.pid_inode = statbuf_fd->st_ino;
+
 	return pid_fd;
 }
 
@@ -740,7 +751,6 @@ not locked and unlocked.
 static int daemon_pidfile_unlocked(const char *name)
 {
 	char pid[32];
-	int pid_fd;
 
 	/* Check argument */
 
@@ -754,7 +764,7 @@ static int daemon_pidfile_unlocked(const char *name)
 
 	/* Open it and lock it (if possible) */
 
-	if ((pid_fd = daemon_lock_pidfile(g.pidfile)) == -1)
+	if ((g.pid_fd = daemon_lock_pidfile(g.pidfile)) == -1)
 	{
 		mem_destroy(&g.pidfile);
 		return -1;
@@ -764,7 +774,7 @@ static int daemon_pidfile_unlocked(const char *name)
 
 	snprintf(pid, 32, "%d\n", (int)getpid());
 
-	if (write(pid_fd, pid, strlen(pid)) != strlen(pid))
+	if (write(g.pid_fd, pid, strlen(pid)) != strlen(pid))
 	{
 		daemon_close();
 		return -1;
@@ -773,7 +783,9 @@ static int daemon_pidfile_unlocked(const char *name)
 	/*
 	** Flaw: If someone unceremoniously unlinks the pidfile,
 	** we won't know about it and nothing will stop another
-	** invocation from starting up.
+	** invocation from starting up. However, if that does happen,
+	** and another invocation does start, and then this invocation
+	** terminates, it won't delete the other instance's pidfile.
 	*/
 
 	return 0;
@@ -1081,12 +1093,26 @@ Unlinks the locked pid file, if any. Returns 0.
 
 int daemon_close(void)
 {
+	struct stat statbuf[1];
+
 	ptry(pthread_mutex_lock(&g.lock))
+
+	/* Unlink the pidfile, but only if it's the one we created (or if we can't tell - won't happen) */
 
 	if (g.pidfile)
 	{
-		unlink(g.pidfile);
+		if (!g.pid_inode || (stat(g.pidfile, statbuf) != -1 && statbuf->st_dev == g.pid_dev && statbuf->st_ino == g.pid_inode))
+			unlink(g.pidfile);
+
 		mem_destroy(&g.pidfile);
+	}
+
+	/* Close the pidfile, just in case this process isn't about to exit */
+
+	if (g.pid_fd != -1)
+	{
+		close(g.pid_fd);
+		g.pid_fd = -1;
 	}
 
 	ptry(pthread_mutex_unlock(&g.lock))

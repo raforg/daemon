@@ -1174,6 +1174,8 @@ static struct
 	int noconfig;      /* bypass the system configuration file? */
 	int read_eof;      /* read_eof mode (after SIGCHLD) */
 	pid_t pid;         /* the pid of the client process to run as a daemon */
+	dev_t pid_dev;     /* the device that the clientpid file is on */
+	ino_t pid_inode;   /* the inode of the clientpid file */
 	int in;            /* file descriptor for client stdin */
 	int out;           /* file descriptor for client stdout */
 	int err;           /* file descriptor for client stderr */
@@ -1256,6 +1258,8 @@ g =
 	0,                      /* noconfig */
 	1,                      /* read_eof */
 	(pid_t)0,               /* pid */
+	(dev_t)0,               /* pid_dev */
+	(ino_t)0,               /* pid_inode */
 	-1,                     /* in */
 	-1,                     /* out */
 	-1,                     /* err */
@@ -3366,6 +3370,9 @@ static int create_clientpidfile(void)
 	char *clientpidfile = null;
 	int clientpid_fd;
 	char clientpid[32];
+	struct stat statbuf[1];
+	int stale_clientpidfile = 0;
+	char *clientpidfile_oldname = NULL;
 
 	/* Build the clientpidfile path */
 
@@ -3374,12 +3381,66 @@ static int create_clientpidfile(void)
 
 	debug((2,"create_clientpidfile %s", clientpidfile))
 
+	/*
+	** Unlink it if it already exists (i.e., if the pidfile (only) was
+	** unceremoniously deleted, and this daemon was started again). But keep
+	** it in the filesystem (renamed) until after the new clientpidfile has
+	** been created, so that it gets a different inode than the old one.
+	** Deleting the old one first can result in the new one re-using the
+	** same inode, and so being deleted by the old daemon process
+	** that created the stale clientpidfile when it later terminates.
+	*/
+
+	if (stat(clientpidfile, statbuf) != -1)
+	{
+		size_t sz = strlen(clientpidfile) + 5;
+
+		if ((clientpidfile_oldname = malloc(sz)))
+		{
+			snprintf(clientpidfile_oldname, sz, "%s.old", clientpidfile);
+
+			if (rename(clientpidfile, clientpidfile_oldname) == -1)
+			{
+				unlink(clientpidfile);
+				mem_destroy(&clientpidfile_oldname);
+			}
+			else
+				stale_clientpidfile = 1;
+		}
+		else /* We tried, just unlink it here */
+		{
+			unlink(clientpidfile);
+		}
+	}
+
 	/* Open it */
 
 	if ((clientpid_fd = open(clientpidfile, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) == -1)
 	{
 		mem_destroy(&clientpidfile);
+
+		if (clientpidfile_oldname)
+			mem_destroy(&clientpidfile_oldname);
+
 		return -1;
+	}
+
+	/* Delete stale clientpidfile */
+
+	if (stale_clientpidfile)
+	{
+		unlink(clientpidfile_oldname);
+		mem_destroy(&clientpidfile_oldname);
+	}
+
+	/* Record its dev and inode so we know not to delete the wrong clientpidfile later */
+
+	if (fstat(clientpid_fd, statbuf) != -1)
+	{
+		g.pid_dev = statbuf->st_dev;
+		g.pid_inode = statbuf->st_ino;
+
+		debug((2, "clientpidfile %s dev/inode %ld/%ld pid %ld", clientpidfile, (long)g.pid_dev, (long)g.pid_inode, (long)g.pid))
 	}
 
 	/* Store our clientpid */
@@ -3411,18 +3472,29 @@ Unlinks the clientpidfile created by I<create_clientpidfile()>.
 static int unlink_clientpidfile(void)
 {
 	char *clientpidfile = null;
+	struct stat statbuf[1];
+	int rc = -1;
 
 	/* Build the clientpidfile path */
 
 	if (construct_clientpidfile(g.daemon_init_name, &clientpidfile) == -1)
 		return -1;
 
-	debug((2,"unlink_clientpidfile %s", clientpidfile))
+	debug((2, "unlink_clientpidfile %s", clientpidfile))
 
-	/* Unlink it */
+	/* Unlink it, but only if it's the one we created (or if we can't tell - won't happen) */
 
-	debug((2, "unlinking clientpidfile %s", clientpidfile))
-	unlink(clientpidfile);
+	if (!g.pid_inode || ((rc = stat(clientpidfile, statbuf)) != -1 && statbuf->st_dev == g.pid_dev && statbuf->st_ino == g.pid_inode))
+	{
+		debug((2, "unlinking clientpidfile %s dev/inode = %ld/%ld", clientpidfile, (long)g.pid_dev, (long)g.pid_inode))
+
+		unlink(clientpidfile);
+	}
+	else if (rc != -1)
+	{
+		debug((2, "not unlinking clientpidfile %s (dev/inode mismatch: %ld/%ld != %ld/%ld)", clientpidfile, (long)statbuf->st_dev, (long)statbuf->st_ino, (long)g.pid_dev, (long)g.pid_inode))
+	}
+
 	mem_destroy(&clientpidfile);
 
 	return 0;

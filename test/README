@@ -14,7 +14,7 @@ ASSUMPTIONS
 ===========
 These tests make the following assumptions:
 
- 1 - They must be executed from the current directory
+ 1 - They must be executed with this directory as the current directory
  2 - The current directory must be "safe" (man daemon_path_is_safe(3))
  3 - The daemon(1) binary to be tested is in the parent directory
 
@@ -713,6 +713,38 @@ If the above appears in the output, it means that environment variable
 notation and user home directory notation have been successfully expanded
 for all of the command line options with text arguments (and environment
 variable definitions in the configure file).
+
+test70
+------
+This tests that if a named daemon's pidfile if manually deleted, and then
+another daemon of the same name is started (because there is no pidfile to
+prevent that), then, when the first daemon is later manually terminated, it
+does not delete the new pidfile created by the new daemon, thinking that it
+was the pidfile that it had created earlier. It also tests that, in this
+situation, the new daemon does not reuse the existing clientpidfile that
+hadn't been deleted, but creates its own new one, in a way that lets the
+first daemon know not to delete it when it is later terminated (by making
+sure it gets a different inode).
+
+It should look something like this:
+
+  After first daemon starts (expect test70.pid and test70.clientpid, note inodes)
+  915324 4 -rw-r--r-- 1 raf raf 8 Feb 10 00:08 pidfiles/test70.clientpid
+  915323 4 -rw-r--r-- 1 raf raf 8 Feb 10 00:08 pidfiles/test70.pid
+
+  After test70.pid deleted (expect only test70.clientpid, same inode)
+  915324 4 -rw-r--r-- 1 raf raf 8 Feb 10 00:08 pidfiles/test70.clientpid
+
+  After second daemon starts (expect test70.pid and test70.clientpid, both with new inodes)
+  915326 4 -rw-r--r-- 1 raf raf 8 Feb 10 00:08 pidfiles/test70.clientpid
+  915325 4 -rw-r--r-- 1 raf raf 8 Feb 10 00:08 pidfiles/test70.pid
+
+  After first daemon is terminated (expect no change, two files, same new inodes)
+  915326 4 -rw-r--r-- 1 raf raf 8 Feb 10 00:08 pidfiles/test70.clientpid
+  915325 4 -rw-r--r-- 1 raf raf 8 Feb 10 00:08 pidfiles/test70.pid
+
+  After second daemon is terminated (expect no files)
+
 
 clean
 -----
