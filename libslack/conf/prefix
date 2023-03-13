@@ -2,7 +2,7 @@
 #
 # libslack - http://libslack.org/
 #
-# Copyright (C) 1999-2002, 2004, 2010, 2020-2021 raf <raf@raf.org>
+# Copyright (C) 1999-2002, 2004, 2010, 2020-2023 raf <raf@raf.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 # PREFIX/CONF_INSDIR/CONFIG_PATH/ROOT_PID_DIR together.
 # But can be reversed with --prefix=default.
 #
-# 20210220 raf <raf@raf.org>
+# 20230313 raf <raf@raf.org>
 
 # Strip off the leading "--prefix=" from the command line option
 prefix="${1#--prefix=}"

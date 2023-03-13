@@ -1,6 +1,15 @@
 CHANGELOG
 =========
 
+0.8.1 (20230313)
+
+    - Fixed compiler error when NDEBUG is defined (Baruch Siach)
+    - When NDEBUG is defined exclude more unused code (fix warning, smaller binary)
+    - Fixed buglet: Only delete the pidfile/clientpidfile we created (James Abbatiello abbeyj at gmail.com)
+    - Added CODE_OF_CONDUCT.md
+    - Add LICENSES/* and .reuse/dep5 (REUSE 3.0 compliant)
+    - Add references to the codeberg repository
+
 0.8 (20210304)
 
     - Fixed formatting typo in README.md
@@ -404,6 +413,7 @@ CHANGELOG
     URL: http://libslack.org/daemon
     URL: http://raf.org/daemon
     GIT: https://github.com/raforg/daemon
-    Date: 20210304
+    GIT: https://codeberg.org/raforg/daemon
+    Date: 20230313
     Author: raf <raf@raf.org>
 

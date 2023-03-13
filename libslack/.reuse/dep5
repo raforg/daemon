@@ -1,0 +1,19 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: libslack
+Upstream-Contact: raf <raf@raf.org>
+Source: https://libslack.org
+
+Files: *
+Copyright: 1999-2004, 2010, 2020-2023 raf <raf@raf.org>
+License: GPL-2.0-or-later
+
+Files: str.c
+Copyright: 1999-2004, 2010, 2020-2023 raf <raf@raf.org>
+           1998 Todd C. Miller <Todd.Miller@courtesan.com>
+License: GPL-2.0-or-later and BSD-3-Clause
+
+Files: pseudo.c
+Copyright: 1999-2004, 2010, 2020-2023 raf <raf@raf.org>
+           1995 Tatu Ylonen <ylo@cs.hut.fi>
+License: GPL-2.0-or-later
+

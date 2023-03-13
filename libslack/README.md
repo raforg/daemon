@@ -47,6 +47,7 @@ should always be easy to read.
     URL: http://libslack.org
     URL: http://raf.org/libslack
     GIT: https://github.com/raforg/libslack
-    Date: 20210220
+    GIT: https://codeberg.org/raforg/libslack
+    Date: 20230313
     Author: raf <raf@raf.org>
 

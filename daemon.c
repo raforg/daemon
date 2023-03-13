@@ -1,7 +1,7 @@
 /*
 * daemon - http://libslack.org/daemon/
 *
-* Copyright (C) 1999-2004, 2010, 2020-2021 raf <raf@raf.org>
+* Copyright (C) 1999-2004, 2010, 2020-2023 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, see <https://www.gnu.org/licenses/>.
 *
-* 20210304 raf <raf@raf.org>
+* 20230313 raf <raf@raf.org>
 */
 
 /*
@@ -975,7 +975,7 @@ I<elogind(8)>
 
 =head1 AUTHOR
 
-20210304 raf <raf@raf.org>
+20230313 raf <raf@raf.org>
 
 =cut
 
@@ -4869,7 +4869,7 @@ static void init(int ac, char **av)
 
 	prog_set_legal
 	(
-		"Copyright (C) 1999-2004, 2010, 2020-2021 raf <raf@raf.org>\n"
+		"Copyright (C) 1999-2004, 2010, 2020-2023 raf <raf@raf.org>\n"
 		"\n"
 		"This is free software released under the terms of the GPLv2+:\n"
 		"\n"

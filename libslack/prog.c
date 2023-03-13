@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2002, 2004, 2010, 2020-2021 raf <raf@raf.org>
+* Copyright (C) 1999-2002, 2004, 2010, 2020-2023 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, see <https://www.gnu.org/licenses/>.
 *
-* 20210220 raf <raf@raf.org>
+* 20230313 raf <raf@raf.org>
 */
 
 /*
@@ -2557,7 +2557,7 @@ The following program:
      prog_set_syntax("[options] arg...");
      prog_set_options(options);
      prog_set_version("1.0");
-     prog_set_date("20210220");
+     prog_set_date("20230313");
      prog_set_author("raf <raf@raf.org>");
      prog_set_contact(prog_author());
      prog_set_url("http://libslack.org/");
@@ -2595,7 +2595,7 @@ will behave like:
 
  Name: example
  Version: 1.0
- Date: 20210220
+ Date: 20230313
  Author: raf <raf@raf.org>
  URL: http://libslack.org/
 
@@ -2637,7 +2637,7 @@ I<locker(3)>
 
 =head1 AUTHOR
 
-20210220 raf <raf@raf.org>
+20230313 raf <raf@raf.org>
 
 =cut
 
@@ -2781,7 +2781,7 @@ int main(int ac, char **av)
 			"\n"
 			"Name: %s\n"
 			"Version: 1.0\n"
-			"Date: 20210220\n"
+			"Date: 20230313\n"
 			"Author: raf <raf@raf.org>\n"
 			"Vendor: A Software Vendor\n"
 			"URL: http://libslack.org/test/\n"
@@ -2874,7 +2874,7 @@ int main(int ac, char **av)
 	prog_set_syntax("[options]");
 	prog_set_options(prog_options_table);
 	prog_set_version("1.0");
-	prog_set_date("20210220");
+	prog_set_date("20230313");
 	prog_set_author("raf <raf@raf.org>");
 	prog_set_contact("raf <raf@raf.org>");
 	prog_set_vendor("A Software Vendor");

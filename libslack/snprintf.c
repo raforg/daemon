@@ -1,7 +1,7 @@
 /*
 * libslack - http://libslack.org/
 *
-* Copyright (C) 1999-2002, 2004, 2010, 2020-2021 raf <raf@raf.org>
+* Copyright (C) 1999-2002, 2004, 2010, 2020-2023 raf <raf@raf.org>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, see <https://www.gnu.org/licenses/>.
 *
-* 20210220 raf <raf@raf.org>
+* 20230313 raf <raf@raf.org>
 */
 
 /*
@@ -1115,7 +1115,7 @@ I<vsprintf(3)>
 
 =head1 AUTHOR
 
-2002-2021 raf <raf@raf.org>,
+2002-2023 raf <raf@raf.org>,
 1998 Andrew Tridgell <tridge@samba.org>,
 1998 Michael Elkins <me@cs.hmc.edu>,
 1998 Thomas Roessler <roessler@guug.de>,

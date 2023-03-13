@@ -1,6 +1,24 @@
 CHANGELOG
 =========
 
+0.7.2 (20230313)
+
+    - Fixed err module test false failures (core files not in cwd) (spotted by Jeffrey H. Johnson)
+    - Added err module test statement of exit status expectations if fatal/dump/check tests failed
+    - Changed some coproc module test failures (missing crlf) into warnings (if otherwise ok)
+    - Fixed compile warnings on macOS in recent err module test print statements
+    - Fixed indent of a daemon module test print statement
+    - Only fail mem module pool_destroy_secure() test if too many non-nul bytes
+    - Fixed daemon build with NDEBUG defined (Baruch Siach)
+    - Explicitly documented that debug macros now always include their own semicolon
+    - When NDEBUG is defined exclude more unused code (fix warning, smaller binary)
+    - Replaced original June 1991 GPLv2 with February 1999 GPLv2 (post-LGPLv2.1)
+    - Fixed buglet: daemon_close() Only delete the pidfile we created (James Abbatiello abbeyj at gmail.com)
+    - Fixed buglet: daemon_close() Close the pidfile (just in case process isn't about to exit) (James Abbatiello abbeyj at gmail.com)
+    - Added CODE_OF_CONDUCT.md
+    - Add LICENSES/* and .reuse/dep5 (REUSE 3.0 compliant)
+    - Add references to the codeberg repository
+
 0.7.1 (20210220)
 
     - Fixed make distclean/clobber on Debian (use debian-clobber instead of clobber) (spotted by Marc Haber)
@@ -303,6 +321,7 @@ TODO
     URL: http://libslack.org
     URL: http://raf.org/libslack
     GIT: https://github.com/raforg/libslack
-    Date: 20210220
+    GIT: https://codeberg.org/raforg/libslack
+    Date: 20230313
     Author: raf <raf@raf.org>
 
