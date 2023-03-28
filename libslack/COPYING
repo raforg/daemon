@@ -17,10 +17,9 @@ Copyright (C) 1999-2002, 2004, 2010, 2020-2023 raf <raf@raf.org>
     You should have received a copy of the GNU General Public License
     along with this library; if not, see <https://www.gnu.org/licenses/>.
 
-$OpenBSD: strlcpy.c,v 1.4 1999/05/01 18:56:41 millert Exp $
-$OpenBSD: strlcat.c,v 1.5 2001/01/13 16:17:24 millert Exp $
-Copyright (c) 1998 Todd C. Miller <Todd.Miller@courtesan.com>
+Additionally, for libslack/str.c
 
+Copyright (c) 1998 Todd C. Miller <Todd.Miller@courtesan.com>
 All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -44,6 +43,70 @@ All rights reserved.
     WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
     OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
     ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+Additionally, for (optional) libslack/getopt.h
+
+    Copyright (C) 1989,90,91,92,93,94,96,97,98 Free Software Foundation, Inc.
+    This file is part of the GNU C Library.
+
+    The GNU C Library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Library General Public License as
+    published by the Free Software Foundation; either version 2 of the
+    License, or (at your option) any later version.
+
+    The GNU C Library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Library General Public License for more details.
+
+    You should have received a copy of the GNU Library General Public
+    License along with the GNU C Library; see the file COPYING.LIB.  If not,
+    write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+    Boston, MA 02111-1307, USA.
+
+Additionally, for (optional) libslack/getopt.c
+
+    Copyright (C) 1997, 1998 Free Software Foundation, Inc.
+    This file is part of the GNU C Library.
+    Contributed by Ulrich Drepper <drepper@cygnus.com>, 1997.
+
+    The GNU C Library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Library General Public License as
+    published by the Free Software Foundation; either version 2 of the
+    License, or (at your option) any later version.
+
+    The GNU C Library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Library General Public License for more details.
+
+    You should have received a copy of the GNU Library General Public
+    License along with the GNU C Library; see the file COPYING.LIB.  If not,
+    write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+    Boston, MA 02111-1307, USA.
+
+
+    Copyright (C) 1993 Thomas Koenig (ig25@rz.uni-karlsruhe.de)
+
+    Permission is granted to make and distribute verbatim copies of this
+    manual provided the copyright notice and this permission notice are
+    preserved on all copies.
+
+    Permission is granted to copy and distribute modified versions of this
+    manual under the conditions for verbatim copying, provided that the
+    entire resulting derived work is distributed under the terms of a
+    permission notice identical to this one
+
+    Formatted or processed versions of this manual, if unaccompanied by
+    the source, must acknowledge the copyright and authors of this work.
+    License.
+
+Additionally, for (optional) libslack/snprintf.c
+
+    Copyright 1995 Patrick Powell
+    This code is based on code written by Patrick Powell (papowell@astart.com)
+    It may be used for any purpose as long as this notice remains intact
+    on all source code distributions
 
 --------------------------------------------------------------------------------
 
