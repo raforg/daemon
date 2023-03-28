@@ -230,7 +230,9 @@ sockets (if supported by the operating system).
 #define ifr_ifindex ifr_index
 #endif
 #ifndef HAVE_IFREQ_IFR_MTU
+#ifndef ifr_mtu
 #define ifr_mtu ifr_ifindex /* ? */
+#endif
 #endif
 
 struct rudp_t
@@ -2238,6 +2240,7 @@ List *net_interfaces_by_family_with_locker(int family, Locker *locker)
 			/* Get the interface's hardware address */
 
 #ifdef SIOCGIFHWADDR
+#ifdef ifr_hwaddr
 			if (ioctl(sockfd, SIOCGIFHWADDR, ifrcopy) == 0)
 			{
 				if (!(iface->hwaddr = mem_new(sockaddr_t)))
@@ -2250,6 +2253,7 @@ List *net_interfaces_by_family_with_locker(int family, Locker *locker)
 
 				memcpy(iface->hwaddr, &ifrcopy->ifr_hwaddr, sizeof(sockaddr_t));
 			}
+#endif
 #endif
 
 			/* Get the interface's broadcast address */
