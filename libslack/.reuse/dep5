@@ -17,3 +17,17 @@ Copyright: 1999-2004, 2010, 2020-2023 raf <raf@raf.org>
            1995 Tatu Ylonen <ylo@cs.hut.fi>
 License: GPL-2.0-or-later
 
+Files: getopt.h
+Copyright: 1989,90,91,92,93,94,96,97,98 Free Software Foundation, Inc.
+License: GPL-2.0-or-later
+
+Files: getopt.c
+Copyright: 1997, 1998 Free Software Foundation, Inc.
+           1993 Thomas Koenig (ig25@rz.uni-karlsruhe.de)
+License: GPL-2.0-or-later
+
+Files: snprintf.c
+Copyright: 1999-2004, 2010, 2020-2023 raf <raf@raf.org>
+           1995 Patrick Powell
+License: GPL-2.0-or-later
+
