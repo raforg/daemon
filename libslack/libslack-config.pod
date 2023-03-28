@@ -1,5 +1,5 @@
 #
-# libslack - http://libslack.org/
+# libslack - https://libslack.org
 #
 # Copyright (C) 1999-2002, 2004, 2010, 2020-2023 raf <raf@raf.org>
 #
@@ -53,7 +53,7 @@ I<libslack-config> is an administrative tool for I<libslack(3)>. It can
 print the compiler and linker flags that are needed to compile and link
 programs that use I<libslack(3)>. It can also print the version of the
 currently installed I<libslack(3)> or print the latest version available at
-C<http://www.libslack.org/>. It can also download the latest version. It can
+C<https://www.libslack.org>. It can also download the latest version. It can
 also upgrade libslack. It can also uninstall libslack.
 
 =head1 OPTIONS
@@ -71,17 +71,17 @@ Print the version of the currently installed I<libslack>.
 =item C<-L>, C<--latest>
 
 Print the latest version of I<libslack> available at
-C<http://libslack.org/>.
+C<https://libslack.org>.
 
 =item C<-D>, C<--download>
 
 Download the latest version of I<libslack> from
-C<http://libslack.org/>.
+C<https://libslack.org>.
 
 =item C<-U>, C<--upgrade>
 
 Upgrade to the latest version of I<libslack> from
-C<http://libslack.org/>. This downloads the latest
+C<https://libslack.org>. This downloads the latest
 version, configures it, compiles it, uninstalls the currently installed
 version and then installs the new version wherever the current version
 was installed.
@@ -106,7 +106,7 @@ Uninstall I<libslack>.
 
 =head1 SEE ALSO
 
-C<http://libslack.org/>,
+C<https://libslack.org>,
 I<libslack(3)>,
 I<agent(3)>,
 I<coproc(3)>,

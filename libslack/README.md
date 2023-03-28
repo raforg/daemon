@@ -44,8 +44,8 @@ should always be easy to read.
 
 --------------------------------------------------------------------------------
 
-    URL: http://libslack.org
-    URL: http://raf.org/libslack
+    URL: https://libslack.org
+    URL: https://raf.org/libslack
     GIT: https://github.com/raforg/libslack
     GIT: https://codeberg.org/raforg/libslack
     Date: 20230313

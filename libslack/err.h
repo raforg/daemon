@@ -1,5 +1,5 @@
 /*
-* libslack - http://libslack.org/
+* libslack - https://libslack.org
 *
 * Copyright (C) 1999-2002, 2004, 2010, 2020-2023 raf <raf@raf.org>
 *

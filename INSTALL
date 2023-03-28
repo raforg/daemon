@@ -240,8 +240,8 @@ Probably has the same UNIX domain datagram problem as Solaris.
 
 --------------------------------------------------------------------------------
 
-    URL: http://libslack.org/daemon
-    URL: http://raf.org/daemon
+    URL: https://libslack.org/daemon
+    URL: https://raf.org/daemon
     GIT: https://github.com/raforg/daemon
     GIT: https://codeberg.org/raforg/daemon
     Date: 20230313

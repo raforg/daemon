@@ -1,5 +1,5 @@
 /*
-* libslack - http://libslack.org/
+* libslack - https://libslack.org
 *
 * Copyright (C) 1999-2002, 2004, 2010, 2020-2023 raf <raf@raf.org>
 *
@@ -100,7 +100,7 @@ determine what is appropriate for each application, on a case by case basis.
 I<MT-Disciplined> means that the application developer has a mechanism for
 specifying the synchronisation requirements to be applied to library code.
 For more details, see I<MT-Disciplined - decoupling thread safety>
-(C<http://raf.org/papers/mt-disciplined.html>).
+(C<https://raf.org/papers/mt-disciplined.html>).
 
 This module also provides an implementation of readers/writer locks which
 are defined in recent standards but may not be on your system yet. The
@@ -1024,7 +1024,7 @@ A non-locking example:
 =head1 SEE ALSO
 
 I<libslack(3)>,
-C<http://raf.org/papers/mt-disciplined.html>
+C<https://raf.org/papers/mt-disciplined.html>
 
 =head1 AUTHOR
 

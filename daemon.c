@@ -1,5 +1,5 @@
 /*
-* daemon - http://libslack.org/daemon/
+* daemon - https://libslack.org/daemon
 *
 * Copyright (C) 1999-2004, 2010, 2020-2023 raf <raf@raf.org>
 *

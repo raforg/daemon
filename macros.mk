@@ -1,5 +1,5 @@
 #
-# daemon - http://libslack.org/daemon/
+# daemon - https://libslack.org/daemon
 #
 # Copyright (C) 1999-2004, 2010, 2020-2023 raf <raf@raf.org>
 #
@@ -37,7 +37,7 @@
 DAEMON_NAME := daemon
 DAEMON_VERSION := 0.8.1
 DAEMON_DATE := 20230313
-DAEMON_URL := http://libslack.org/daemon/
+DAEMON_URL := https://libslack.org/daemon
 DAEMON_ID := $(DAEMON_NAME)-$(DAEMON_VERSION)
 DAEMON_DIST := $(DAEMON_ID).tar.gz
 DAEMON_HTML_ID := $(DAEMON_ID)-html

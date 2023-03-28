@@ -1,5 +1,5 @@
 #
-# libslack - http://libslack.org/
+# libslack - https://libslack.org
 #
 # Copyright (C) 1999-2002, 2004, 2010, 2020-2023 raf <raf@raf.org>
 #
@@ -141,7 +141,7 @@ SLACK_TEST_CCFLAGS += -Wno-restrict
 SLACK_NAME := slack
 SLACK_VERSION := 0.7.2
 SLACK_DATE := 20230313
-SLACK_URL := http://libslack.org/
+SLACK_URL := https://libslack.org
 SLACK_ID := lib$(SLACK_NAME)-$(SLACK_VERSION)
 SLACK_DIST := $(SLACK_ID).tar.gz
 SLACK_HTML_ID := $(SLACK_ID)-html

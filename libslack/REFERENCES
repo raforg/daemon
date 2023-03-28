@@ -65,7 +65,7 @@ REFERENCES
 
     MT-Disciplined
     raf
-    http://raf.org/papers/mt-disciplined.html, 2001
+    https://raf.org/papers/mt-disciplined.html, 2001
 
     I/O Event Handling Under Linux
     Richard Gooch
@@ -96,8 +96,8 @@ REFERENCES
 
 --------------------------------------------------------------------------------
 
-    URL: http://libslack.org
-    URL: http://raf.org/libslack
+    URL: https://libslack.org
+    URL: https://raf.org/libslack
     GIT: https://github.com/raforg/libslack
     GIT: https://codeberg.org/raforg/libslack
     Date: 20230313

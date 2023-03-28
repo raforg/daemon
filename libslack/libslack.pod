@@ -1,5 +1,5 @@
 #
-# libslack - http://libslack.org/
+# libslack - https://libslack.org
 #
 # Copyright (C) 1999-2002, 2004, 2010, 2020-2023 raf <raf@raf.org>
 #
@@ -175,7 +175,7 @@ possible to let the end user specify which locking strategy to use. It
 supports mutual exclusion locks, readers/writer locks and no locking. There
 are also debug versions that print messages to standard output to help
 clients locate deadlocks. See
-C<http://raf.org/papers/mt-disciplined.html>.
+C<https://raf.org/papers/mt-disciplined.html>.
 
 =item Coprocesses and Pseudo Terminals
 
@@ -313,8 +313,8 @@ that really needs to be in the manpages, don't hesitate to let me know.
 
 =head1 SEE ALSO
 
-C<http://libslack.org/>,
-C<http://raf.org/papers/mt-disciplined.html>,
+C<https://libslack.org>,
+C<https://raf.org/papers/mt-disciplined.html>,
 I<libslack-config(1)>,
 I<agent(3)>,
 I<coproc(3)>,

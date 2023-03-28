@@ -1,5 +1,5 @@
 /*
-* libslack - http://libslack.org/
+* libslack - https://libslack.org
 *
 * Copyright (C) 1999-2002, 2004, 2010, 2020-2023 raf <raf@raf.org>
 *
@@ -2560,7 +2560,7 @@ The following program:
      prog_set_date("20230313");
      prog_set_author("raf <raf@raf.org>");
      prog_set_contact(prog_author());
-     prog_set_url("http://libslack.org/");
+     prog_set_url("https://libslack.org");
      prog_set_legal("This software is released under the terms of the GPL.\n");
      prog_set_desc("This program is an example of the prog module.\n");
 
@@ -2597,7 +2597,7 @@ will behave like:
  Version: 1.0
  Date: 20230313
  Author: raf <raf@raf.org>
- URL: http://libslack.org/
+ URL: https://libslack.org
 
  This software is released under the terms of the GPL.
 
@@ -2784,7 +2784,7 @@ int main(int ac, char **av)
 			"Date: 20230313\n"
 			"Author: raf <raf@raf.org>\n"
 			"Vendor: A Software Vendor\n"
-			"URL: http://libslack.org/test/\n"
+			"URL: https://libslack.org/test\n"
 			"\n"
 			"This software is released under the terms of the GPL.\n"
 			"\n"
@@ -2878,7 +2878,7 @@ int main(int ac, char **av)
 	prog_set_author("raf <raf@raf.org>");
 	prog_set_contact("raf <raf@raf.org>");
 	prog_set_vendor("A Software Vendor");
-	prog_set_url("http://libslack.org/test/");
+	prog_set_url("https://libslack.org/test");
 	prog_set_legal("This software is released under the terms of the GPL.\n");
 	prog_set_desc("This program tests the prog module.\n");
 

@@ -3,7 +3,7 @@ use warnings;
 use strict;
 
 #
-# libslack - http://libslack.org/
+# libslack - https://libslack.org
 #
 # Copyright (C) 1999-2002, 2004, 2010, 2020-2023 raf <raf@raf.org>
 #
@@ -166,7 +166,7 @@ work on anything else.
 =head1 SEE ALSO
 
 I<libslack(3)>,
-C<http://libslack.org/>
+C<https://libslack.org>
 
 =head1 AUTHOR
 
@@ -436,7 +436,7 @@ sub hdr
 	open(HDR, "> $name") or die "failed to open $name for writing\n";
 	print HDR << "EOT";
 /*
-* libslack - http://libslack.org/
+* libslack - https://libslack.org
 *
 * Copyright (C) 1999-2002, 2004, 2010, 2020-2023 raf <raf@raf.org>
 *
