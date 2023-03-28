@@ -198,13 +198,13 @@ endif
 ALL_TARGETS += slack
 READY_TARGETS += ready-slack
 TEST_TARGETS += test-slack
+ifeq ($(SLACK_MAIN), 1)
 MAN_TARGETS += man-slack
 HTML_TARGETS += html-slack
-ifeq ($(SLACK_MAIN), 1)
 INSTALL_TARGETS += install-slack
 UNINSTALL_TARGETS += uninstall-slack
-endif
 DIST_TARGETS += dist-slack
+endif
 RPM_TARGETS += rpm-slack
 DEB_TARGETS +=
 SOL_TARGETS += sol-slack
