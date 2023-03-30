@@ -16,7 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
-# 20230313 raf <raf@raf.org>
+# 20230330 raf <raf@raf.org>
+#
 
 # Uncomment these to override the defines in daemon.h and prog.h
 #
@@ -139,8 +140,8 @@ SLACK_TEST_CCFLAGS += -Wno-restrict
 # SLACK_DEFINES += -DNO_DEBUG_LOCKERS=1
 
 SLACK_NAME := slack
-SLACK_VERSION := 0.7.2
-SLACK_DATE := 20230313
+SLACK_VERSION := 0.7.3
+SLACK_DATE := 20230330
 SLACK_URL := https://libslack.org
 SLACK_ID := lib$(SLACK_NAME)-$(SLACK_VERSION)
 SLACK_DIST := $(SLACK_ID).tar.gz

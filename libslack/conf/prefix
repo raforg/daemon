@@ -17,12 +17,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
+# 20230330 raf <raf@raf.org>
+#
 
 # Modify Makefile and macros.mk to change
 # PREFIX/CONF_INSDIR/CONFIG_PATH/ROOT_PID_DIR together.
 # But can be reversed with --prefix=default.
-#
-# 20230313 raf <raf@raf.org>
 
 # Strip off the leading "--prefix=" from the command line option
 prefix="${1#--prefix=}"

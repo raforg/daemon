@@ -49,8 +49,8 @@ First, uninstall any previous version (optional):
 
 To build and test:
 
-    tar xzf daemon-0.8.1.tar.gz
-    cd daemon-0.8.1
+    tar xzf daemon-0.8.2.tar.gz
+    cd daemon-0.8.2
     ./configure # iff linux, openbsd, freebsd, netbsd, macosx, solaris, gnuhurd or kfreebsd
     make        # must be gnu make
     make test   # only tests libslack. to test daemon, see test/README
@@ -244,6 +244,6 @@ Probably has the same UNIX domain datagram problem as Solaris.
     URL: https://raf.org/daemon
     GIT: https://github.com/raforg/daemon
     GIT: https://codeberg.org/raforg/daemon
-    Date: 20230313
+    Date: 20230330
     Author: raf <raf@raf.org>
 

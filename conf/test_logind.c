@@ -16,6 +16,8 @@
 *
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, see <https://www.gnu.org/licenses/>.
+*
+* 20230330 raf <raf@raf.org>
 */
 
 /*
@@ -23,8 +25,6 @@
 * be run. It is only to be compiled so as to make sure that we have
 * all of these functions and types available. On Linux systems
 * with systemd, it needs to be linkd again
-*
-* 20230313 raf <raf@raf.org>
 */
 
 #include <stdlib.h>

@@ -1,6 +1,16 @@
 CHANGELOG
 =========
 
+0.7.3 (20230330)
+
+    - COPYING - Add copyrights for optional getopt/snprintf modules
+    - .reuse - Add copyrights for optional getopt/snprintf modules
+    - make - Exclude man-slack/html-slack/dist-slack from man/html/dist targets unless main
+    - Fix compile error and install error on Solaris
+    - doc - Replace http with https for libslack.org/raf.org and remove trailing /
+    - Replace bash with sh for libslack-config and tools/check-pod
+    - Change default compiler on OpenBSD to cc
+
 0.7.2 (20230313)
 
     - Fixed err module test false failures (core files not in cwd) (spotted by Jeffrey H. Johnson)
@@ -322,6 +332,6 @@ TODO
     URL: https://raf.org/libslack
     GIT: https://github.com/raforg/libslack
     GIT: https://codeberg.org/raforg/libslack
-    Date: 20230313
+    Date: 20230330
     Author: raf <raf@raf.org>
 

@@ -162,6 +162,6 @@ The `--list` option reports all the currently running named *daemon* processes.
     URL: https://raf.org/daemon
     GIT: https://github.com/raforg/daemon
     GIT: https://codeberg.org/raforg/daemon
-    Date: 20230313
+    Date: 20230330
     Author: raf <raf@raf.org>
 

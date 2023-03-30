@@ -16,8 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
-
-# 20230313 raf <raf@raf.org>
+# 20230330 raf <raf@raf.org>
+#
 
 ifneq ($(DAEMON_TARGET),./$(DAEMON_NAME))
 
@@ -597,7 +597,7 @@ $(DAEMON_SRCDIR)/%.o: $(DAEMON_SRCDIR)/%.c
 	$(CC) $(DAEMON_CFLAGS) -o $@ -c $<
 
 $(DAEMON_SRCDIR)/%.$(APP_MANSECT): $(DAEMON_SRCDIR)/%.c
-	$(POD2MAN) --section=$(APP_MANSECT) --center='$(APP_MANSECTNAME)' --name=$(shell echo $(DAEMON_NAME) | tr a-z A-Z) --release=$(DAEMON_ID) --date=$(DAEMON_DATE) --quotes=none $< > $@
+	$(POD2MAN) --section=$(APP_MANSECT) --center='$(APP_MANSECTNAME)' --name=$(shell echo $(DAEMON_NAME) | tr abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ) --release=$(DAEMON_ID) --date=$(DAEMON_DATE) --quotes=none $< > $@
 
 $(DAEMON_SRCDIR)/%.gz: $(DAEMON_SRCDIR)/%
 	$(GZIP) $<

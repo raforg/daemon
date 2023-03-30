@@ -16,7 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
-# 20230313 raf <raf@raf.org>
+# 20230330 raf <raf@raf.org>
+#
 
 ifneq ($(SLACK_TARGET),./$(SLACK_NAME))
 
@@ -576,13 +577,13 @@ $(SLACK_TESTDIR)/%: $(SLACK_SRCDIR)/%.c $(SLACK_TARGET)
 	$(CC) -DTEST $(SLACK_TEST_CFLAGS) -o $@ $< $(SLACK_TEST_LDFLAGS)
 
 $(SLACK_SRCDIR)/%.$(LIB_MANSECT): $(SLACK_SRCDIR)/%.c
-	$(POD2MAN) --section=$(LIB_MANSECT) --center='$(LIB_MANSECTNAME)' --name=$(shell basename $< .c | tr a-z A-Z) --release=$(SLACK_ID) --date=$(SLACK_DATE) --quotes=none $< > $@
+	$(POD2MAN) --section=$(LIB_MANSECT) --center='$(LIB_MANSECTNAME)' --name=$(shell basename $< .c | tr abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ) --release=$(SLACK_ID) --date=$(SLACK_DATE) --quotes=none $< > $@
 
 $(SLACK_SRCDIR)/%.$(LIB_MANSECT): $(SLACK_SRCDIR)/%.pod
-	$(POD2MAN) --section=$(LIB_MANSECT) --center='$(LIB_MANSECTNAME)' --name=$(shell basename $< .pod | tr a-z A-Z) --release=$(SLACK_ID) --date=$(SLACK_DATE) --quotes=none $< > $@
+	$(POD2MAN) --section=$(LIB_MANSECT) --center='$(LIB_MANSECTNAME)' --name=$(shell basename $< .pod | tr abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ) --release=$(SLACK_ID) --date=$(SLACK_DATE) --quotes=none $< > $@
 
 $(SLACK_SRCDIR)/%.$(APP_MANSECT): $(SLACK_SRCDIR)/%.pod
-	$(POD2MAN) --section=$(APP_MANSECT) --center='$(APP_MANSECTNAME)' --name=$(shell basename $< .pod | tr a-z A-Z) --release=$(SLACK_ID) --date=$(SLACK_DATE) --quotes=none $< > $@
+	$(POD2MAN) --section=$(APP_MANSECT) --center='$(APP_MANSECTNAME)' --name=$(shell basename $< .pod | tr abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ) --release=$(SLACK_ID) --date=$(SLACK_DATE) --quotes=none $< > $@
 
 $(SLACK_SRCDIR)/%.gz: $(SLACK_SRCDIR)/%
 	$(GZIP) $<

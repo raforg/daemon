@@ -17,10 +17,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
+# 20230330 raf <raf@raf.org>
+#
 
 # Revert to system implementation of rwlocks
-#
-# 20230313 raf <raf@raf.org>
 
 perl -pi \
 	-e 's/test_pthread_rwlock/pthread_rwlock/g;' \

@@ -48,6 +48,6 @@ should always be easy to read.
     URL: https://raf.org/libslack
     GIT: https://github.com/raforg/libslack
     GIT: https://codeberg.org/raforg/libslack
-    Date: 20230313
+    Date: 20230330
     Author: raf <raf@raf.org>
 

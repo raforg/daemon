@@ -1,11 +1,34 @@
 #!/bin/sh
+#
+# libslack - https://libslack.org
+#
+# Copyright (C) 1999-2002, 2004, 2010, 2020-2023 raf <raf@raf.org>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, see <https://www.gnu.org/licenses/>.
+#
+# 20230330 raf <raf@raf.org>
+#
 
 # This is a local version of install for OpenSolaris because it doesn't have
 # /usr/ucb/install and the normal Solaris install program is weird and
 # doesn't do what its manpage says it does (i.e. it ignores the directory 
 # at the end of the command line instead of installing the file there).
 
-# Note: All our uses of install are of the form: install -m ### file... dir
+# Note: All our uses of install are of the form:
+#   install -m ### file... dir
+# or:
+#   install -m ### file dest
 
 if [ "x$1" != "x-m" -o "$#" -lt 4 ]
 then
@@ -27,17 +50,14 @@ do
 	files="$files $1"
 	shift
 done
-dir="$1"
-if [ ! -d "$dir" ]
+if [ -d "$1" ]
 then
-	mkdir -p "$dir"
-	if [ "$?" != 0 ]
-	then
-		echo "$0: Failed to create $dir" >&2
-		exit 1
-	fi
+	dir="$1"
+	cp $files $dir
+else
+	dst="$1"
+	cp $files $dst
 fi
-cp $files $dir
 for file in $files
 do
 	chmod $mode $dir/$file

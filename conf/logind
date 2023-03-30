@@ -17,10 +17,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
+# 20230330 raf <raf@raf.org>
+#
 
 # Enable/disable support for systemd-logind or elogind (Linux only)
-#
-# 20230313 raf <raf@raf.org>
 
 if [ x"$1" = x--enable ]
 then

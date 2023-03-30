@@ -17,10 +17,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
+# 20230330 raf <raf@raf.org>
+#
 
 # Modify macros.mk and config.h to exercise optional code
-#
-# 20230313 raf <raf@raf.org>
 
 perl -pi \
 	-e 's/^# (GETOPT := getopt)$/$1/;' \

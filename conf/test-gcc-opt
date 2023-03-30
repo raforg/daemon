@@ -17,10 +17,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
+# 20230330 raf <raf@raf.org>
+#
 
 # Test if the supplied gcc argument is supported
-#
-# 20230313 raf <raf@raf.org>
 
 option="$1"
 gcc -E -xc /dev/null -Werror $option >/dev/null 2>/dev/null

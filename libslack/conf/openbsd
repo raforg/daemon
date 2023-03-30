@@ -17,10 +17,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
+# 20230330 raf <raf@raf.org>
+#
 
 # Modify Makefile, macros.mk and config.h to compile on OpenBSD
-#
-# 20230313 raf <raf@raf.org>
 
 perl -pi \
 	-e 's/^(\S+ \+= xnet)$/# $1/;' \
@@ -37,8 +37,8 @@ perl -pi \
 	-e 's/^# (\S+ \+= -DNO_POSIX_SOURCE=1)$/$1/;' \
 	-e 's/^# (\S+ \+= -DNO_XOPEN_SOURCE=1)$/$1/;' \
 	-e 's/^(\S+ \+= -DROOT_PID_DIR)=.*$/# $1=\\"\/var\/run\\"/;' \
-	-e 's/^(CC := cc)$/# $1/;' \
-	-e 's/^# (CC := gcc)$/$1/;' \
+	-e 's/^# (CC := cc)$/$1/;' \
+	-e 's/^(CC := gcc)$/# $1/;' \
 	-e 's/^(CC := .*other)$/# CC := other/;' \
 	-e 's/^# (\S+ \+= -Wno-long-long)$/$1/;' \
 	-e 's/^(\S+ \+= -Wno-overlength-strings)$/# $1/;' \

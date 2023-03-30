@@ -1,6 +1,15 @@
 CHANGELOG
 =========
 
+0.8.2 (20230330)
+
+    - COPYING - Add copyrights for libslack's optional getopt/snprintf modules
+    - .reuse - Add copyrights for libslack's optional getopt/snprintf modules
+    - make - Exclude man-slack/html-slack/dist-slack from man/html/dist targets
+    - Fix libslack compile error and install error on Solaris
+    - doc - Replace http with https for libslack.org/raf.org and remove trailing /
+    - Change default compiler on OpenBSD to cc
+
 0.8.1 (20230313)
 
     - Fixed compiler error when NDEBUG is defined (Baruch Siach)
@@ -414,6 +423,6 @@ CHANGELOG
     URL: https://raf.org/daemon
     GIT: https://github.com/raforg/daemon
     GIT: https://codeberg.org/raforg/daemon
-    Date: 20230313
+    Date: 20230330
     Author: raf <raf@raf.org>
 

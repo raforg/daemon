@@ -48,13 +48,13 @@ First, uninstall any previous version (optional):
 
 or:
 
-    cd /usr/local/src/libslack-0.7.1
+    cd /usr/local/src/libslack-0.7.2
     make uninstall
 
 To build and test:
 
-    tar xzf libslack-0.7.2.tar.gz
-    cd libslack-0.7.2
+    tar xzf libslack-0.7.3.tar.gz
+    cd libslack-0.7.3
     ./configure # iff linux, openbsd, freebsd, netbsd, macosx, solaris, gnuhurd or kfreebsd
     make        # must be gnu make
     make test
@@ -115,43 +115,43 @@ created.
 
 To install from the Fedora RPM binary package (into /usr by default):
 
-    rpm -i libslack-0.7.2-1.x86_64.rpm # or
-    rpm -i libslack-0.7.2-1.i686.rpm
+    rpm -i libslack-0.7.3-1.x86_64.rpm # or
+    rpm -i libslack-0.7.3-1.i686.rpm
 
 To install from the OpenBSD binary package (into /usr/local by default):
 
-    mv libslack-0.7.2-openbsd-amd64.tgz libslack-0.7.2.tgz # or
-    mv libslack-0.7.2-openbsd-i386.tgz  libslack-0.7.2.tgz
+    mv libslack-0.7.3-openbsd-amd64.tgz libslack-0.7.3.tgz # or
+    mv libslack-0.7.3-openbsd-i386.tgz  libslack-0.7.3.tgz
     # then
-    pkg_add libslack-0.7.2.tgz
+    pkg_add libslack-0.7.3.tgz
 
 To install from the FreeBSD binary package (into /usr/local by default):
 
-    pkg_add libslack-0.7.2-freebsd-amd64.tbz # or
-    pkg_add libslack-0.7.2-freebsd-i386.tbz
+    pkg_add libslack-0.7.3-freebsd-amd64.tbz # or
+    pkg_add libslack-0.7.3-freebsd-i386.tbz
 
 To install from the NetBSD binary package (into /usr/local by default):
 
-    pkg_add libslack-0.7.2-netbsd-amd64.tgz # or
-    pkg_add libslack-0.7.2-netbsd-i386.tgz
+    pkg_add libslack-0.7.3-netbsd-amd64.tgz # or
+    pkg_add libslack-0.7.3-netbsd-i386.tgz
 
 To install from the Mac OS X binary package (into /usr/local by default):
 
     cd /usr/local
-    tar xzf /usr/local/src/libslack-0.7.2-macosx-universal.tar.gz # or
-    tar xzf /usr/local/src/libslack-0.7.2-macosx-x86_64.tar.gz # or
-    tar xzf /usr/local/src/libslack-0.7.2-macosx-i386.tar.gz # or
-    tar xzf /usr/local/src/libslack-0.7.2-macosx-powerpc.tar.gz
+    tar xzf /usr/local/src/libslack-0.7.3-macosx-universal.tar.gz # or
+    tar xzf /usr/local/src/libslack-0.7.3-macosx-x86_64.tar.gz # or
+    tar xzf /usr/local/src/libslack-0.7.3-macosx-i386.tar.gz # or
+    tar xzf /usr/local/src/libslack-0.7.3-macosx-powerpc.tar.gz
 
 To install from the Solaris10 binary package (into /usr/local by default):
 
-    gunzip libslack-0.7.2-solaris-amd64.pkg.gz
-    pkgadd -d libslack-0.7.2-solaris-amd64.pkg
+    gunzip libslack-0.7.3-solaris-amd64.pkg.gz
+    pkgadd -d libslack-0.7.3-solaris-amd64.pkg
 
 or
 
-    gunzip libslack-0.7.2-solaris-i386.pkg.gz
-    pkgadd -d libslack-0.7.2-solaris-i386.pkg
+    gunzip libslack-0.7.3-solaris-i386.pkg.gz
+    pkgadd -d libslack-0.7.3-solaris-i386.pkg
 
 REQUIREMENTS
 ============
@@ -268,6 +268,6 @@ And don't forget to use `libslack-config --cflags` when compiling it and
     URL: https://raf.org/libslack
     GIT: https://github.com/raforg/libslack
     GIT: https://codeberg.org/raforg/libslack
-    Date: 20230313
+    Date: 20230330
     Author: raf <raf@raf.org>
 

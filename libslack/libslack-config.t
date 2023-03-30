@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # libslack - https://libslack.org
 #
@@ -17,7 +17,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
-# 20230313 raf <raf@raf.org>
+# 20230330 raf <raf@raf.org>
+#
+
+# libslack-config - Helper utility for libslack clients
 
 var() { eval $1='$2'; export $1; }
 die() { echo "$@" >&2; exit 1; }
@@ -66,7 +69,7 @@ EOF
 
 latest()
 {
-	wget -q -O- "${url}download/" | \
+	wget -q -O- "${url}/download/" | \
 	perl -e '
 
 		$ENV{suffix} =~ s/\./\\./g;
@@ -94,8 +97,8 @@ latest()
 		}
 
 		@version = sort { version_sort } keys %version;
-		die "No versions found at $ENV{url}download/\n" if $#version == -1;
-		print "$ENV{url}download/$ENV{name}-$version[0].tar.gz\n";
+		die "No versions found at $ENV{url}/download/\n" if $#version == -1;
+		print "$ENV{url}/download/$ENV{name}-$version[0].tar.gz\n";
 		exit 0;
 	'
 }
@@ -103,7 +106,7 @@ latest()
 download()
 {
 	latest="`latest 2>&1`"
-	test "$latest" = "No versions found at ${url}download" && die "$latest"
+	test "$latest" = "No versions found at ${url}/download" && die "$latest"
 	file="`echo $latest | sed 's/^.*\///'`"
 	test -f "$file" && die "The file $file already exists"
 	wget "$latest"
