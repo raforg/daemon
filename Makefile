@@ -161,13 +161,13 @@ depend: ready $(DEPEND_CFILES) $(DEPEND_HFILES)
 	@makedepend $(DAEMON_CPPFLAGS) $(DEPEND_CFILES)
 
 clean::
-	@rm -rf $(CLEAN_FILES)
+	rm -rf $(CLEAN_FILES) $(CLOBBER_FILES)
+	perl -pi -e 'last if /[D]O NOT DELETE/;' $(patsubst %, %/Makefile, $(DAEMON_SRCDIR) $(DAEMON_SUBDIRS))
+	./configure --prefix=default --destdir= --disable-logind
 
-clobber::
-	@rm -rf $(CLEAN_FILES) $(CLOBBER_FILES)
+clobber:: clean
 
-distclean:: clobber
-	@perl -pi -e 'last if /[D]O NOT DELETE/;' $(patsubst %, %/Makefile, $(DAEMON_SRCDIR) $(DAEMON_SUBDIRS))
+distclean:: clean
 
 include $(DAEMON_SRCDIR)/rules.mk
 
