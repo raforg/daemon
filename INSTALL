@@ -120,6 +120,34 @@ list(3), locker(3), map(3), mem(3), msg(3), net(3), prog(3), prop(3),
 pseudo(3), sig(3) and str(3). If necessary, the manpages getopt(3),
 snprintf(3) and vsscanf(3) are created as well.
 
+PACKAGING SYSTEMS
+=================
+Daemon can be installed and kept up-to-date more conveniently on some
+systems via packaging systems.
+
+To install on Debian/Ubuntu Linux systems:
+
+    apt install daemon
+
+To install on macOS systems with MacPorts:
+
+    port install daemon
+
+To install on macOS or Linux systems with Homebrew:
+
+    brew install daemon
+
+To install on Arch Linux systems with yay:
+
+    yay -Syu daemon
+
+To install on Slackware Linux systems:
+
+    upgradepkg --install-new daemon-0.8.2-i586-1.txz
+    upgradepkg --install-new daemon-0.8.2-x86_64-1.txz
+
+There might be others.
+
 BINARY PACKAGES
 ===============
 Binary packages are no longer available on daemon's website. The Makefile
