@@ -2784,7 +2784,7 @@ static void config_load(List **conf, const char *configfile)
 		{
 			/* Skip files whose names start with the dot character */
 
-			if (entry->d_name && entry->d_name[0] == '.')
+			if (entry->d_name[0] == '.')
 				continue;
 
 			if (asprintf(&configdirfile, "%s/%s", configdir, entry->d_name) == -1)
