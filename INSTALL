@@ -2,9 +2,9 @@ INSTALL
 =======
 This version is only known to work on the following systems:
 
-    Linux 3.x/4.x (i386, x86_64, debian-{7,8,9,10}, ubuntu-{14.04,16.04}, ...)
+    Linux 3.x/4.x/... (i386, x86_64, debian-{7,8,9,10,...}, ubuntu-{14.04,16.04}, ...)
     Linux 2.6 (i386, x86_64, debian-5.0.4, ubuntu-10.04, fedora-13)
-    Solaris 10 10/09 (i386, amd64)
+    Solaris 10 10/09 (i386, amd64), 11 (amd64)
     OpenSolaris 2009/06 (i386, amd64)
     OpenBSD 4.7 (i386, amd64), 6.6 (amd64)
     FreeBSD 8.0 (i386, amd64), 12.1 (amd64)
@@ -132,47 +132,43 @@ created.
 
 To install from the Fedora RPM binary package (into /usr by default):
 
-    rpm -i daemon-0.8-1.x86_64.rpm # or
-    rpm -i daemon-0.8-1.i686.rpm
+    rpm -i daemon-X.Y-1.x86_64.rpm # or
+    rpm -i daemon-X.Y-1.i686.rpm
 
 To install from the OpenBSD binary package (into /usr/local by default):
 
-    mv daemon-0.8-openbsd-amd64.tgz daemon-0.8.tgz # or
-    mv daemon-0.8-openbsd-i386.tgz  daemon-0.8.tgz
+    mv daemon-X.Y-openbsd-amd64.tgz daemon-X.Y.tgz # or
+    mv daemon-X.Y-openbsd-i386.tgz  daemon-X.Y.tgz
     # then
-    pkg_add daemon-0.8.tar.gz
+    pkg_add daemon-X.Y.tar.gz
 
 To install from the FreeBSD binary package (into /usr/local by default):
 
-    pkg_add daemon-0.8-freebsd-amd64.tbz # or
-    pkg_add daemon-0.8-freebsd-i386.tbz
+    pkg_add daemon-X.Y-freebsd-amd64.tbz # or
+    pkg_add daemon-X.Y-freebsd-i386.tbz
 
 To install from the NetBSD binary package (into /usr/local by default):
 
-    pkg_add daemon-0.8-netbsd-amd64.tgz # or
-    pkg_add daemon-0.8-netbsd-i386.tgz
+    pkg_add daemon-X.Y-netbsd-amd64.tgz # or
+    pkg_add daemon-X.Y-netbsd-i386.tgz
 
 To install from the Mac OS X binary package (into /usr/local by default):
 
     cd /usr/local
-    tar xzf /usr/local/src/daemon-0.8-macosx-universal.tar.gz # or
-    tar xzf /usr/local/src/daemon-0.8-macosx-x86_64.tar.gz # or
-    tar xzf /usr/local/src/daemon-0.8-macosx-i386.tar.gz # or
-    tar xzf /usr/local/src/daemon-0.8-macosx-powerpc.tar.gz
+    tar xzf /usr/local/src/daemon-X.Y-macosx-universal.tar.gz # or
+    tar xzf /usr/local/src/daemon-X.Y-macosx-x86_64.tar.gz # or
+    tar xzf /usr/local/src/daemon-X.Y-macosx-i386.tar.gz # or
+    tar xzf /usr/local/src/daemon-X.Y-macosx-powerpc.tar.gz
 
 To install from the Solaris10 binary package (into /usr/local by default):
 
-    gunzip daemon-0.8-solaris-amd64.pkg.gz
-    pkgadd -d daemon-0.8-solaris-amd64.pkg
+    gunzip daemon-X.Y-solaris-amd64.pkg.gz
+    pkgadd -d daemon-X.Y-solaris-amd64.pkg
 
 or
 
-    gunzip daemon-0.8-solaris-i386.pkg.gz
-    pkgadd -d daemon-0.8-solaris-i386.pkg
-
-On debian/ubuntu systems you should be able to:
-
-    apt-get install daemon
+    gunzip daemon-X.Y-solaris-i386.pkg.gz
+    pkgadd -d daemon-X.Y-solaris-i386.pkg
 
 REQUIREMENTS
 ============

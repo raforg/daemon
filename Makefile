@@ -107,13 +107,13 @@ help::
 	echo " clobber              -- clean + rm $(DAEMON_TARGET), $(DAEMON_SUBTARGETS) and tests"; \
 	echo " distclean            -- clobber + rm source dependencies"; \
 	echo " dist                 -- makes the distribution: ../$(DAEMON_DIST)"; \
-	echo " rpm                  -- makes source and binary rpm packages"; \
-	echo " deb                  -- makes binary debian package"; \
-	echo " sol                  -- makes binary solaris package"; \
-	echo " obsd                 -- makes binary openbsd package"; \
-	echo " fbsd                 -- makes binary freebsd package"; \
-	echo " nbsd                 -- makes binary netbsd package"; \
-	echo " osx                  -- makes binary macosx package"; \
+	echo " rpm                  -- makes source and binary rpm packages [OLD]"; \
+	echo " deb                  -- makes binary debian package [OLD]"; \
+	echo " sol                  -- makes binary solaris package [OLD]"; \
+	echo " obsd                 -- makes binary openbsd package [OLD]"; \
+	echo " fbsd                 -- makes binary freebsd package [OLD]"; \
+	echo " nbsd                 -- makes binary netbsd package [OLD]"; \
+	echo " osx                  -- makes binary macosx package [OLD]"; \
 	echo
 
 help-macros::
