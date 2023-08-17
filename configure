@@ -22,6 +22,8 @@
 
 die() { echo "$0: $@" >&2; exit 1; }
 
+PLATFORM=
+
 for opt in "$@"
 do
 	case "$opt" in
@@ -57,10 +59,21 @@ do
 			echo ""
 			exit 0
 			;;
+
+		--platform=*)
+			PLATFORM="${opt#--platform=}"
+			case "$PLATFORM" in
+				Linux*|GNU/kFreeBSD*|GNU*|FreeBSD*|NetBSD*|OpenBSD*|SunOS*| Darwin*)
+					;;
+				*)
+					die "Unknown platform: $PLATFORM"
+					;;
+			esac
+			;;
 	esac
 done
 
-case "`uname -a`" in
+case "${PLATFORM:-`uname -a`}" in
 	Linux*)
 		echo "Configuring for linux"
 		conf/linux
@@ -137,6 +150,8 @@ fi
 for opt in "$@"
 do
 	case "$opt" in
+		--platform=*)
+			;;
 		--prefix=*)
 			echo "Configuring $opt"
 			conf/prefix "$opt"
