@@ -234,7 +234,7 @@ DAEMON_DEBIAN_COPYRIGHT_CODE := perl -p -i -e ' \
 		s/\#.*//'
 
 DAEMON_DEBIAN_RULES_CODE := perl -p -i -e ' \
-		s/^\t(.*)\$$\(MAKE\) \S*clean$$/\t$$1\$$(MAKE) debian-clobber/; \
+		s/^\t(.*)\$$\(MAKE\) \S*clean$$/\t$$1\$$(MAKE) clobber/; \
 		s/^\t\$$\(MAKE\)$$/\t\$$(MAKE) all daemon.conf man-daemon html-daemon/; \
 		s/^\t\$$\(MAKE\) .*install.*$$/\t\$$(MAKE) PREFIX=debian\/$(DAEMON_NAME)\/usr install-daemon-bin\n\t\$$(MAKE) PREFIX=debian\/$(DAEMON_NAME)\/usr\/share install-daemon-man\n\t\$$(MAKE) DAEMON_HTMLDIR=debian\/$(DAEMON_NAME)\/usr\/share\/doc\/daemon\/html install-daemon-html\n\t\$$(MAKE) DAEMON_CONF_INSDIR=debian\/$(DAEMON_NAME)\/etc install-daemon-conf/; \
 		s/^\tdh_installexamples$$/\#\tdh_installexamples/; \
@@ -247,6 +247,7 @@ DAEMON_DEBIAN_RULES_CODE := perl -p -i -e ' \
 
 $(DAEMON_SRCDIR)/debian:
 	@set -e; \
+	echo "NOT ALLOWED"; exit 1; \
 	CDPATH=""; \
 	DAEMON_RENAMED=""; \
 	case "`pwd`" in \
@@ -288,11 +289,6 @@ $(DAEMON_SRCDIR)/debian:
 	echo "" >> doc-base; \
 	echo "Completing debian/rules."; \
 	$(DAEMON_DEBIAN_RULES_CODE) rules
-
-.PHONY: debian-clobber
-
-debian-clobber::
-	@rm -rf $(CLEAN_FILES) $(DEBIAN_CLOBBER_FILES)
 
 $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE):
 	@echo '# /etc/daemon.conf: system-wide daemon(1) configuration.' > $(DAEMON_SRCDIR)/$(DAEMON_CONFFILE); \

@@ -144,7 +144,6 @@ help-macros::
 	echo "UNINSTALL_TARGETS = $(UNINSTALL_TARGETS)"; \
 	echo "CLEAN_FILES = $(CLEAN_FILES)"; \
 	echo "CLOBBER_FILES = $(CLOBBER_FILES)"; \
-	echo "DEBIAN_CLOBBER_FILES = $(DEBIAN_CLOBBER_FILES)"; \
 	echo "DIST_TARGETS = $(DIST_TARGETS)"; \
 	echo "RPM_TARGETS = $(RPM_TARGETS)"; \
 	echo "DEB_TARGETS = $(DEB_TARGETS)"; \
@@ -164,12 +163,8 @@ depend: ready $(DEPEND_CFILES) $(DEPEND_HFILES)
 clean::
 	@rm -rf $(CLEAN_FILES)
 
-ifeq ($(shell uname -a 2>/dev/null | grep -i Debian),)
 clobber::
 	@rm -rf $(CLEAN_FILES) $(CLOBBER_FILES)
-else
-clobber:: debian-clobber
-endif
 
 distclean:: clobber
 	@perl -pi -e 'last if /[D]O NOT DELETE/;' $(patsubst %, %/Makefile, $(DAEMON_SRCDIR) $(DAEMON_SUBDIRS))
