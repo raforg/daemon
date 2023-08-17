@@ -101,13 +101,13 @@ help::
 	echo " clobber              -- same as clean but also removes $(SLACK_TARGET) and tests"; \
 	echo " distclean            -- same as clobber but also removes source dependencies"; \
 	echo " dist                 -- makes the distribution: ../$(SLACK_DIST)"; \
-	echo " rpm                  -- makes source and binary rpm packages"; \
-	echo " deb                  -- makes source and binary debian packages"; \
-	echo " sol                  -- makes binary solaris package"; \
-	echo " obsd                 -- makes binary openbsd package"; \
-	echo " fbsd                 -- makes binary freebsd package"; \
-	echo " nbsd                 -- makes binary netbsd package"; \
-	echo " osx                  -- makes binary macosx package"; \
+	echo " rpm                  -- makes source and binary rpm packages [OLD]"; \
+	echo " deb                  -- makes source and binary debian packages [OLD]"; \
+	echo " sol                  -- makes binary solaris package [OLD]"; \
+	echo " obsd                 -- makes binary openbsd package [OLD]"; \
+	echo " fbsd                 -- makes binary freebsd package [OLD]"; \
+	echo " nbsd                 -- makes binary netbsd package [OLD]"; \
+	echo " osx                  -- makes binary macosx package [OLD]"; \
 	echo; \
 	echo " slack.swig           -- makes SWIG input file for libslack"; \
 	echo
