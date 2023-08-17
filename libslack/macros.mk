@@ -132,6 +132,11 @@ SLACK_TEST_CCFLAGS += -Wno-restrict
 # SLACK_CCFLAGS += -Wno-deprecated-declarations
 # SLACK_CCFLAGS += -Wno-gnu-folding-constant
 
+# Uncomment this if your gcc supports it (there's a
+# false positive in mem.c).
+
+# SLACK_CCFLAGS += -Wno-maybe-uninitialized
+
 # Uncomment this to exclude compilation of the debug locker functions.
 # These functions shamefully assume that pthread_self() can be cast into
 # an unsigned long. If this is not true on on your system, uncomment this
