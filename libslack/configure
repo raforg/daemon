@@ -119,7 +119,7 @@ done
 
 # Prepare for parallel make
 
-if [ x"`which gmake`" != x"" ]
+if [ x"`which gmake 2>&-`" != x"" ]
 then
 	gmake ready
 else
