@@ -20,6 +20,15 @@
 # 20230330 raf <raf@raf.org>
 #
 
+# Handle --default (for distribution)
+
+case "$1" in
+	--default|default)
+		set -- --platform=Linux --prefix=default --destdir= --disable-logind
+		CC=
+		;;
+esac
+
 die() { echo "$0: $@" >&2; exit 1; }
 
 PLATFORM=
@@ -36,6 +45,7 @@ do
 			echo "  --enable-logind  - Enable logind/elogind support (i.e. --bind option)"
 			echo "  --disable-logind - Disable logind/elogind support (i.e. --bind option)"
 			echo "  --enable-test    - Include backup implementations of some functions (don't)"
+			echo "  --default        - Restore Makefile (et al.) to default state (for distribution)"
 			echo
 			echo "This configure script knows what to do for several platforms:"
 			echo

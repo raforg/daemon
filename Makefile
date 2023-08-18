@@ -163,7 +163,7 @@ depend: ready $(DEPEND_CFILES) $(DEPEND_HFILES)
 clean::
 	rm -rf $(CLEAN_FILES) $(CLOBBER_FILES)
 	perl -pi -e 'last if /[D]O NOT DELETE/;' $(patsubst %, %/Makefile, $(DAEMON_SRCDIR) $(DAEMON_SUBDIRS))
-	./configure --platform=Linux --prefix=default --destdir= --disable-logind
+	./configure --default
 
 clobber:: clean
 
