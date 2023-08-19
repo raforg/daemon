@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
-# 20230330 raf <raf@raf.org>
+# 20230819 raf <raf@raf.org>
 #
 
 # Uncomment this to override the default value of 300 seconds
@@ -35,8 +35,8 @@
 # DAEMON_DEFINES += -DNDEBUG
 
 DAEMON_NAME := daemon
-DAEMON_VERSION := 0.8.2
-DAEMON_DATE := 20230330
+DAEMON_VERSION := 0.8.3
+DAEMON_DATE := 20230819
 DAEMON_URL := https://libslack.org/daemon
 DAEMON_ID := $(DAEMON_NAME)-$(DAEMON_VERSION)
 DAEMON_DIST := $(DAEMON_ID).tar.gz

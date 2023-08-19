@@ -1,6 +1,19 @@
 CHANGELOG
 =========
 
+0.8.3 (20230819)
+
+    - Remove 'comparison always true' compiler warning
+    - libslack - macros.mk - Add ability to suppress false 'may be used uninitialized' compiler warnings
+    - doc - Update notes on old binary packages
+    - INSTALL - Add 'PACKAGING SYSTEMS' section
+    - make - Remove deb-daemon and debian-clobber targets and DEBIAN_CLOBBER_FILES
+    - make - Change clean/clobber/distclean to be the same and to also unconfigure
+    - make - Always default to Linux config for make clean
+    - make - Update help to reflect recent clean/clobber/distclean change
+    - Add ./configure --default (for make clean)
+    - configure - Silence stderr for "which gmake"
+
 0.8.2 (20230330)
 
     - COPYING - Add copyrights for libslack's optional getopt/snprintf modules
@@ -423,6 +436,6 @@ CHANGELOG
     URL: https://raf.org/daemon
     GIT: https://github.com/raforg/daemon
     GIT: https://codeberg.org/raforg/daemon
-    Date: 20230330
+    Date: 20230819
     Author: raf <raf@raf.org>
 

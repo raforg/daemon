@@ -1,6 +1,13 @@
 CHANGELOG
 =========
 
+0.7.4 (20230819)
+
+    - macros.mk - Add ability to suppress false 'may be used uninitialized' compiler warnings
+    - doc - Update notes on old binary packages
+    - macros.mk - Remove DEBIAN_CLOBBER_FILES
+    - configure - Silence stderr for "which gmake"
+
 0.7.3 (20230330)
 
     - COPYING - Add copyrights for optional getopt/snprintf modules
@@ -332,6 +339,6 @@ TODO
     URL: https://raf.org/libslack
     GIT: https://github.com/raforg/libslack
     GIT: https://codeberg.org/raforg/libslack
-    Date: 20230330
+    Date: 20230819
     Author: raf <raf@raf.org>
 

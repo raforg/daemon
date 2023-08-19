@@ -48,13 +48,13 @@ First, uninstall any previous version (optional):
 
 or:
 
-    cd /usr/local/src/libslack-0.7.2
+    cd /usr/local/src/libslack-0.7.3
     make uninstall
 
 To build and test:
 
-    tar xzf libslack-0.7.3.tar.gz
-    cd libslack-0.7.3
+    tar xzf libslack-0.7.4.tar.gz
+    cd libslack-0.7.4
     ./configure # iff linux, openbsd, freebsd, netbsd, macosx, solaris, gnuhurd or kfreebsd
     make        # must be gnu make
     make test
@@ -268,6 +268,6 @@ And don't forget to use `libslack-config --cflags` when compiling it and
     URL: https://raf.org/libslack
     GIT: https://github.com/raforg/libslack
     GIT: https://codeberg.org/raforg/libslack
-    Date: 20230330
+    Date: 20230819
     Author: raf <raf@raf.org>
 
