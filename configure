@@ -176,7 +176,7 @@ do
 			;;
 		--enable-logind)
 			echo "Enabling systemd-logind/elogind support"
-			conf/logind --enable
+			conf/logind --enable || exit 1
 			;;
 		--disable-logind)
 			echo "Disabling systemd-logind/elogind support"

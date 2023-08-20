@@ -74,6 +74,8 @@ then
 	fi
 
 	echo "Failed to find libsystemd or libelogind and headers"
+	echo "Please try ./configure again without --enable-logind"
+	exit 1
 fi
 
 if [ x"$1" = x--disable ]
