@@ -97,9 +97,9 @@ help::
 	echo " uninstall            -- uninstalls everything from $(PREFIX)"; \
 	echo " depend               -- generates source dependencies using makedepend"; \
 	echo " tags                 -- generates a tags file using ctags"; \
-	echo " clean                -- removes object files, tags, core and Makefile.bak"; \
-	echo " clobber              -- same as clean but also removes $(SLACK_TARGET) and tests"; \
-	echo " distclean            -- same as clobber but also removes source dependencies"; \
+	echo " clean                -- removes output files, tags, tests, and de-configures"; \
+	echo " clobber              -- same as clean"; \
+	echo " distclean            -- same as clean"; \
 	echo " dist                 -- makes the distribution: ../$(SLACK_DIST)"; \
 	echo " rpm                  -- makes source and binary rpm packages [OLD]"; \
 	echo " deb                  -- makes source and binary debian packages [OLD]"; \
@@ -153,16 +153,14 @@ tags: $(TAG_FILES)
 depend: ready $(DEPEND_CFILES) $(DEPEND_HFILES)
 	@makedepend $(SLACK_CPPFLAGS) $(DEPEND_CFILES)
 
-# makedepend $(SLACK_CPPFLAGS) $(DEPEND_CFILES)
-
 clean::
-	@rm -rf $(CLEAN_FILES)
-
-clobber::
 	@rm -rf $(CLEAN_FILES) $(CLOBBER_FILES)
-
-distclean:: clobber
 	@perl -pi -e 'last if /[D]O NOT DELETE/;' $(patsubst %, %/Makefile, $(SLACK_SRCDIR) $(SLACK_SUBDIRS))
+	./configure --default
+
+clobber:: clean
+
+distclean:: clean
 
 include $(SLACK_SRCDIR)/rules.mk
 
