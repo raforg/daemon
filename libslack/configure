@@ -20,9 +20,65 @@
 # 20230819 raf <raf@raf.org>
 #
 
+# Handle --default (for distribution)
+
+case "$1" in
+	--default|default)
+		set -- --platform=Linux --prefix=default --destdir= --disable-test-rwlock
+		CC=
+		;;
+esac
+
 die() { echo "$0: $@" >&2; exit 1; }
 
-case "`uname -a`" in
+PLATFORM=
+
+for opt in "$@"
+do
+	case "$opt" in
+		--help|-h)
+			echo "$0 [options]"
+			echo "options:"
+			echo "  --help                - Print this message then exit"
+			echo "  --prefix=/path        - Override platform-specific installation prefix"
+			echo "  --destdir=/path       - Override DESTDIR in Makefile for building packages"
+			echo "  --enable-test-rwlock  - Enable backup rwlock implementation"
+			echo "  --disable-test-rwlock - Disable backup rwlock implementation (default)"
+			echo "  --enable-test         - Include backup implementations of some functions (don't)"
+			echo "  --default             - Restore Makefile (et al.) to default state (for distribution)"
+			echo
+			echo "This configure script knows what to do for several platforms:"
+			echo
+			echo "  Linux, macOS, FreeBSD, NetBSD, OpenBSD, kFreeBSD, Solaris, GNU/Hurd"
+			echo ""
+			echo "To override a platform-specific install prefix, use --prefix (e.g. /opt/local)."
+			echo "Note: For --prefix=default and --prefix=/usr, /etc and /var/run are still used."
+			echo "For other values, these paths are affected by the prefix."
+			echo ""
+			echo "To override the makefile \$(DESTDIR), use --destdir."
+			echo "This is for building packages and doesn't affect paths in the final binary."
+			echo ""
+			echo "If set here, \$CC will override the compiler in the Makefile."
+			echo ""
+			echo "\$CPPFLAGS, \$CFLAGS and \$LDFLAGS additions need to be supplied to make later."
+			echo ""
+			exit 0
+			;;
+
+		--platform=*)
+			PLATFORM="${opt#--platform=}"
+			case "$PLATFORM" in
+				Linux*|GNU/kFreeBSD*|GNU*|FreeBSD*|NetBSD*|OpenBSD*|SunOS*| Darwin*)
+					;;
+				*)
+					die "Unknown platform: $PLATFORM"
+					;;
+			esac
+			;;
+	esac
+done
+
+case "${PLATFORM:-`uname -a`}" in
 	Linux*)
 		echo "Configuring for linux"
 		conf/linux
@@ -94,9 +150,15 @@ fi
 for opt in "$@"
 do
 	case "$opt" in
+		--platform=*)
+			;;
 		--prefix=*)
 			echo "Configuring $opt"
 			conf/prefix "$opt"
+			;;
+		--destdir=*)
+			echo "Configuring $opt"
+			conf/destdir "$opt"
 			;;
 		--enable-test)
 			echo "Configuring to include backup function implementations."
