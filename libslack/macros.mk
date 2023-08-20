@@ -97,6 +97,10 @@ SLACK_CLIENT_CFLAGS += -DHAVE_PTHREAD_RWLOCK=1
 # SLACK_TEST_LDFLAGS += -m64
 # SLACK_CLIENT_LDFLAGS += -m64
 
+# Uncomment this to suppress sending an email while testing
+
+# SLACK_TEST_CCFLAGS += -DDONT_TEST_MAIL=1
+
 # Uncomment these if your system has the "long long int" type.
 #
 SLACK_CCFLAGS += -Wno-long-long

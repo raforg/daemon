@@ -24,7 +24,7 @@
 
 case "$1" in
 	--default|default)
-		set -- --platform=Linux --prefix=default --destdir= --disable-test-rwlock
+		set -- --platform=Linux --prefix=default --destdir= --disable-test-rwlock --enable-mail-test
 		CC=
 		;;
 esac
@@ -44,6 +44,8 @@ do
 			echo "  --destdir=/path       - Override DESTDIR in Makefile for building packages"
 			echo "  --enable-test-rwlock  - Enable backup rwlock implementation"
 			echo "  --disable-test-rwlock - Disable backup rwlock implementation (default)"
+			echo "  --enable-mail-test    - Enable sending an email during tests (default)"
+			echo "  --disable-mail-test   - Disable sending an email during tests"
 			echo "  --enable-test         - Include backup implementations of some functions (don't)"
 			echo "  --default             - Restore Makefile (et al.) to default state (for distribution)"
 			echo
@@ -58,6 +60,11 @@ do
 			echo "To override the makefile \$(DESTDIR), use --destdir."
 			echo "This is for building packages and doesn't affect paths in the final binary."
 			echo ""
+			echo "When creating packages, use --disable-mail-test to suppress an internal"
+			echo "test that sends an email message."
+			echo ""
+			echo "To undo the effects of --disable-mail-test, use --enable-mail-test."
+			echo ""			
 			echo "If set here, \$CC will override the compiler in the Makefile."
 			echo ""
 			echo "\$CPPFLAGS, \$CFLAGS and \$LDFLAGS additions need to be supplied to make later."
@@ -68,7 +75,7 @@ do
 		--platform=*)
 			PLATFORM="${opt#--platform=}"
 			case "$PLATFORM" in
-				Linux*|GNU/kFreeBSD*|GNU*|FreeBSD*|NetBSD*|OpenBSD*|SunOS*| Darwin*)
+				Linux*|GNU/kFreeBSD*|GNU*|FreeBSD*|NetBSD*|OpenBSD*|SunOS*|Darwin*)
 					;;
 				*)
 					die "Unknown platform: $PLATFORM"
@@ -171,6 +178,14 @@ do
 		--disable-test-rwlock)
 			echo "Configuring to exclude backup rwlock implementation (default)."
 			conf/test-rwlock-stop
+			;;
+		--enable-mail-test)
+			echo "Configuring to include mail tests (default)."
+			conf/mail-test-start
+			;;
+		--disable-mail-test)
+			echo "Configuring to exclude mail tests."
+			conf/mail-test-stop
 			;;
 		*)
 			echo "$0: Unknown argument: $@" >&2

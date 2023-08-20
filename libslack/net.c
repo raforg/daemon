@@ -5275,8 +5275,10 @@ int main(int ac, char **av)
 	char tstmem[1024];
 	ssize_t pkt_len;
 	size_t length;
+#ifndef DONT_TEST_MAIL
 	struct passwd *pwd;
 	int no_mailserver = 0;
+#endif
 	int no_multicast = 1;
 	int no_rudp = 1;
 	sockaddr_any_t addr;
@@ -6480,6 +6482,7 @@ int main(int ac, char **av)
 			++errors, printf("Test513: close(server) failed (%s)\n", strerror(errno));
 	}
 
+#ifndef DONT_TEST_MAIL
 	/* Test mail() */
 
 	if (!(pwd = getpwuid(getuid())))
@@ -6504,6 +6507,7 @@ int main(int ac, char **av)
 		TEST_FAILURE(515, mail(NULL, addr, NULL, NULL, NULL), EINVAL)
 		TEST_FAILURE(516, mail(NULL, NULL, addr, NULL, NULL), EINVAL)
 	}
+#endif
 
 	/* Test net_options() */
 
@@ -7384,6 +7388,7 @@ int main(int ac, char **av)
 	else
 		printf("All tests passed\n");
 
+#ifndef DONT_TEST_MAIL
 	if (no_mailserver)
 	{
 		printf("\n");
@@ -7396,6 +7401,7 @@ int main(int ac, char **av)
 		printf("    Note: Can't verify mail delivery.\n");
 		printf("    Look for mail consisting of: \"subject\" and \"message\"\n");
 	}
+#endif
 
 	if (no_multicast)
 	{
