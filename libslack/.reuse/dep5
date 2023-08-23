@@ -10,24 +10,88 @@ License: GPL-2.0-or-later
 Files: str.c
 Copyright: 1999-2004, 2010, 2020-2023 raf <raf@raf.org>
            1998 Todd C. Miller <Todd.Miller@courtesan.com>
-License: GPL-2.0-or-later and BSD-3-Clause
+License: GPL-2.0-or-later and LicenseRef-BSD-3-Clause-Almost
+
+Files: pseudo.h
+Copyright: 1999-2004, 2010, 2020-2023 raf <raf@raf.org>
+           1995 Tatu Ylonen <ylo@cs.hut.fi>
+License: GPL-2.0-or-later and LicenseRef-Tatu-Ylonen-Permissive
 
 Files: pseudo.c
 Copyright: 1999-2004, 2010, 2020-2023 raf <raf@raf.org>
-           1995 Tatu Ylonen <ylo@cs.hut.fi>
-License: GPL-2.0-or-later
+           1995 Tatu Ylonen <ylo@cs.hut.fi>, Espoo, Finland
+License: GPL-2.0-or-later and LicenseRef-Tatu-Ylonen-Permissive
 
 Files: getopt.h
 Copyright: 1989,90,91,92,93,94,96,97,98 Free Software Foundation, Inc.
-License: GPL-2.0-or-later
+License: LGPL-2.0-or-later
 
 Files: getopt.c
 Copyright: 1997, 1998 Free Software Foundation, Inc.
            1993 Thomas Koenig (ig25@rz.uni-karlsruhe.de)
-License: GPL-2.0-or-later
+           1987, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99 Free Software Foundation, Inc.
+           1987,88,89,90,91,92,93,94,96,97,98 Free Software Foundation, Inc.
+License: LGPL-2.0-or-later and LicenseRef-Thomas-Koenig-Permissive
 
 Files: snprintf.c
 Copyright: 1999-2004, 2010, 2020-2023 raf <raf@raf.org>
            1995 Patrick Powell
-License: GPL-2.0-or-later
+License: GPL-2.0-or-later and LicenseRef-Patrick-Powell-Permissive
+
+#License: LicenseRef-BSD-3-Clause-Almost
+#Redistribution and use in source and binary forms, with or without
+#modification, are permitted provided that the following conditions
+#are met:
+#1. Redistributions of source code must retain the above copyright
+#   notice, this list of conditions and the following disclaimer.
+#2. Redistributions in binary form must reproduce the above copyright
+#   notice, this list of conditions and the following disclaimer in the
+#   documentation and/or other materials provided with the distribution.
+#3. The name of the author may not be used to endorse or promote products
+#   derived from this software without specific prior written permission.
+#.
+#THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES,
+#INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
+#AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL
+#THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+#EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+#PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+#OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+#WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+#OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+#ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+#License: LicenseRef-Tatu-Ylonen-Permissive
+#As far as I am concerned, the code I have written for this software
+#can be used freely for any purpose.  Any derived versions of this
+#software must be clearly marked as such, and if the derived work is
+#incompatible with the protocol description in the RFC file, it must be
+#called by a name other than "ssh" or "Secure Shell".
+
+#License: LicenseRef-Thomas-Koenig-Permissive
+#Permission is granted to make and distribute verbatim copies of this
+#manual provided the copyright notice and this permission notice are
+#preserved on all copies.
+#.
+#Permission is granted to copy and distribute modified versions of this
+#manual under the conditions for verbatim copying, provided that the
+#entire resulting derived work is distributed under the terms of a
+#permission notice identical to this one
+#.
+#Since the Linux kernel and libraries are constantly changing, this
+#manual page may be incorrect or out-of-date.  The author(s) assume no
+#responsibility for errors or omissions, or for damages resulting from
+#the use of the information contained herein.  The author(s) may not
+#have taken the same level of care in the production of this manual,
+#which is licensed free of charge, as they might when working
+#professionally.
+#.
+#Formatted or processed versions of this manual, if unaccompanied by
+#the source, must acknowledge the copyright and authors of this work.
+#License.
+
+#License: LicenseRef-Patrick-Powell-Permissive
+#This code is based on code written by Patrick Powell (papowell@astart.com)
+#It may be used for any purpose as long as this notice remains intact
+#on all source code distributions
 
