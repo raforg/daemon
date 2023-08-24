@@ -48,10 +48,11 @@ do
 			echo "  --disable-mail-test   - Disable sending an email during tests"
 			echo "  --enable-test         - Include backup implementations of some functions (don't)"
 			echo "  --default             - Restore Makefile (et al.) to default state (for distribution)"
+			echo "  --platform=platform   - Override platform (one of the below) for --default"
 			echo
 			echo "This configure script knows what to do for several platforms:"
 			echo
-			echo "  Linux, macOS, FreeBSD, NetBSD, OpenBSD, kFreeBSD, Solaris, GNU/Hurd"
+			echo "  Linux, macOS, FreeBSD, OpenBSD, NetBSD, GNU/kFreeBSD, GNU/Hurd, Solaris"
 			echo ""
 			echo "To override a platform-specific install prefix, use --prefix (e.g. /opt/local)."
 			echo "Note: For --prefix=default and --prefix=/usr, /etc and /var/run are still used."
@@ -116,7 +117,7 @@ case "${PLATFORM:-`uname -a`}" in
 		conf/openbsd
 		;;
 
-	SunOS*)
+	SunOS*|Solaris*)
 		cc=""
 		solaris="solaris10"
 		[ "x`uname -r`" = "x5.8" ] && solaris="solaris8"
@@ -134,7 +135,7 @@ case "${PLATFORM:-`uname -a`}" in
 		conf/$solaris-$cc
 		;;
 
-	Darwin*)
+	Darwin*|macOS)
 		echo "Configuring for macosx"
 		conf/macosx
 		;;
@@ -188,7 +189,7 @@ do
 			conf/mail-test-stop
 			;;
 		*)
-			echo "$0: Unknown argument: $@" >&2
+			echo "$0: Unknown argument: $opt" >&2
 			exit 1
 			;;
 	esac
