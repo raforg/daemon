@@ -64,21 +64,45 @@ It just has hard-coded settings for certain platforms.
 It does not accept all of the usual command line options.
 However, it does accept certain options:
 
-    --prefix=/opt/local
+    --help
+    Print a help message showing these options, then exit.
+
+    --prefix=/path
     Changes the installation prefix to a non-standard one.
     This also changes the directory that system-wide property files are read from.
     When --prefix=/usr or --prefix=default, these property files are under /etc.
     Otherwise (e.g. --prefix=/usr/local or --prefix=/opt/local), they are under
     the prefix.
 
-    --enable-test
-    Include backup implementations of several functions (unnecessary)
+    --destdir=/path
+    Changes the makefile $(DESTDIR) for building packages.
+    It doesn't affect any paths in the final binary.
 
     --enable-test-rwlock
-    Include backup implementation for readers/writer locks (unnecessary)
+    Include backup implementation for readers/writer locks (unnecessary).
 
     --disable-test-rwlock
-    Remove backup implementation for readers/writer locks (unnecessary)
+    Remove backup implementation for readers/writer locks (unnecessary).
+
+    --enable-mail-test
+    This option enables testing the mail() function (default).
+
+    --disable-mail-test
+    This option suppresses testing the mail() function which tries
+    to send an email via the localhost's mail server on port 25 (if any).
+    This is recommended when building packages.
+
+    --enable-test
+    Include backup implementations of several functions (unnecessary).
+
+    --default
+    This option restores everything to its default state.
+    It is used by "make dist".
+
+    --platform=platform
+    This option overrides the current platform.
+    It is used by "./configure --default" and "make dist".
+    See "./configure --help" for possible values.
 
 To install libslack and its manpages (into /usr/local by default):
 
@@ -94,6 +118,7 @@ To uninstall:
 
 For more details:
 
+	./configure --help
     make help
 
 There is one manpage for each module in libslack (as well as a symlink for

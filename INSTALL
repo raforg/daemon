@@ -61,16 +61,16 @@ It does not accept all of the usual command line options.
 However, it does accept certain options:
 
     --help
-    Print a help message showing these options, then exit
+    Print a help message showing these options, then exit.
 
-    --prefix=/opt/local
+    --prefix=/path
     Changes the installation prefix to a non-standard one (needed for macports).
     This also changes the directory that the config file is installed in.
     When --prefix=/usr or --prefix=default, the config file is installed in /etc.
     Otherwise (e.g. --prefix=/usr/local or --prefix=/opt/local), the config
     file is installed under the prefix.
 
-    --destdir
+    --destdir=/path
     Changes the makefile $(DESTDIR) for building packages.
     It doesn't affect any paths in the final binary.
 
@@ -82,8 +82,25 @@ However, it does accept certain options:
     --disable-logind
     This option undoes the effects of --enable-logind.
 
+    --enable-mail-test
+    This option enables testing libslack's mail() function (default).
+
+    --disable-mail-test
+    This option suppresses testing libslack's mail() function which tries
+    to send an email via the localhost's mail server on port 25 (if any).
+    This is useful when building packages.
+
     --enable-test
-    Includes backup implementations of several functions (unnecessary)
+    Includes backup implementations of several functions (unnecessary).
+
+    --default
+    This option restores everything to its default state.
+    It is used by "make dist".
+
+    --platform=platform
+    This option overrides the current platform.
+    It is used by "./configure --default" and "make dist".
+    See "./configure --help" for possible values.
 
 To install daemon and its manpage (in /usr/local by default):
 
@@ -111,6 +128,7 @@ To uninstall libslack:
 
 For more details:
 
+	./configure --help
     make help
 
 The manpage for daemon is daemon(1). There is one manpage for each module in
@@ -123,7 +141,7 @@ snprintf(3) and vsscanf(3) are created as well.
 PACKAGING SYSTEMS
 =================
 Daemon can be installed and kept up-to-date more conveniently on some
-systems via packaging systems.
+systems via their packaging systems.
 
 To install on Debian/Ubuntu Linux systems:
 
@@ -135,11 +153,15 @@ To install on macOS systems with MacPorts:
 
 To install on macOS or Linux systems with Homebrew:
 
-    brew install daemon
+    brew install daemon # homebrew/core version
+
+Or:
+
+    brew install rafpkg/tap/daemon # my version
 
 To install on Arch Linux systems with yay:
 
-    yay -Syu daemon
+    yay daemon
 
 To install on Slackware Linux systems:
 
