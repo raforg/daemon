@@ -1,15 +1,27 @@
 CHANGELOG
 =========
 
+0.8.4 (20230824)
+
+    - configure - When explicit --enable-logind fails, exit 1 (requested by Marc Haber)
+    - libslack - configure - Add --default --platform --help --destdir
+    - libslack - make - Change clean/clobber/distclean to be the same and to also unconfigure
+    - configure - Add --disable-mail-test --enable-mail-test (requested by Marc Haber)
+    - Fix copyright/license info (.reuse/dep5) (spotted by Marc Haber)
+    - configure - Fix error message for unknown options
+    - configure - Add --platform info to --help output
+    - INSTALL - Update to reflect recent ./configure changes
+    - configure - Fix --platform check, Add libslack/conf/slackware, Tweak output
+
 0.8.3 (20230819)
 
     - Remove 'comparison always true' compiler warning
     - libslack - macros.mk - Add ability to suppress false 'may be used uninitialized' compiler warnings
     - doc - Update notes on old binary packages
     - INSTALL - Add 'PACKAGING SYSTEMS' section
-    - make - Remove deb-daemon and debian-clobber targets and DEBIAN_CLOBBER_FILES
-    - make - Change clean/clobber/distclean to be the same and to also unconfigure
-    - make - Always default to Linux config for make clean
+    - make - Remove deb-daemon and debian-clobber targets and DEBIAN_CLOBBER_FILES (requested by Marc Haber)
+    - make - Change clean/clobber/distclean to be the same and to also unconfigure (requested by Marc Haber)
+    - make - Always default to Linux config for make clean (requested by Marc Haber)
     - make - Update help to reflect recent clean/clobber/distclean change
     - Add ./configure --default (for make clean)
     - configure - Silence stderr for "which gmake"
@@ -436,6 +448,6 @@ CHANGELOG
     URL: https://raf.org/daemon
     GIT: https://github.com/raforg/daemon
     GIT: https://codeberg.org/raforg/daemon
-    Date: 20230819
+    Date: 20230824
     Author: raf <raf@raf.org>
 

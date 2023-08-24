@@ -16,7 +16,7 @@
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, see <https://www.gnu.org/licenses/>.
 *
-* 20230819 raf <raf@raf.org>
+* 20230824 raf <raf@raf.org>
 */
 
 /*
@@ -817,7 +817,7 @@ I<pseudo(3>>
 
 =head1 AUTHOR
 
-20230819 raf <raf@raf.org>
+20230824 raf <raf@raf.org>
 
 =cut
 

@@ -1,6 +1,17 @@
 CHANGELOG
 =========
 
+0.7.5 (20230824)
+
+    - configure - Add --default --platform --help --destdir
+    - make - Change clean/clobber/distclean to be the same and to also unconfigure
+    - configure - Add --disable-mail-test --enable-mail-test
+    - Fix copyright/license info (.reuse/dep5) (spotted by Marc Haber)
+    - configure - Fix error message for unknown options
+    - configure - Add --platform info to --help output
+    - INSTALL - Update to reflect recent ./configure changes
+    - configure - Fix --platform check, Add conf/slackware, Tweak output
+
 0.7.4 (20230819)
 
     - macros.mk - Add ability to suppress false 'may be used uninitialized' compiler warnings
@@ -339,6 +350,6 @@ TODO
     URL: https://raf.org/libslack
     GIT: https://github.com/raforg/libslack
     GIT: https://codeberg.org/raforg/libslack
-    Date: 20230819
+    Date: 20230824
     Author: raf <raf@raf.org>
 

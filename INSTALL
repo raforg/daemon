@@ -44,13 +44,13 @@ they have some very nasty bugs.
 
 First, uninstall any previous version (optional):
 
-    cd /usr/local/src/daemon-0.8.2
+    cd /usr/local/src/daemon-0.8.3
     make uninstall
 
 To build and test:
 
-    tar xzf daemon-0.8.3.tar.gz
-    cd daemon-0.8.3
+    tar xzf daemon-0.8.4.tar.gz
+    cd daemon-0.8.4
     ./configure # iff linux, openbsd, freebsd, netbsd, macosx, solaris, gnuhurd or kfreebsd
     make        # must be gnu make
     make test   # only tests libslack. to test daemon, see test/README
@@ -165,8 +165,8 @@ To install on Arch Linux systems with yay:
 
 To install on Slackware Linux systems:
 
-    upgradepkg --install-new daemon-0.8.3-i586-1.txz
-    upgradepkg --install-new daemon-0.8.3-x86_64-1.txz
+    upgradepkg --install-new daemon-0.8.4-i586-1.txz
+    upgradepkg --install-new daemon-0.8.4-x86_64-1.txz
 
 There might be others.
 
@@ -290,6 +290,6 @@ Probably has the same UNIX domain datagram problem as Solaris.
     URL: https://raf.org/daemon
     GIT: https://github.com/raforg/daemon
     GIT: https://codeberg.org/raforg/daemon
-    Date: 20230819
+    Date: 20230824
     Author: raf <raf@raf.org>
 
