@@ -76,10 +76,10 @@ do
 		--platform=*)
 			PLATFORM="${opt#--platform=}"
 			case "$PLATFORM" in
-				Linux*|GNU/kFreeBSD*|GNU*|FreeBSD*|NetBSD*|OpenBSD*|SunOS*|Darwin*)
+				Linux*|GNU/kFreeBSD*|GNU*|FreeBSD*|NetBSD*|OpenBSD*|SunOS*|Solaris|Darwin*|macOS)
 					;;
 				*)
-					die "Unknown platform: $PLATFORM"
+					die "Unknown platform: $PLATFORM\nMust be one of: Linux, macOS, FreeBSD, OpenBSD, NetBSD, GNU/kFreeBSD, GNU/Hurd, Solaris"
 					;;
 			esac
 			;;
@@ -90,6 +90,11 @@ case "${PLATFORM:-`uname -a`}" in
 	Linux*)
 		echo "Configuring for linux"
 		conf/linux
+		if [ -f /etc/slackware-version ]
+		then
+			echo "Configuring for slackware"
+			conf/slackware
+		fi
 		;;
 
 	GNU/kFreeBSD*)
@@ -98,7 +103,7 @@ case "${PLATFORM:-`uname -a`}" in
 		;;
 
 	GNU*)
-		echo "Configuring for GNU/Hurd"
+		echo "Configuring for hurd"
 		conf/gnuhurd
 		;;
 
@@ -117,7 +122,7 @@ case "${PLATFORM:-`uname -a`}" in
 		conf/openbsd
 		;;
 
-	SunOS*|Solaris*)
+	SunOS*|Solaris)
 		cc=""
 		solaris="solaris10"
 		[ "x`uname -r`" = "x5.8" ] && solaris="solaris8"
@@ -136,12 +141,12 @@ case "${PLATFORM:-`uname -a`}" in
 		;;
 
 	Darwin*|macOS)
-		echo "Configuring for macosx"
+		echo "Configuring for macos"
 		conf/macosx
 		;;
 
 	*)
-		die "Unknown platform: please configure manually"
+		die "Unknown platform: Please configure manually"
 		;;
 esac
 
