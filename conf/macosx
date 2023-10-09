@@ -149,31 +149,27 @@ perl -pi \
 	config.h
 
 # Old versions of macOS (e.g. 10.6.8) don't handle some newer clang -Wno-* options.
-# But don't test if macports (which uses a newer compiler than Xcode's).
-# We know it's macports because CC is set.
-if [ -z "$CC" ]
-then
-	if conf/test-gcc-opt -Wno-gnu-folding-constant
-	then
-		perl -pi \
-			-e 's/^# (\S+ \+= -Wno-gnu-folding-constant)$/$1/;' \
-			`find . -name macros.mk`
-	else
-		perl -pi \
-			-e 's/^(\S+ \+= -Wno-gnu-folding-constant)$/# $1/;' \
-			`find . -name macros.mk`
-	fi
 
-	if conf/test-gcc-opt -Wno-pointer-bool-conversion
-	then
-		perl -pi \
-			-e 's/^# (\S+ \+= -Wno-pointer-bool-conversion)$/$1/;' \
-			`find . -name macros.mk`
-	else
-		perl -pi \
-			-e 's/^(\S+ \+= -Wno-pointer-bool-conversion)$/# $1/;' \
-			`find . -name macros.mk`
-	fi
+if conf/test-gcc-opt -Wno-gnu-folding-constant
+then
+	perl -pi \
+		-e 's/^# (\S+ \+= -Wno-gnu-folding-constant)$/$1/;' \
+		`find . -name macros.mk`
+else
+	perl -pi \
+		-e 's/^(\S+ \+= -Wno-gnu-folding-constant)$/# $1/;' \
+		`find . -name macros.mk`
+fi
+
+if conf/test-gcc-opt -Wno-pointer-bool-conversion
+then
+	perl -pi \
+		-e 's/^# (\S+ \+= -Wno-pointer-bool-conversion)$/$1/;' \
+		`find . -name macros.mk`
+else
+	perl -pi \
+		-e 's/^(\S+ \+= -Wno-pointer-bool-conversion)$/# $1/;' \
+		`find . -name macros.mk`
 fi
 
 # vi:set ts=4 sw=4:
