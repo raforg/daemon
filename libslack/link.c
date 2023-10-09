@@ -1005,7 +1005,7 @@ int main(int ac, char **av)
 		++errors, printf("Test25: dlink_freelist_init() failed (%s)\n", strerror(errno));
 	else
 	{
-		dpoint_t *item, *last;
+		dpoint_t *item, *last = NULL;
 		size_t i;
 
 		/* Test dlink_alloc(), dlink_insert() */

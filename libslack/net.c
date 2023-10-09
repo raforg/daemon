@@ -5275,6 +5275,7 @@ int main(int ac, char **av)
 	char tstmem[1024];
 	ssize_t pkt_len;
 	size_t length;
+	int lengthi;
 #ifndef DONT_TEST_MAIL
 	struct passwd *pwd;
 	int no_mailserver = 0;
@@ -5896,10 +5897,10 @@ int main(int ac, char **av)
 	z2 = malloc(strlen(z) + 1);
 	b2 = malloc(strlen(b) + 1);
 	h2 = malloc(strlen(h) + 1);
-	length = 10; TEST_VARSIZE(123, "ia*", "ia?", 14, 10, a, (int *)&length, 10, a2)
-	length = 11; TEST_VARSIZE(124, "iz*", "iz?", 15, 11, z, (int *)&length, 11, z2)
-	length = 18; TEST_VARSIZE(125, "ib*", "ib?", 7, 18, b, (int *)&length, 18, b2)
-	length = 16; TEST_VARSIZE(126, "ih*", "ih?", 12, 16, h, (int *)&length, 16, h2)
+	lengthi = 10; TEST_VARSIZE(123, "ia*", "ia?", 14, 10, a, &lengthi, 10, a2)
+	lengthi = 11; TEST_VARSIZE(124, "iz*", "iz?", 15, 11, z, &lengthi, 11, z2)
+	lengthi = 18; TEST_VARSIZE(125, "ib*", "ib?", 7, 18, b, &lengthi, 18, b2)
+	lengthi = 16; TEST_VARSIZE(126, "ih*", "ih?", 12, 16, h, &lengthi, 16, h2)
 	free(a2);
 	free(z2);
 	free(b2);
@@ -7256,7 +7257,7 @@ int main(int ac, char **av)
 					else if (cred->gid != getgid())
 						++errors, printf("Test679: recvcred(s, HELO) failed (cred->gid == %d, expected %d)\n", (int)cred->gid, (int)getgid());
 					else if (bytes != 4)
-						++errors, printf("Test680: recvcred(s, HELO) failed (read %d bytes, not %d bytes)\n", bytes, 4);
+						++errors, printf("Test680: recvcred(s, HELO) failed (read %d bytes, not %d bytes)\n", (int)bytes, 4);
 					else if (memcmp(test, "HELO", 4))
 						++errors, printf("Test681: recvcred(s, HELO) failed (read \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
 					else if (write_timeout(s, 5, 0) == -1 || write(s, "OLEH", 4) == -1)
@@ -7336,7 +7337,7 @@ int main(int ac, char **av)
 				else if (cred->gid != getgid())
 					++errors, printf("Test695: recvcred(s, HELO) failed (cred->gid == %d, expected %d)\n", (int)cred->gid, (int)getgid());
 				else if (bytes != 4)
-					++errors, printf("Test696: recvcred(s, HELO) failed (read %d bytes, not %d bytes)\n", bytes, 4);
+					++errors, printf("Test696: recvcred(s, HELO) failed (read %d bytes, not %d bytes)\n", (int)bytes, 4);
 				else if (memcmp(test, "HELO", 4))
 					++errors, printf("Test697: recvcred(server, HELO) failed (recv \"%4.4s\", not \"%4.4s\")\n", test, "HELO");
 				else if (write_timeout(server, 5, 0) == -1 || sendto(server, "OLEH", 4, 0, (sockaddr_t *)&addr, addrsize) == -1)
