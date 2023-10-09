@@ -120,10 +120,10 @@ DAEMON_RPM_DOCFILES += $(patsubst %, $(APP_MANDIR)/%, $(notdir $(DAEMON_MANFILES
 DAEMON_RPM_DOCFILES += $(patsubst %, $(FMT_MANDIR)/%, $(notdir $(DAEMON_MANLINK)))
 DAEMON_SOL := RAFOdmn
 
-# Uncomment these on MacOSX to create universal binaries
+# Uncomment and adjust these on MacOSX/macOS to create universal binaries
 #
-# DAEMON_CCFLAGS += -arch x86_64 -arch i386 -arch ppc # -arch ppc64
-# DAEMON_LDFLAGS += -arch x86_64 -arch i386 -arch ppc # -arch ppc64
+# DAEMON_CCFLAGS += -arch arm64 -arch x86_64 # -arch i386 -arch ppc
+# DAEMON_LDFLAGS += -arch arm64 -arch x86_64 # -arch i386 -arch ppc
 
 # Uncomment these on 64-bit OpenSolaris or Solaris10 to compile for 64-bit
 #

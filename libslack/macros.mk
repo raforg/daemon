@@ -85,10 +85,10 @@ SLACK_CLIENT_CFLAGS += -DHAVE_PTHREAD_RWLOCK=1
 # SLACK_DEFINES += -DNO_POSIX_C_SOURCE=1
 # SLACK_TEST_DEFINES += -DNO_POSIX_C_SOURCE=1
 
-# Uncomment these on MacOSX to create universal binaries
+# Uncomment and adjust these on MacOSX/macOS to create universal binaries
 #
-# SLACK_CCFLAGS += -arch x86_64 -arch i386 -arch ppc # -arch ppc64
-# SLACK_TEST_LDFLAGS += -arch x86_64 -arch i386 -arch ppc # -arch ppc64
+# SLACK_CCFLAGS += -arch arm64 -arch x86_64 # -arch i386 -arch ppc
+# SLACK_TEST_LDFLAGS += -arch arm64 -arch x86_64 # -arch i386 -arch ppc
 
 # Uncomment these on 64-bit OpenSolaris or Solaris to compile for 64-bit
 #
