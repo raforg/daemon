@@ -24,7 +24,8 @@
 
 case "$1" in
 	--default|default)
-		set -- --platform=Linux --prefix=default --destdir= --disable-test-rwlock --enable-mail-test
+		set -- --platform=Linux --prefix=default --destdir= --disable-test-rwlock --enable-mail-test \
+			--disable-ubsan --disable-asan
 		CC=
 		;;
 esac
@@ -49,6 +50,12 @@ do
 			echo "  --enable-test         - Include backup implementations of some functions (don't)"
 			echo "  --default             - Restore Makefile (et al.) to default state (for distribution)"
 			echo "  --platform=platform   - Override platform (one of the below) for --default"
+			echo "  --enable-ubsan        - Enable undefined behaviour sanitizer"
+			echo "  --disable-ubsan       - Disable undefined behaviour sanitizer (default)"
+			echo "  --enable-asan         - Enable address sanitizer for gcc"
+			echo "  --disable-asan        - Disable address sanitizer for gcc (default)"
+			echo "  --enable-san          - Enable address sanitizer for clang"
+			echo "  --disable-san         - Disable address sanitizer for clang (default)"
 			echo
 			echo "This configure script knows what to do for several platforms:"
 			echo
@@ -192,6 +199,32 @@ do
 		--disable-mail-test)
 			echo "Configuring to exclude mail tests."
 			conf/mail-test-stop
+			;;
+		--enable-ubsan)
+			echo "Configuring undefined behaviour sanitizer (for testing only)"
+			perl -pi -e 's/^#(\w+ \+= -fsanitize=undefined)/\1/' `find . -name macros.mk`
+			;;
+		--disable-ubsan)
+			echo "Configuring to exclude undefined behaviour sanitizer (default)"
+			perl -pi -e 's/^(\w+ \+= -fsanitize=undefined)/#\1/' `find . -name macros.mk`
+			;;
+		--enable-asan)
+			echo "Configuring address sanitizer for gcc (for testing only)"
+			perl -pi \
+				-e 's/^#(\w+ \+= -fsanitize=address$)/\1/;' \
+				-e 's/^#(\w+ \+= -fsanitize=address.*-static-libasan)/\1/;' \
+				`find . -name macros.mk`
+			;;
+		--enable-san)
+			echo "Configuring address sanitizer for clang (for testing only)"
+			perl -pi \
+				-e 's/^#(\w+ \+= -fsanitize=address$)/\1/;' \
+				-e 's/^#(\w+ \+= -fsanitize=address.*-static-libsan)/\1/;' \
+				`find . -name macros.mk`
+			;;
+		--disable-asan|--disable-san)
+			echo "Configuring to exclude address sanitizer (default)"
+			perl -pi -e 's/^(\w+ \+= -fsanitize=address)/#\1/' `find . -name macros.mk`
 			;;
 		*)
 			echo "$0: Unknown argument: $opt" >&2

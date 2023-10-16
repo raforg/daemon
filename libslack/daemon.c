@@ -1822,6 +1822,8 @@ int main(int ac, char **av)
 			printf("        Does your pwd return canonical paths?\n\n"); \
 			free(result); \
 		} \
+		else \
+			free(result); \
 	}
 
 	/* We must be in a safe, writable directory to test relative paths */
@@ -1855,6 +1857,8 @@ int main(int ac, char **av)
 		TEST_ABSOLUTE_PATH(24, "//////./.././..////..//", "/")
 		chdir(cwd);
 	}
+
+	mem_destroy(&cwd);
 
 	/* Test daemon_path_is_safe() */
 

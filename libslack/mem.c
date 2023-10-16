@@ -1622,14 +1622,18 @@ int main(int ac, char **av)
 			++errors, printf("Test63: pool_create_secure(32) failed: %s (Does mlock() require root privileges on this system? If so, audit this code and rerun it as root)\n", strerror(errno));
 		else
 		{
+			#ifndef ASAN
 			void *whitebox = pool->pool;
+			#endif
 
 			if (!(mem1 = pool_alloc(pool, 32)))
 				++errors, printf("Test64: pool_alloc(pool, 32) failed: %s\n", strerror(errno));
 
 			memset(mem1, 0xff, 32);
 			pool_destroy_secure(&pool);
-			/* Note: This test may be invalid because the memory has already been deallocated */
+			/* Note: This test may be invalid because the memory has already been deallocated. */
+			/* Note: This test deliberately reads after freeing the memory. Stop ASAN aborting. */
+			#ifndef ASAN
 			if (memcmp(whitebox, "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 32))
 			{
 				if (!memcmp(whitebox, "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff", 32))
@@ -1654,6 +1658,7 @@ int main(int ac, char **av)
 					}
 				}
 			}
+			#endif
 			if (pool)
 				++errors, printf("Test66: pool_destroy_secure(32) failed: pool == %p, not NULL\n", (void *)pool);
 		}

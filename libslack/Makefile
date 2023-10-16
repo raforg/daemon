@@ -50,6 +50,7 @@ APP_MANSECTNAME := User Commands
 LIB_MANSECTNAME := C Library Functions - libslack
 MAN_GZIP := 1
 
+CCFLAGS += -g
 CCFLAGS += -O3
 CCFLAGS += -Wall -pedantic
 
@@ -90,6 +91,7 @@ help::
 	echo " all                  -- makes $(SLACK_TARGET) (default)"; \
 	echo " ready                -- prepares the source directory for compilation"; \
 	echo " test                 -- makes and runs library unit tests"; \
+	echo " test vg=1            -- makes and runs library unit tests under valgrind"; \
 	echo " check                -- same as test"; \
 	echo " man                  -- generates all manpages"; \
 	echo " html                 -- generates all manpages in html"; \
@@ -97,9 +99,10 @@ help::
 	echo " uninstall            -- uninstalls everything from $(PREFIX)"; \
 	echo " depend               -- generates source dependencies using makedepend"; \
 	echo " tags                 -- generates a tags file using ctags"; \
-	echo " clean                -- removes output files, tags, tests, and de-configures"; \
+	echo " clean                -- removes output files, tags, tests"; \
 	echo " clobber              -- same as clean"; \
-	echo " distclean            -- same as clean"; \
+	echo " default              -- reset Makefile to its default configuration"; \
+	echo " distclean            -- same as clean and default"; \
 	echo " dist                 -- makes the distribution: ../$(SLACK_DIST)"; \
 	echo " rpm                  -- makes source and binary rpm packages [OLD]"; \
 	echo " deb                  -- makes source and binary debian packages [OLD]"; \
@@ -153,14 +156,16 @@ tags: $(TAG_FILES)
 depend: ready $(DEPEND_CFILES) $(DEPEND_HFILES)
 	@makedepend $(SLACK_CPPFLAGS) $(DEPEND_CFILES)
 
+default:
+	@./configure --default
+
 clean::
 	@rm -rf $(CLEAN_FILES) $(CLOBBER_FILES)
 	@perl -pi -e 'last if /[D]O NOT DELETE/;' $(patsubst %, %/Makefile, $(SLACK_SRCDIR) $(SLACK_SUBDIRS))
-	./configure --default
 
 clobber:: clean
 
-distclean:: clean
+distclean:: clean default
 
 include $(SLACK_SRCDIR)/rules.mk
 

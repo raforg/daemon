@@ -148,6 +148,20 @@ SLACK_TEST_CCFLAGS += -Wno-restrict
 #
 # SLACK_DEFINES += -DNO_DEBUG_LOCKERS=1
 
+# Undefined behaviour sanitizer: Uncomment this, run tests (as non-root and as root)
+#SLACK_CCFLAGS += -fsanitize=undefined
+#SLACK_TEST_LDFLAGS += -fsanitize=undefined
+
+# Address sanitizer for gcc: Uncomment this, run tests (as non-root and as root)
+#SLACK_CCFLAGS += -fsanitize=address
+#SLACK_TEST_CCFLAGS += -fsanitize=address -static-libasan -DASAN=1
+#SLACK_TEST_LDFLAGS += -fsanitize=address -static-libasan
+
+# Address sanitizer for clang: Uncomment this, run tests (as non-root and as root)
+#SLACK_CCFLAGS += -fsanitize=address
+#SLACK_TEST_CCFLAGS += -fsanitize=address -static-libsan -DASAN=1
+#SLACK_TEST_LDFLAGS += -fsanitize=address -static-libsan
+
 SLACK_NAME := slack
 SLACK_VERSION := 0.7.5
 SLACK_DATE := 20230824
@@ -224,6 +238,7 @@ NBSD_TARGETS += nbsd-slack
 OSX_TARGETS += osx-slack
 
 CLEAN_FILES += $(SLACK_OFILES) $(SLACK_CONFIG) $(SLACK_LIB_MANFILES) $(SLACK_APP_MANFILES) $(SLACK_LIB_HTMLFILES) $(SLACK_APP_HTMLFILES) $(SLACK_SRCDIR)/pod2htm* $(SLACK_SWIGFILE)
+CLEAN_FILES += valgrind.out
 CLOBBER_FILES += $(SLACK_TARGET) $(SLACK_SRCDIR)/tags $(SLACK_TESTDIR) $(SLACK_INCLINK)
 
 SLACK_RPM_FILES += $(LIB_INSDIR)/$(SLACK_INSTALL_LINK)
@@ -240,7 +255,7 @@ SLACK_CCFLAGS += $(CCFLAGS)
 SLACK_CFLAGS += $(SLACK_CPPFLAGS) $(SLACK_CCFLAGS)
 
 SLACK_TEST_CPPFLAGS += $(SLACK_TEST_DEFINES) $(patsubst %, -I%, $(SLACK_INCDIRS))
-SLACK_TEST_CCFLAGS += -Wall -pedantic
+SLACK_TEST_CCFLAGS += $(CCFLAGS)
 SLACK_TEST_CFLAGS += $(SLACK_TEST_CPPFLAGS) $(SLACK_TEST_CCFLAGS)
 
 # SLACK_TEST_LDFLAGS += -pthread

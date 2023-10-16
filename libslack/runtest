@@ -1,0 +1,47 @@
+#!/bin/sh
+#
+# libslack - https://libslack.org
+#
+# Copyright (C) 1999-2004, 2010, 2020-2023 raf <raf@raf.org>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, see <https://www.gnu.org/licenses/>.
+#
+# 20230824 raf <raf@raf.org>
+#
+
+# runtest - Run the given test binary, via valgrind if vg=1
+
+# Set VALGRIND=1 or vg=1 to produce valgrind.out
+# Set VALGRIND_OPTIONS or vgopts to any additional valgrind options (e.g., --track-origins=yes)
+
+[ "x$vg" = x1 ] && VALGRIND=1
+[ -n "$vgopts" ] && VALGRIND_OPTIONS="$vgopts"
+
+if [ x"$VALGRIND" = x1 ]
+then
+	valgrind="`command -v valgrind`"
+
+	if [ -n "$valgrind" ]
+	then
+		valgrind="$valgrind --log-fd=9 --show-error-list=yes --leak-check=full --track-fds=yes --show-leak-kinds=all --track-origins=yes $VALGRIND_OPTIONS "
+		exec 9>>$saved_pwd/valgrind.out
+	else
+		echo "valgrind not found" >&1
+		exit 1
+	fi
+fi
+
+ASAN_OPTIONS=allocator_may_return_null=1; export ASAN_OPTIONS
+
+exec ${valgrind}"$@"

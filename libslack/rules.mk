@@ -37,7 +37,14 @@ ready-slack:
 	@[ -h $(SLACK_INCLINK) ] || ln -s . $(SLACK_INCLINK)
 
 test-slack: $(SLACK_TESTS)
-	@cd $(SLACK_TESTDIR); for test in $(patsubst $(SLACK_TESTDIR)/%, %, $(SLACK_TESTS)); do echo; ./$$test; done
+	@saved_pwd="`pwd`"; \
+	export saved_pwd; \
+	rm -f valgrind.out; \
+	cd $(SLACK_TESTDIR); \
+	for test in $(patsubst $(SLACK_TESTDIR)/%, %, $(SLACK_TESTS)); \
+	do \
+		echo; "$$saved_pwd/$(SLACK_SRCDIR)"/runtest ./$$test; \
+	done
 
 man-slack: $(SLACK_LIB_MANFILES) $(SLACK_APP_MANFILES)
 

@@ -573,15 +573,17 @@ static sockport_t service_port(const char *service, int type, int port)
 static int is_multicast(sockaddr_t *address)
 {
 	sockaddr_any_t *addr = (sockaddr_any_t *)address;
-	long *longptr;
+	long longaddr;
 
 	switch (addr->any.sa_family)
 	{
 		case AF_INET:
 			/* Avoid dereferencing type-punned pointer to avoid gcc warning */
 			/*return IN_MULTICAST(ntohl(*(long *)&addr->in.sin_addr));*/
-			longptr = (long *)&addr->in.sin_addr;
-			return IN_MULTICAST(ntohl(*longptr));
+			/* Avoid pointer alignment issues */
+			/*longptr = (long *)&addr->in.sin_addr;*/
+			memcpy(&longaddr, &addr->in.sin_addr, sizeof(long));
+			return IN_MULTICAST(ntohl(longaddr));
 
 #ifdef AF_INET6
 		case AF_INET6:
@@ -3554,10 +3556,10 @@ ssize_t vunpack(void *buf, size_t size, const char *format, va_list args)
 				{
 					signed int *data = va_arg(args, signed int *);
 					CHECK_SKIP(4, continue)
-					*data = (signed int)*p++ << 24;
-					*data |= (signed int)*p++ << 16;
-					*data |= (signed int)*p++ << 8;
-					*data |= (signed int)*p++;
+					*data = (unsigned int)*p++ << 24;
+					*data |= (unsigned int)*p++ << 16;
+					*data |= (unsigned int)*p++ << 8;
+					*data |= (unsigned int)*p++;
 				}
 
 				break;
@@ -3585,10 +3587,10 @@ ssize_t vunpack(void *buf, size_t size, const char *format, va_list args)
 				{
 					signed int *data = va_arg(args, signed int *);
 					CHECK_SKIP(4, continue)
-					*data = (signed long)*p++;
-					*data |= (signed long)*p++ << 8;
-					*data |= (signed long)*p++ << 16;
-					*data |= (signed long)*p++ << 24;
+					*data = (unsigned long)*p++;
+					*data |= (unsigned long)*p++ << 8;
+					*data |= (unsigned long)*p++ << 16;
+					*data |= (unsigned long)*p++ << 24;
 				}
 
 				break;
@@ -3604,14 +3606,14 @@ ssize_t vunpack(void *buf, size_t size, const char *format, va_list args)
 				{
 					signed long long *data = va_arg(args, signed long long *);
 					CHECK_SKIP(8, continue)
-					*data = (signed long long)*p++ << 56;
-					*data |= (signed long long)*p++ << 48;
-					*data |= (signed long long)*p++ << 40;
-					*data |= (signed long long)*p++ << 32;
-					*data |= (signed long long)*p++ << 24;
-					*data |= (signed long long)*p++ << 16;
-					*data |= (signed long long)*p++ << 8;
-					*data |= (signed long long)*p++;
+					*data = (unsigned long long)*p++ << 56;
+					*data |= (unsigned long long)*p++ << 48;
+					*data |= (unsigned long long)*p++ << 40;
+					*data |= (unsigned long long)*p++ << 32;
+					*data |= (unsigned long long)*p++ << 24;
+					*data |= (unsigned long long)*p++ << 16;
+					*data |= (unsigned long long)*p++ << 8;
+					*data |= (unsigned long long)*p++;
 				}
 
 				break;
@@ -3931,6 +3933,8 @@ ssize_t sendfd(int sockfd, const void *buf, size_t nbytes, int flags, int fd)
 
 	if (sockfd < 0 || fd < 0)
 		return set_errno(EINVAL);
+
+	memset(&control, 0, sizeof control);
 
 	mesg->msg_control = control.control;
 	mesg->msg_controllen = sizeof control.control;
@@ -5275,7 +5279,7 @@ int main(int ac, char **av)
 	char tstmem[1024];
 	ssize_t pkt_len;
 	size_t length;
-	int lengthi;
+	size_t lengthi;
 #ifndef DONT_TEST_MAIL
 	struct passwd *pwd;
 	int no_mailserver = 0;
@@ -5328,7 +5332,7 @@ int main(int ac, char **av)
 			case -1:
 			{
 				printf("Failed to fork (%s)\n", strerror(errno));
-				return 1;
+				break;
 			}
 
 			default:
@@ -5362,6 +5366,7 @@ int main(int ac, char **av)
 
 			case 0:
 			{
+				close(server);
 				errors = 0;
 
 				if ((client = net_client(NULL, NULL, 30000, 5, 0, 0, NULL, NULL)) == -1)
@@ -5399,7 +5404,7 @@ int main(int ac, char **av)
 			case -1:
 			{
 				printf("Failed to fork (%s)\n", strerror(errno));
-				return 1;
+				break;
 			}
 
 			default:
@@ -5421,6 +5426,7 @@ int main(int ac, char **av)
 
 			case 0:
 			{
+				close(server);
 				errors = 0;
 
 				if ((client = net_udp_client(NULL, NULL, 30000, 0, 0, NULL, NULL)) == -1)
@@ -5458,7 +5464,7 @@ int main(int ac, char **av)
 			case -1:
 			{
 				printf("Failed to fork (%s)\n", strerror(errno));
-				return 1;
+				break;
 			}
 
 			default:
@@ -5492,6 +5498,7 @@ int main(int ac, char **av)
 
 			case 0:
 			{
+				close(server);
 				errors = 0;
 
 				if ((client = net_client("/unix", unixsock, 0, 5, 0, 0, NULL, NULL)) == -1)
@@ -5531,7 +5538,7 @@ int main(int ac, char **av)
 			case -1:
 			{
 				printf("Failed to fork (%s)\n", strerror(errno));
-				return 1;
+				break;
 			}
 
 			default:
@@ -5553,6 +5560,7 @@ int main(int ac, char **av)
 
 			case 0:
 			{
+				close(server);
 				errors = 0;
 
 				if ((client = net_udp_client("/unix", unixsock, 0, 0, 0, NULL, NULL)) == -1)
@@ -5888,7 +5896,7 @@ int main(int ac, char **av)
 		else if ((size) && pkt_len != (size)) \
 			++errors, printf("Test%d: unpack(%d, \"%s\") failed (size = %d, not %d)\n", (i), (size), (uformat), (int)pkt_len, (size)); \
 		else if (*(len2ref) != (len1)) \
-			++errors, printf("Test%d: unpack(%d, \"%s\") failed (unpacked length field = %d, not %d\n", (i), (size), (pformat), *(len2ref), (len1)); \
+			++errors, printf("Test%d: unpack(%d, \"%s\") failed (unpacked length field = %d, not %d\n", (i), (size), (pformat), (int)*(len2ref), (len1)); \
 		else if (memcmp((data1), (data2), (len1))) \
 			++errors, printf("Test%d: unpack(%d, \"%s\") failed (%.*s != %.*s)\n", (i), (size), (format), (len1), (char *)(data1), (len1), (char *)(data2)); \
 	}
@@ -6359,7 +6367,7 @@ int main(int ac, char **av)
 			case -1:
 			{
 				printf("Failed to fork (%s)\n", strerror(errno));
-				return 1;
+				break;
 			}
 
 			default:
@@ -6372,7 +6380,7 @@ int main(int ac, char **av)
 					++errors, printf("Test491: accept() failed (%s)\n", strerror(errno));
 				else
 				{
-					char test[4];
+					char test[5];
 					ssize_t rc;
 
 					if ((rc = net_expect(s, 5, "%s", test)) != 1)
@@ -6391,13 +6399,14 @@ int main(int ac, char **av)
 
 			case 0:
 			{
+				close(server);
 				errors = 0;
 
 				if ((client = net_client(NULL, NULL, 30001, 5, 0, 0, NULL, NULL)) == -1)
 					++errors, printf("Test496: net_client(NULL, 30001) failed (%s)\n", strerror(errno));
 				else
 				{
-					char test[4];
+					char test[5];
 					ssize_t rc;
 
 					if (net_send(client, 5, "HELO") == -1)
@@ -6429,7 +6438,7 @@ int main(int ac, char **av)
 			case -1:
 			{
 				printf("Failed to fork (%s)\n", strerror(errno));
-				return 1;
+				break;
 			}
 
 			default:
@@ -6454,6 +6463,7 @@ int main(int ac, char **av)
 
 			case 0:
 			{
+				close(server);
 				errors = 0;
 
 				if ((client = net_udp_client(NULL, NULL, 30001, 0, 0, NULL, NULL)) == -1)
@@ -6587,6 +6597,7 @@ int main(int ac, char **av)
 
 			case 0:
 			{
+				close(server);
 				errors = 0;
 
 				if ((client = net_client("/unix", unixsock, 0, 5, 0, 0, NULL, NULL)) == -1)
@@ -6650,7 +6661,9 @@ int main(int ac, char **av)
 					case -1:
 					{
 						printf("Failed to fork (%s)\n", strerror(errno));
-						return 1;
+						close(sync[WR]);
+						close(sync[RD]);
+						break;
 					}
 
 					default:
@@ -6744,7 +6757,7 @@ int main(int ac, char **av)
 			case -1:
 			{
 				printf("Failed to fork (%s)\n", strerror(errno));
-				return 1;
+				break;
 			}
 
 			default:
@@ -6843,6 +6856,7 @@ int main(int ac, char **av)
 
 			case 0:
 			{
+				close(server);
 				errors = 0;
 
 				if ((client = net_udp_client(NULL, NULL, 30000, 0, 0, NULL, NULL)) == -1)
@@ -6922,7 +6936,7 @@ int main(int ac, char **av)
 			case -1:
 			{
 				printf("Failed to fork (%s)\n", strerror(errno));
-				return 1;
+				break;
 			}
 
 			default:
@@ -7017,6 +7031,7 @@ int main(int ac, char **av)
 
 			case 0:
 			{
+				close(server);
 				errors = 0;
 
 				if ((client = net_udp_server(NULL, NULL, 30001, 0, 0, NULL, NULL)) == -1)
@@ -7120,7 +7135,7 @@ int main(int ac, char **av)
 				case -1:
 				{
 					printf("Failed to fork (%s)\n", strerror(errno));
-					return 1;
+					break;
 				}
 
 				default:
@@ -7167,6 +7182,7 @@ int main(int ac, char **av)
 
 				case 0:
 				{
+					close(server);
 					errors = 0;
 
 					if ((client = net_client(NULL, NULL, 50505, 5, 0, 0, NULL, NULL)) == -1)
@@ -7231,7 +7247,7 @@ int main(int ac, char **av)
 			case -1:
 			{
 				printf("Failed to fork (%s)\n", strerror(errno));
-				return 1;
+				break;
 			}
 
 			default:
@@ -7272,6 +7288,7 @@ int main(int ac, char **av)
 
 			case 0:
 			{
+				close(server);
 				errors = 0;
 
 				if ((client = net_client("/unix", unixsock, 0, 5, 0, 0, NULL, NULL)) == -1)
@@ -7317,7 +7334,7 @@ int main(int ac, char **av)
 			case -1:
 			{
 				printf("Failed to fork (%s)\n", strerror(errno));
-				return 1;
+				break;
 			}
 
 			default:
@@ -7349,6 +7366,7 @@ int main(int ac, char **av)
 
 			case 0:
 			{
+				close(server);
 				errors = 0;
 
 				if ((client = net_udp_client("/unix", unixsock, 0, 0, 0, NULL, NULL)) == -1)

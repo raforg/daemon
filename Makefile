@@ -54,6 +54,7 @@ LIB_MANSECTNAME := C Library Functions - libslack
 FMT_MANSECTNAME := File Formats
 MAN_GZIP := 1
 
+CCFLAGS += -g
 CCFLAGS += -O3
 CCFLAGS += -Wall -pedantic
 

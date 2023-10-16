@@ -50,6 +50,7 @@ perl -pi \
 	-e 's/^(\S+ \+= -Wno-pointer-bool-conversion)$/# $1/;' \
 	-e 's/^(\S+ \+= -Wno-deprecated-declarations)$/# $1/;' \
 	-e 's/^# (\S+ \+= -Wno-gnu-folding-constant)$/$1/;' \
+	-e 's/^(\w*CCFLAGS \+= -g)$/# $1/;' \
 	-e 's/^# (\w*CCFLAGS \+= -O3)$/$1/;' \
 	-e 's/^# (\w*CCFLAGS \+= -Wall -pedantic)$/$1/;' \
 	-e 's/^(\w*(?:CC|LD)FLAGS \+= -m64)$/# $1/;' \

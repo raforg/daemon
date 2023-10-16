@@ -4275,7 +4275,10 @@ List *regexpr_split_with_locker(Locker *locker, const char *str, const char *del
 		return set_errnull(err);
 
 	if (!(ret = list_create_with_locker(locker, (list_release_t *)str_release)))
+	{
+		regfree(compiled);
 		return NULL;
+	}
 
 	for (start = 0, matches = 0; str[start]; ++matches)
 	{
@@ -4297,6 +4300,7 @@ List *regexpr_split_with_locker(Locker *locker, const char *str, const char *del
 			if (!(token = substr(str, start, (ssize_t)match[0].rm_so)))
 			{
 				list_release(ret);
+				regfree(compiled);
 				return NULL;
 			}
 
@@ -4304,6 +4308,7 @@ List *regexpr_split_with_locker(Locker *locker, const char *str, const char *del
 			{
 				str_release(token);
 				list_release(ret);
+				regfree(compiled);
 				return NULL;
 			}
 		}
@@ -4318,6 +4323,7 @@ List *regexpr_split_with_locker(Locker *locker, const char *str, const char *del
 		if (!(token = str_create("%s", str + start)))
 		{
 			list_release(ret);
+			regfree(compiled);
 			return NULL;
 		}
 
@@ -4325,10 +4331,12 @@ List *regexpr_split_with_locker(Locker *locker, const char *str, const char *del
 		{
 			str_release(token);
 			list_release(ret);
+			regfree(compiled);
 			return NULL;
 		}
 	}
 
+	regfree(compiled);
 	return ret;
 }
 
@@ -6298,7 +6306,7 @@ On error, returns C<-1> with C<errno> set appropriately.
 
 int bin(const char *str)
 {
-	int ret = 0;
+	unsigned int ret = 0;
 
 	if (!str)
 		return set_errno(EINVAL);
@@ -6318,7 +6326,7 @@ int bin(const char *str)
 		}
 	}
 
-	return ret;
+	return (int)ret;
 }
 
 /*
@@ -6384,7 +6392,7 @@ C<[0-9a-fA-f]>. On error, returns C<-1> with C<errno> set appropriately.
 
 int hex(const char *str)
 {
-	int ret = 0;
+	unsigned int ret = 0;
 
 	if (!str)
 		return set_errno(EINVAL);
@@ -6413,7 +6421,7 @@ int hex(const char *str)
 		}
 	}
 
-	return ret;
+	return (int)ret;
 }
 
 /*
@@ -6483,7 +6491,7 @@ C<errno> set appropriately.
 
 int oct(const char *str)
 {
-	int ret = 0;
+	unsigned int ret = 0;
 
 	if (!str || str[0] != '0')
 		return set_errno(EINVAL);
@@ -6509,7 +6517,7 @@ int oct(const char *str)
 		}
 	}
 
-	return ret;
+	return (int)ret;
 }
 
 #ifndef HAVE_STRCASECMP
@@ -8273,13 +8281,18 @@ int main(int ac, char **av)
 			String *line;
 			TEST_ACT(20, line = str_fgetline(stream))
 			TEST_ACT(20, strcmp(cstr(line), "123\n") == 0)
+			str_release(line);
 			TEST_ACT(20, line = str_fgetline(stream))
 			TEST_ACT(20, strcmp(cstr(line), "456\n") == 0)
+			str_release(line);
 			TEST_ACT(20, line = str_fgetline(stream))
 			TEST_ACT(20, strcmp(cstr(line), "789\n") == 0)
+			str_release(line);
 			TEST_ACT(20, line = str_fgetline(stream))
 			TEST_ACT(20, strcmp(cstr(line), "abc\n") == 0)
+			str_release(line);
 			TEST_ACT(20, !(line = str_fgetline(stream)))
+			str_release(line);
 			fclose(stream);
 		}
 		unlink(testfile);

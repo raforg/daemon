@@ -813,10 +813,12 @@ pid_t pty_fork(int *pty_user_fd, char *pty_device_name, size_t pty_device_name_s
 	switch (pid = fork())
 	{
 		case -1:
+		{
 			pty_release(pty_device_name);
 			close(pty_process_fd);
 			close(*pty_user_fd);
 			return -1;
+		}
 
 		case 0:
 		{
@@ -973,13 +975,17 @@ A very simple pty program:
         switch (pid = pty_fork(&pty_user_fd, pty_device_name, sizeof pty_device_name, NULL, havewin ? &stdin_winsize : NULL))
         {
             case -1:
+            {
                 fprintf(stderr, "pty: pty_fork() failed (%s)\n", strerror(errno));
                 pty_release(pty_device_name);
                 return EXIT_FAILURE;
+            }
 
             case 0:
+            {
                 execvp(av[1], av + 1);
                 return EXIT_FAILURE;
+            }
 
             default:
             {
@@ -1152,8 +1158,11 @@ int main(int ac, char **av)
 		switch (pid = fork())
 		{
 			case -1:
+			{
 				++errors, printf("Test3: failed to perform test: fork() failed (%s)\n", strerror(errno));
+				close(pty_process_fd);
 				break;
+			}
 
 			case 0:
 			{
@@ -1166,12 +1175,14 @@ int main(int ac, char **av)
 				if (pty_change_window_size(pty_process_fd, 80, 24, 800, 240) == -1)
 					++errors, printf("Test5: pty_change_window_size() failed (%s)\n", strerror(errno));
 
+				close(pty_process_fd);
 				exit(errors);
 			}
 
 			default:
 			{
 				int status;
+				close(pty_process_fd);
 
 				if (waitpid(pid, &status, 0) == -1)
 					++errors, printf("Test6: failed to evaluate test: waitpid() failed (%s)\n", strerror(errno));
@@ -1180,6 +1191,8 @@ int main(int ac, char **av)
 				else
 					errors += (WEXITSTATUS(status) != EXIT_SUCCESS);
 
+				if (euid != 0 && close(pty_user_fd) == -1) /* When root, leave this for pty_release below */
+					++errors, printf("Test7: close(pty_user_fd) failed: %s\n", strerror(errno));
 				break;
 			}
 		}
@@ -1187,7 +1200,9 @@ int main(int ac, char **av)
 		/* Test pty_release() if root */
 
 		if (euid == 0 && pty_release(pty_device_name) == -1)
-			++errors, printf("Test7: pty_release() failed (%s)\n", strerror(errno));
+			++errors, printf("Test8: pty_release() failed (%s)\n", strerror(errno));
+		if (euid == 0 && close(pty_user_fd) == -1)
+			++errors, printf("Test9: close() after pty_release() failed (%s)\n", strerror(errno));
 	}
 
 	/* Test pty_fork() */
@@ -1195,33 +1210,38 @@ int main(int ac, char **av)
 	switch (pid = pty_fork(&pty_user_fd, pty_device_name, sizeof pty_device_name, NULL, NULL))
 	{
 		case -1:
-			++errors, printf("Test8: pty_fork() failed (%s)\n", strerror(errno));
+		{
+			++errors, printf("Test10: pty_fork() failed (%s)\n", strerror(errno));
 			break;
+		}
 
 		case 0:
+		{
 			exit(isatty(STDIN_FILENO) ? EXIT_SUCCESS : EXIT_FAILURE);
 			break; /* unreached */
+		}
 
 		default:
 		{
 			int status;
 
 			if (waitpid(pid, &status, 0) == -1)
-				++errors, printf("Test9: failed to evaluate test: waitpid() failed (%s)\n", strerror(errno));
+				++errors, printf("Test11: failed to evaluate test: waitpid() failed (%s)\n", strerror(errno));
 			else if (WIFSIGNALED(status))
-				++errors, printf("Test9: failed to evaluate test: child process received signal %d\n", WTERMSIG(status));
+				++errors, printf("Test11: failed to evaluate test: child process received signal %d\n", WTERMSIG(status));
 			else if (WEXITSTATUS(status) != EXIT_SUCCESS)
-				++errors, printf("Test9: pty_fork() failed to result in a tty for child\n");
+				++errors, printf("Test11: pty_fork() failed to result in a tty for child\n");
 
 			if (euid == 0 && pty_release(pty_device_name) == -1)
-				++errors, printf("Test10: pty_release() failed (%s)\n", strerror(errno));
+				++errors, printf("Test12: pty_release() failed (%s)\n", strerror(errno));
 
+			close(pty_user_fd);
 			break;
 		}
 	}
 
 	if (errors)
-		printf("%d/10 tests failed\n", errors);
+		printf("%d/12 tests failed\n", errors);
 	else
 		printf("All tests passed\n");
 
