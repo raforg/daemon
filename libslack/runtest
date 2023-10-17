@@ -44,4 +44,8 @@ fi
 
 ASAN_OPTIONS=allocator_may_return_null=1; export ASAN_OPTIONS
 
-exec ${valgrind}"$@"
+chmod 666 $saved_pwd/*.gcda 2>/dev/null
+${valgrind}"$@"
+rc=$?
+chmod 666 $saved_pwd/*.gcda 2>/dev/null
+exit $rc

@@ -134,6 +134,12 @@ uninstall-slack-man:
 uninstall-slack-html:
 	@rm -f $(patsubst %, $(DESTDIR)$(SLACK_HTMLDIR)/%, $(notdir $(SLACK_APP_HTMLFILES) $(SLACK_LIB_HTMLFILES)))
 
+.PHONY: gcov
+
+gcov:
+	gcov $(SLACK_CFILES)
+	$(SLACK_SRCDIR)/gcov_summary
+
 .PHONY: dist-slack dist-html-slack rpm-slack deb-slack sol-slack obsd-slack fbsd-slack nbsd-slack osx-slack
 
 dist-slack: distclean

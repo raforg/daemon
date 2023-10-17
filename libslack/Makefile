@@ -93,6 +93,7 @@ help::
 	echo " test                 -- makes and runs library unit tests"; \
 	echo " test vg=1            -- makes and runs library unit tests under valgrind"; \
 	echo " check                -- same as test"; \
+	echo " gcov                 -- After --enable-gcov, and test, summarise results"; \
 	echo " man                  -- generates all manpages"; \
 	echo " html                 -- generates all manpages in html"; \
 	echo " install              -- installs everything under $(PREFIX)"; \

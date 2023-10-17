@@ -148,6 +148,11 @@ SLACK_TEST_CCFLAGS += -Wno-restrict
 #
 # SLACK_DEFINES += -DNO_DEBUG_LOCKERS=1
 
+# Test coverage (gcov): Uncomment this, run tests (as non-root and as root),
+# then run gcov *.c then examine *.c.gcov or run gcov_summary.
+#SLACK_CCFLAGS += -fprofile-arcs -ftest-coverage
+#SLACK_TEST_CCFLAGS += -fprofile-arcs -ftest-coverage
+
 # Undefined behaviour sanitizer: Uncomment this, run tests (as non-root and as root)
 #SLACK_CCFLAGS += -fsanitize=undefined
 #SLACK_TEST_LDFLAGS += -fsanitize=undefined
@@ -238,7 +243,7 @@ NBSD_TARGETS += nbsd-slack
 OSX_TARGETS += osx-slack
 
 CLEAN_FILES += $(SLACK_OFILES) $(SLACK_CONFIG) $(SLACK_LIB_MANFILES) $(SLACK_APP_MANFILES) $(SLACK_LIB_HTMLFILES) $(SLACK_APP_HTMLFILES) $(SLACK_SRCDIR)/pod2htm* $(SLACK_SWIGFILE)
-CLEAN_FILES += valgrind.out
+CLEAN_FILES += valgrind.out *.gcda *.gcno *.gcov
 CLOBBER_FILES += $(SLACK_TARGET) $(SLACK_SRCDIR)/tags $(SLACK_TESTDIR) $(SLACK_INCLINK)
 
 SLACK_RPM_FILES += $(LIB_INSDIR)/$(SLACK_INSTALL_LINK)

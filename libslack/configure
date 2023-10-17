@@ -25,7 +25,7 @@
 case "$1" in
 	--default|default)
 		set -- --platform=Linux --prefix=default --destdir= --disable-test-rwlock --enable-mail-test \
-			--disable-ubsan --disable-asan
+			--disable-gcov --disable-ubsan --disable-asan
 		CC=
 		;;
 esac
@@ -50,6 +50,8 @@ do
 			echo "  --enable-test         - Include backup implementations of some functions (don't)"
 			echo "  --default             - Restore Makefile (et al.) to default state (for distribution)"
 			echo "  --platform=platform   - Override platform (one of the below) for --default"
+			echo "  --enable-gcov         - Enable test coverage analysis"
+			echo "  --disable-gcov        - Disable test coverage analysis (default)"
 			echo "  --enable-ubsan        - Enable undefined behaviour sanitizer"
 			echo "  --disable-ubsan       - Disable undefined behaviour sanitizer (default)"
 			echo "  --enable-asan         - Enable address sanitizer for gcc"
@@ -199,6 +201,14 @@ do
 		--disable-mail-test)
 			echo "Configuring to exclude mail tests."
 			conf/mail-test-stop
+			;;
+		--enable-gcov)
+			echo "Configuring test coverage analysis (for testing only)"
+			perl -pi -e 's/^#(\w+ \+= -fprofile-arcs)/\1/' `find . -name macros.mk`
+			;;
+		--disable-gcov)
+			echo "Configuring to exclude test coverage analysis (default)"
+			perl -pi -e 's/^(\w+ \+= -fprofile-arcs)/#\1/' `find . -name macros.mk`
 			;;
 		--enable-ubsan)
 			echo "Configuring undefined behaviour sanitizer (for testing only)"
