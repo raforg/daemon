@@ -20,19 +20,7 @@
 # 20230824 raf <raf@raf.org>
 #
 
-# Handle --default (for distribution)
-
-case "$1" in
-	--default|default)
-		set -- --platform=Linux --prefix=default --destdir= --disable-test-rwlock --enable-mail-test \
-			--disable-gcov --disable-ubsan --disable-asan
-		CC=
-		;;
-esac
-
-die() { echo "$0: $@" >&2; exit 1; }
-
-PLATFORM=
+# Show the usage message for --help
 
 for opt in "$@"
 do
@@ -81,7 +69,32 @@ do
 			echo ""
 			exit 0
 			;;
+	esac
+done
 
+# Handle --default (for distribution)
+
+default=0; export default
+case "$1" in
+	--default|default)
+		set -- \
+			--platform=Linux --prefix=default --destdir= --disable-test-rwlock --enable-mail-test \
+			--disable-gcov --disable-ubsan --disable-asan
+		CC=
+		default=1
+		;;
+esac
+
+# Fatal error message
+
+die() { echo "$0: $@" >&2; exit 1; }
+
+# Handle --platform (for distribution)
+
+PLATFORM=
+for opt in "$@"
+do
+	case "$opt" in
 		--platform=*)
 			PLATFORM="${opt#--platform=}"
 			case "$PLATFORM" in
@@ -94,6 +107,8 @@ do
 			;;
 	esac
 done
+
+# Operating system preferences (installation locations and manual compression)
 
 case "${PLATFORM:-`uname -a`}" in
 	Linux*)
@@ -138,11 +153,11 @@ case "${PLATFORM:-`uname -a`}" in
 		[ "x`uname -r`" = "x5.6" ] && solaris="solaris6"
 		if [ "`uname -m`" = sun4u ]
 		then
-			[ "x`which gcc 2>&-`" != "x" ] && cc="gcc"
-			[ "x`which cc 2>&-`"  != "x" ] && cc="cc"
+			[ -x "`command -v gcc`" ] && cc="gcc"
+			[ -x "`command -v cc`"  ] && cc="cc"
 		else
-			[ "x`which cc 2>&-`"  != "x" ] && cc="cc"
-			[ "x`which gcc 2>&-`" != "x" ] && cc="gcc"
+			[ -x "`command -v cc`"  ] && cc="cc"
+			[ -x "`command -v gcc`" ] && cc="gcc"
 		fi
 		[ "$cc" = "" ] && die "Failed to find a compiler"
 		echo "Configuring for $solaris (with $cc)"
@@ -161,63 +176,82 @@ esac
 
 # Set CC from $CC (for macports)
 
-if [ "x$CC" != x ]
+if [ -n "$CC" ]
 then
 	echo "Configuring CC as $CC"
 	conf/ccenv
 fi
+
+# Remove unsupported compiler warning options
+
+conf/compiler_option -Wno-gnu-folding-constant
+conf/compiler_option -Wno-pointer-bool-conversion
+conf/compiler_option -Wno-maybe-uninitialized
 
 # Process command line options
 
 for opt in "$@"
 do
 	case "$opt" in
+
 		--platform=*)
 			;;
+
 		--prefix=*)
 			echo "Configuring $opt"
 			conf/prefix "$opt"
 			;;
+
 		--destdir=*)
 			echo "Configuring $opt"
 			conf/destdir "$opt"
 			;;
+
 		--enable-test)
 			echo "Configuring to include backup function implementations."
 			conf/test
 			;;
+
 		--enable-test-rwlock)
 			echo "Configuring to include backup rwlock implementation."
 			conf/test-rwlock-start
 			;;
+
 		--disable-test-rwlock)
 			echo "Configuring to exclude backup rwlock implementation (default)."
 			conf/test-rwlock-stop
 			;;
+
 		--enable-mail-test)
 			echo "Configuring to include mail tests (default)."
 			conf/mail-test-start
 			;;
+
 		--disable-mail-test)
 			echo "Configuring to exclude mail tests."
 			conf/mail-test-stop
 			;;
+
 		--enable-gcov)
 			echo "Configuring test coverage analysis (for testing only)"
 			perl -pi -e 's/^#(\w+ \+= -fprofile-arcs)/\1/' `find . -name macros.mk`
 			;;
+
 		--disable-gcov)
 			echo "Configuring to exclude test coverage analysis (default)"
 			perl -pi -e 's/^(\w+ \+= -fprofile-arcs)/#\1/' `find . -name macros.mk`
 			;;
+
 		--enable-ubsan)
 			echo "Configuring undefined behaviour sanitizer (for testing only)"
 			perl -pi -e 's/^#(\w+ \+= -fsanitize=undefined)/\1/' `find . -name macros.mk`
 			;;
+
 		--disable-ubsan)
 			echo "Configuring to exclude undefined behaviour sanitizer (default)"
 			perl -pi -e 's/^(\w+ \+= -fsanitize=undefined)/#\1/' `find . -name macros.mk`
 			;;
+
 		--enable-asan)
 			echo "Configuring address sanitizer for gcc (for testing only)"
 			perl -pi \
@@ -225,6 +259,7 @@ do
 				-e 's/^#(\w+ \+= -fsanitize=address.*-static-libasan)/\1/;' \
 				`find . -name macros.mk`
 			;;
+
 		--enable-san)
 			echo "Configuring address sanitizer for clang (for testing only)"
 			perl -pi \
@@ -232,10 +267,12 @@ do
 				-e 's/^#(\w+ \+= -fsanitize=address.*-static-libsan)/\1/;' \
 				`find . -name macros.mk`
 			;;
+
 		--disable-asan|--disable-san)
 			echo "Configuring to exclude address sanitizer (default)"
 			perl -pi -e 's/^(\w+ \+= -fsanitize=address)/#\1/' `find . -name macros.mk`
 			;;
+
 		*)
 			echo "$0: Unknown argument: $opt" >&2
 			exit 1
@@ -245,12 +282,8 @@ done
 
 # Prepare for parallel make
 
-if [ x"`which gmake 2>&-`" != x"" ]
-then
-	gmake ready
-else
-	make ready
-fi
+[ -x "`command -v gmake`" ] && make=gmake || make=make
+$make ready
 
 exit 0
 

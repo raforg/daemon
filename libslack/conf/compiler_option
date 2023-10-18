@@ -20,9 +20,14 @@
 # 20230824 raf <raf@raf.org>
 #
 
-# Test if the supplied gcc argument is supported
+# Add compiler warning option if supported
 
 option="$1"
-exec ${CC:-gcc} -E -xc /dev/null -Werror "$option" >/dev/null 2>/dev/null
+if [ x"$default" = x0 ] && conf/test-gcc-opt "$option"
+then
+	perl -pi -e 's/^# (\S+ \+= '"$option"')$/$1/' `find . -name macros.mk`
+else
+	perl -pi -e 's/^(\S+ \+= '"$option"')$/# $1/' `find . -name macros.mk`
+fi
 
 # vi:set ts=4 sw=4:

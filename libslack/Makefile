@@ -100,9 +100,9 @@ help::
 	echo " uninstall            -- uninstalls everything from $(PREFIX)"; \
 	echo " depend               -- generates source dependencies using makedepend"; \
 	echo " tags                 -- generates a tags file using ctags"; \
-	echo " clean                -- removes output files, tags, tests"; \
+	echo " clean                -- removes output files, tags, and tests"; \
 	echo " clobber              -- same as clean"; \
-	echo " default              -- reset Makefile to its default configuration"; \
+	echo " default              -- reset Makefile and config.h to the default configuration"; \
 	echo " distclean            -- same as clean and default"; \
 	echo " dist                 -- makes the distribution: ../$(SLACK_DIST)"; \
 	echo " rpm                  -- makes source and binary rpm packages [OLD]"; \

@@ -104,9 +104,10 @@ help::
 	echo " uninstall            -- uninstalls everything from $(PREFIX)"; \
 	echo " depend               -- generates source dependencies using makedepend"; \
 	echo " tags                 -- generates a tags file using ctags"; \
-	echo " clean                -- removes output files, tags, tests, and de-configures"; \
+	echo " clean                -- removes output files, tags, and tests"; \
 	echo " clobber              -- same as clean"; \
-	echo " distclean            -- same as clean"; \
+	echo " default              -- reset Makefile and config.h to the default configuration"; \
+	echo " distclean            -- same as clean and default"; \
 	echo " dist                 -- makes the distribution: ../$(DAEMON_DIST)"; \
 	echo " rpm                  -- makes source and binary rpm packages [OLD]"; \
 	echo " deb                  -- makes binary debian package [OLD]"; \
@@ -161,14 +162,16 @@ tags: $(TAG_FILES)
 depend: ready $(DEPEND_CFILES) $(DEPEND_HFILES)
 	@makedepend $(DAEMON_CPPFLAGS) $(DEPEND_CFILES)
 
+default:
+	@./configure --default
+
 clean::
 	rm -rf $(CLEAN_FILES) $(CLOBBER_FILES)
 	perl -pi -e 'last if /[D]O NOT DELETE/;' $(patsubst %, %/Makefile, $(DAEMON_SRCDIR) $(DAEMON_SUBDIRS))
-	./configure --default
 
 clobber:: clean
 
-distclean:: clean
+distclean:: clean default
 
 include $(DAEMON_SRCDIR)/rules.mk
 

@@ -23,7 +23,6 @@
 # Test if the supplied gcc argument is supported
 
 option="$1"
-${CC:-gcc} -E -xc /dev/null -Werror $option >/dev/null 2>/dev/null
-exit $?
+exec ${CC:-gcc} -E -xc /dev/null -Werror "$option" >/dev/null 2>/dev/null
 
 # vi:set ts=4 sw=4:

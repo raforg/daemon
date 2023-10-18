@@ -46,7 +46,7 @@ perl -pi \
 	-e 's/^(\S+ \+= -Wno-nonnull)$/# $1/;' \
 	-e 's/^(\S+ \+= -Wno-format)$/# $1/;' \
 	-e 's/^(\S+ \+= -Wno-restrict)$/# $1/;' \
-	-e 's/^(\S+ \+= -Wno-comment)$/# $1/;' \
+	-e 's/^# (\S+ \+= -Wno-comment)$/$1/;' \
 	-e 's/^(\S+ \+= -Wno-pointer-bool-conversion)$/# $1/;' \
 	-e 's/^(\S+ \+= -Wno-deprecated-declarations)$/# $1/;' \
 	-e 's/^(\S+ \+= -Wno-gnu-folding-constant)$/# $1/;' \
