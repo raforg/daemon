@@ -1,0 +1,68 @@
+#!/bin/sh
+
+# libslack - https://libslack.org
+#
+# Copyright (C) 1999-2004, 2010, 2020-2023 raf <raf@raf.org>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, see <https://www.gnu.org/licenses/>.
+#
+# 20230824 raf <raf@raf.org>
+#
+
+# coverage - Do maximum gcov test coverage analysis
+
+make clean default
+./configure --enable-test --enable-test-rwlock --enable-gcov
+perl -pi -e 's/^(GETOPT := getopt)$/# $1/' macros.mk
+perl -pi -e 's/^enum { DAYS = 10, HOURS = 24, MINUTES = 60, SECONDS = 60,/enum { DAYS = 2, HOURS = 2, MINUTES = 2, SECONDS = 2,/' agent.c
+
+make
+make test
+sudo make test
+
+trim() { perl -ne 'print unless /^$|^    /'; }
+trail() { trim | tail -5; }
+
+test/agent activity | trim # 13s, 102 lines
+test/agent oob | trim # 1 line
+test/agent accuracy1 | trail # 13s, 1004 lines
+test/agent accuracy2 | trail # 40s, 79 lines
+test/agent accuracy3 | trail # 40s, 79 lines
+test/agent delay | trim # 1s
+
+test/lim -v # 21 lines
+
+test/locker debug | trail # 33 lines
+test/locker time # 8s, 39 lines
+
+test/map debug | trail # ~60k lines
+test/map hash # 1s, 18 lines
+
+test/mem pool # Doesn't increase coverage
+
+test/net multicast | trim
+test/net rudp | trim # 105s
+
+test/vsscanf show # Doesn't increase coverage
+
+#test/snprintf verbose | trail # 145877 lines, Doesn't increase coverage
+
+#test/str debug | trail # 98458 lines, Doesn't increase coverage
+
+make gcov
+
+perl -pi -e 's/^enum { DAYS = 2, HOURS = 2, MINUTES = 2, SECONDS = 2,/enum { DAYS = 10, HOURS = 24, MINUTES = 60, SECONDS = 60,/' agent.c
+
+make default
+
