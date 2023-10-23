@@ -1152,10 +1152,11 @@ int main(int ac, char **av)
 	int errors = 0;
 	int no_secure_mem;
 	pid_t pid;
+	int no_pool = 1;
 
 	if (ac == 2 && !strcmp(av[1], "help"))
 	{
-		printf("usage: %s [pool]\n", *av);
+		printf("usage: %s [help|pool]\n", *av);
 		return EXIT_SUCCESS;
 	}
 
@@ -1183,6 +1184,8 @@ int main(int ac, char **av)
 		++errors, printf("Test9: mem_destroy() failed\n");
 
 	/* This used to segfault a broken version of mem_resize() */
+
+	fflush(stdout);
 
 	switch (pid = fork())
 	{
@@ -1547,7 +1550,7 @@ int main(int ac, char **av)
 		{
 			if (!pool_new(pool, char))
 			{
-				++errors, printf("Test55: pool_alloc() failed: %s\n", strerror(errno));
+				++errors, printf("Test55: pool_new() failed: %s\n", strerror(errno));
 				break;
 			}
 		}
@@ -1574,9 +1577,14 @@ int main(int ac, char **av)
 
 	if (ac == 2 && !strcmp(av[1], "pool"))
 	{
+		static void *savep[1024 * 1024];
+
+		no_pool = 0;
 		start_clock = clock();
 		for (i = 0; i < 1024 * 1024; ++i)
-			free(malloc(1));
+			savep[i] = malloc(1);
+		for (i = 0; i < 1024 * 1024; ++i)
+			free(savep[i]);
 		end_clock = clock();
 		malloc_time = end_clock - start_clock;
 		printf("malloc %ldus, pool %ldus (pool %g times faster than malloc)\n", malloc_time, pool_time, (double)malloc_time / (double)pool_time);
@@ -1681,6 +1689,13 @@ int main(int ac, char **av)
 		printf("\n");
 		printf("    Note: Can't perform secure memory tests.\n");
 		printf("    Audit the code and rerun the test as root.\n");
+	}
+
+	if (no_pool)
+	{
+		printf("\n");
+		printf("    Note: You can also perform pool timing tests.\n");
+		printf("    Rerun the test with \"%s pool\".\n", *av);
 	}
 
 	return (errors == 0) ? EXIT_SUCCESS : EXIT_FAILURE;

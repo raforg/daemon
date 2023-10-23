@@ -1140,6 +1140,12 @@ int main(int ac, char **av)
 	uid_t euid = geteuid();
 	pid_t pid;
 
+	if (ac == 2 && !strcmp(av[1], "help"))
+	{
+		printf("usage: %s [help]\n", *av);
+		return EXIT_SUCCESS;
+	}
+
 	printf("Testing: %s\n", "pseudo");
 
 	/* Test pty_open() */
@@ -1154,6 +1160,8 @@ int main(int ac, char **av)
 			++errors, printf("Test2: pty_set_owner() failed (%s)\n", strerror(errno));
 
 		/* Test pty_make_controlling_tty() and pty_change_window_size() */
+
+		fflush(stdout);
 
 		switch (pid = fork())
 		{

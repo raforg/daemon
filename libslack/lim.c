@@ -880,7 +880,7 @@ int main(int ac, char **av)
 
 	if (ac == 2 && !strcmp(av[1], "help"))
 	{
-		printf("usage: %s [-v]\n", *av);
+		printf("usage: %s [help|-v]\n", *av);
 		return EXIT_SUCCESS;
 	}
 

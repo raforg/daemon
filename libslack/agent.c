@@ -133,6 +133,8 @@ scalable (See the SCALABILITY section for details).
 #include <sys/time.h>
 #include <sys/types.h>
 
+enum { DAYS = 10, HOURS = 24, MINUTES = 60, SECONDS = 60, JIFFIES = 100 };
+
 #ifndef TEST
 
 #if HAVE_POLL_H
@@ -214,15 +216,6 @@ struct activity_t
 	int dt;          /* the event rate */
 	int ddt;         /* the rate of change of the event rate */
 	int dddt;        /* the rate of change of the rate of change of the event rate */
-};
-
-enum
-{
-	DAYS = 10,
-	HOURS = 24,
-	MINUTES = 60,
-	SECONDS = 60,
-	JIFFIES = 100
 };
 
 struct timewheel_t
@@ -2702,7 +2695,7 @@ static int every_minute(Agent *agent, void *arg)
 	int *count = arg;
 	timeval now[1];
 
-	if (--*count && !agent_schedule(agent, 60, 0, every_minute, arg))
+	if (--*count && !agent_schedule(agent, MINUTES, 0, every_minute, arg))
 		return -1;
 
 	if (gettimeofday(now, NULL) == -1)
@@ -2718,7 +2711,7 @@ static int every_hour(Agent *agent, void *arg)
 	int *count = arg;
 	timeval now[1];
 
-	if (--*count && !agent_schedule(agent, 60 * 60, 0, every_hour, arg))
+	if (--*count && !agent_schedule(agent, MINUTES * SECONDS, 0, every_hour, arg))
 		return -1;
 
 	if (gettimeofday(now, NULL) == -1)
@@ -2734,7 +2727,7 @@ static int every_day(Agent *agent, void *arg)
 	int *count = arg;
 	timeval now[1];
 
-	if (--*count && !agent_schedule(agent, 24 * 60 * 60, 0, every_day, arg))
+	if (--*count && !agent_schedule(agent, HOURS * MINUTES * SECONDS, 0, every_day, arg))
 		return -1;
 
 	if (gettimeofday(now, NULL) == -1)
@@ -2944,10 +2937,16 @@ int main(int ac, char **av)
 	Agent *agent;
 	void *ptr;
 	int num;
+	int no_activity = 1;
+	int no_oob = 1;
+	int no_accuracy1 = 1;
+	int no_accuracy2 = 1;
+	int no_accuracy3 = 1;
+	int no_delay = 1;
 
 	if (ac == 2 && !strcmp(av[1], "help"))
 	{
-		printf("usage: %s [activity|oob|accuracy(1|2|3) [#]|delay]\n", *av);
+		printf("usage: %s [help|activity|oob|accuracy(1|2|3) [#]|delay]\n", *av);
 		return EXIT_SUCCESS;
 	}
 
@@ -3260,6 +3259,7 @@ int main(int ac, char **av)
 	if (ac == 2 && !strcmp(av[1], "activity"))
 	{
 		printf("Checking the measurement of connection activity\n");
+		no_activity = 0;
 
 		if (!(agent = agent_create_measured()))
 			++errors, printf("Test81: agent_create_measured() failed (%s)\n", strerror(errno));
@@ -3299,6 +3299,7 @@ int main(int ac, char **av)
 	if (ac == 2 && !strcmp(av[1], "oob"))
 	{
 		printf("Checking whether out of band data is treated as normal and/or high priority\n");
+		no_oob = 0;
 
 		if (!(agent = agent_create()))
 			++errors, printf("Test87: agent_create() failed (%s)\n", strerror(errno));
@@ -3310,6 +3311,8 @@ int main(int ac, char **av)
 			else
 			{
 				pid_t pid;
+
+				fflush(stdout);
 
 				switch (pid = fork())
 				{
@@ -3388,16 +3391,17 @@ int main(int ac, char **av)
 
 	if (ac >= 2 && !strcmp(av[1], "accuracy1"))
 	{
-		int seconds = (av[2]) ? atoi(av[2]) : 10;
+		int seconds = (av[2]) ? atoi(av[2]) : 5;
 
 		if (seconds == 0)
-			seconds = 10;
+			seconds = 5;
 
-		printf("Checking timer accuracy\n");
+		printf("Checking timer accuracy1 (jiffies)\n");
+		no_accuracy1 = 0;
 
-		/* Check an action every jiffy for 10 seconds */
+		/* Check an action every jiffy for 5 seconds */
 
-		printf("Check timer every 10ms for %ds\n", seconds);
+		printf("Check timer every 10ms for %d second%s\n", seconds, (seconds == 1) ? "" : "s");
 
 		if (!(agent = agent_create()))
 			++errors, printf("Test99: agent_create() failed (%s)\n", strerror(errno));
@@ -3425,7 +3429,7 @@ int main(int ac, char **av)
 		{
 			int jiffies = seconds * 100;
 
-			/* Test an action every jiffy for 10 seconds (using select) */
+			/* Test an action every jiffy for 5 seconds (using select) */
 
 			if (!agent_schedule(agent, 0, 0, every_jiffy, &jiffies))
 				++errors, printf("Test105: agent_schedule(every_jiffy) failed (%s)\n", strerror(errno));
@@ -3442,16 +3446,17 @@ int main(int ac, char **av)
 
 	if (ac >= 2 && !strcmp(av[1], "accuracy2"))
 	{
-		int days = (av[2]) ? atoi(av[2]) : 21;
+		int days = (av[2]) ? atoi(av[2]) : DAYS * 2 + 1;
 
 		if (days == 0)
-			days = 21;
+			days = DAYS * 2 + 1;
 
-		printf("Checking timer accuracy\n");
+		printf("Checking timer accuracy2 (lazy schedule)\n");
+		no_accuracy2 = 0;
 
-		/* Check actions every second, minute, hour and day for three days */
+		/* Check actions every second, minute, hour and day for 21 days */
 
-		printf("Check timer every second, minute, hour and day for three days\n");
+		printf("Check timer every second, minute, hour and day for %d day%s\n", days, (days == 1) ? "" : "s");
 		printf("Actions scheduled lazily\n");
 
 		/*
@@ -3469,9 +3474,9 @@ int main(int ac, char **av)
 			++errors, printf("Test109: agent_create_using_select() failed (%s)\n", strerror(errno));
 		else
 		{
-			int hours = days * 24;
-			int minutes = hours * 60;
-			int seconds = minutes * 60;
+			int hours = days * HOURS;
+			int minutes = hours * MINUTES;
+			int seconds = minutes * SECONDS;
 
 			if (!agent_schedule(agent, 0, 0, every_second, &seconds))
 				++errors, printf("Test110: agent_schedule(every_second) failed (%s)\n", strerror(errno));
@@ -3500,16 +3505,17 @@ int main(int ac, char **av)
 
 	if (ac >= 2 && !strcmp(av[1], "accuracy3"))
 	{
-		int days = (av[2]) ? atoi(av[2]) : 21;
+		int days = (av[2]) ? atoi(av[2]) : DAYS * 2 + 1;
 
 		if (days == 0)
-			days = 21;
+			days = DAYS * 2 + 1;
 
-		printf("Checking timer accuracy\n");
+		printf("Checking timer accuracy3 (eager schedule)\n");
+		no_accuracy3 = 0;
 
-		/* Check actions every second, minute, hour and day for three days */
+		/* Check actions every second, minute, hour and day for 21 days */
 
-		printf("Check timer every second, minute, hour and day for three days\n");
+		printf("Check timer every second, minute, hour and day for %d day%s\n", days, (days == 1) ? "" : "s");
 		printf("Actions scheduled in advance\n");
 
 		/*
@@ -3527,21 +3533,21 @@ int main(int ac, char **av)
 			++errors, printf("Test120: agent_create_using_select() failed (%s)\n", strerror(errno));
 		else
 		{
-			int hours = days * 24;
-			int minutes = hours * 60;
-			int seconds = minutes * 60;
+			int hours = days * HOURS;
+			int minutes = hours * MINUTES;
+			int seconds = minutes * SECONDS;
 			int day, hour, minute, second;
 
 			for (day = 0; day < days; ++day)
-				if (!agent_schedule(agent, day * 24 * 60 * 60, 0, every_day2, NULL))
+				if (!agent_schedule(agent, day * HOURS * MINUTES * SECONDS, 0, every_day2, NULL))
 					++errors, printf("Test121: agent_schedule(every_day2) failed (%s)\n", strerror(errno));
 
 			for (hour = 0; hour < hours; ++hour)
-				if (!agent_schedule(agent, hour * 60 * 60, 0, every_hour2, NULL))
+				if (!agent_schedule(agent, hour * MINUTES * SECONDS, 0, every_hour2, NULL))
 					++errors, printf("Test122: agent_schedule(every_hour2) failed (%s)\n", strerror(errno));
 
 			for (minute = 0; minute < minutes; ++minute)
-				if (!agent_schedule(agent, minute * 60, 0, every_minute2, NULL))
+				if (!agent_schedule(agent, minute * SECONDS, 0, every_minute2, NULL))
 					++errors, printf("Test123: agent_schedule(every_minute2) failed (%s)\n", strerror(errno));
 
 			for (second = 0; second < seconds; ++second)
@@ -3557,11 +3563,11 @@ int main(int ac, char **av)
 		}
 	}
 
-	/* Check long running actions/reactions and delayed actions */
+	/* Check long-running actions/reactions and delayed actions */
 
 	if (ac == 2 && !strcmp(av[1], "delay"))
 	{
-		printf("Checking delays caused by long running actions/reactions\n");
+		printf("Checking delays caused by long-running actions/reactions\n");
 
 		if (!(agent = agent_create()))
 			++errors, printf("Test127: agent_create() failed (%s)\n", strerror(errno));
@@ -3723,6 +3729,48 @@ int main(int ac, char **av)
 		printf("%d/177 tests failed\n", errors);
 	else
 		printf("All tests passed\n");
+
+	if (no_activity)
+	{
+		printf("\n");
+		printf("    Note: You can also perform connection activity measurement tests.\n");
+		printf("    Rerun the test with \"%s activity\".\n", *av);
+	}
+
+	if (no_oob)
+	{
+		printf("\n");
+		printf("    Note: You can also perform out of band data recognition tests.\n");
+		printf("    Rerun the test with \"%s oob\".\n", *av);
+	}
+
+	if (no_accuracy1)
+	{
+		printf("\n");
+		printf("    Note: You can also perform timer accuracy tests (an action every jiffy).\n");
+		printf("    Rerun the test with \"%s accuracy1 #\" where # is a number of seconds (default is 10s).\n", *av);
+	}
+
+	if (no_accuracy2)
+	{
+		printf("\n");
+		printf("    Note: You can also perform timer accuracy tests (actions every s,m,h/d scheduled lazily).\n");
+		printf("    Rerun the test with \"%s accuracy2 #\" where # is a number of days (default is %d!).\n", *av, DAYS * 2 + 1);
+	}
+
+	if (no_accuracy3)
+	{
+		printf("\n");
+		printf("    Note: You can also perform timer accuracy tests (actions every s,m,h,d scheduled eagerly).\n");
+		printf("    Rerun the test with \"%s accuracy3 #\" where # is a number of days (default is %d!).\n", *av, DAYS * 2 + 1);
+	}
+
+	if (no_delay)
+	{
+		printf("\n");
+		printf("    Note: You can also perform delayed action tests (long-running actions/reactions).\n");
+		printf("    Rerun the test with \"%s delay\" (takes about 1s).\n", *av);
+	}
 
 	return (errors == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }

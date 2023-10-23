@@ -865,7 +865,7 @@ static void print_error_details(char *buf, int bytes, char *expected)
 	}
 }
 
-int main()
+int main(int ac, char **av)
 {
 	int errors = 0;
 	int to, from, err, pty_user_fd;
@@ -877,6 +877,12 @@ int main()
 	char buf[BUFSIZ];
 	char pty_device_name[64];
 	ssize_t bytes;
+
+	if (ac == 2 && !strcmp(av[1], "help"))
+	{
+		printf("usage: %s [help]\n", *av);
+		return EXIT_SUCCESS;
+	}
 
 	printf("Testing: %s\n", "coproc");
 

@@ -962,7 +962,7 @@ int main(int ac, char **av)
 
 	if (ac == 2 && !strcmp(av[1], "help"))
 	{
-		printf("usage: %s\n", *av);
+		printf("usage: %s [help]\n", *av);
 		return EXIT_SUCCESS;
 	}
 
@@ -1003,6 +1003,8 @@ int main(int ac, char **av)
 
 	/* Test fatal */
 
+	fflush(stdout);
+
 	switch (pid = fork())
 	{
 		case 0:
@@ -1038,6 +1040,8 @@ int main(int ac, char **av)
 	errors += verify(7, err, results[4]);
 
 	/* Test dump */
+
+	fflush(stdout);
 
 	switch (pid = fork())
 	{
@@ -1108,6 +1112,8 @@ int main(int ac, char **av)
 
 	/* Test fatalsys */
 
+	fflush(stdout);
+
 	switch (pid = fork())
 	{
 		case 0:
@@ -1145,6 +1151,8 @@ int main(int ac, char **av)
 	errors += verifysys(11, err, results[8], EPERM);
 
 	/* Test dumpsys */
+
+	fflush(stdout);
 
 	switch (pid = fork())
 	{
@@ -1203,6 +1211,8 @@ int main(int ac, char **av)
 
 	/* Test check true */
 
+	fflush(stdout);
+
 	switch (pid = fork())
 	{
 		case 0:
@@ -1242,6 +1252,8 @@ int main(int ac, char **av)
 	}
 
 	/* Test check false */
+
+	fflush(stdout);
 
 	switch (pid = fork())
 	{

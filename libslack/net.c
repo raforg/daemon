@@ -5315,7 +5315,7 @@ int main(int ac, char **av)
 
 	if (ac == 2 && !strcmp(av[1], "help"))
 	{
-		printf("usage: %s [multicast|rudp]\n", *av);
+		printf("usage: %s [help|multicast|rudp]\n", *av);
 		return EXIT_SUCCESS;
 	}
 
@@ -5327,6 +5327,8 @@ int main(int ac, char **av)
 		++errors, printf("Test1: net_server(NULL, 30000) failed: %s\n", strerror(errno));
 	else
 	{
+		fflush(stdout);
+
 		switch (pid = fork())
 		{
 			case -1:
@@ -5399,6 +5401,8 @@ int main(int ac, char **av)
 		++errors, printf("Test13: net_udp_server(NULL, 30000) failed: %s\n", strerror(errno));
 	else
 	{
+		fflush(stdout);
+
 		switch (pid = fork())
 		{
 			case -1:
@@ -5459,6 +5463,8 @@ int main(int ac, char **av)
 		++errors, printf("Test23: net_server(\"/unix\", \"%s\") failed: %s\n", unixsock, strerror(errno));
 	else
 	{
+		fflush(stdout);
+
 		switch (pid = fork())
 		{
 			case -1:
@@ -5533,6 +5539,8 @@ int main(int ac, char **av)
 		++errors, printf("Test35: net_udp_server(\"/unix\", \"%s\") failed: %s\n", unixsock, strerror(errno));
 	else
 	{
+		fflush(stdout);
+
 		switch (pid = fork())
 		{
 			case -1:
@@ -6362,6 +6370,8 @@ int main(int ac, char **av)
 		++errors, printf("Test490: net_server(NULL, 30001) failed: %s\n", strerror(errno));
 	else
 	{
+		fflush(stdout);
+
 		switch (pid = fork())
 		{
 			case -1:
@@ -6433,6 +6443,8 @@ int main(int ac, char **av)
 		++errors, printf("Test502: net_udp_server(NULL, 30001) failed: %s\n", strerror(errno));
 	else
 	{
+		fflush(stdout);
+
 		switch (pid = fork())
 		{
 			case -1:
@@ -6548,6 +6560,8 @@ int main(int ac, char **av)
 		++errors, printf("Test520: failed to perform test: net_server(\"/unix\", \"%s\") failed: %s\n", unixsock, strerror(errno));
 	else
 	{
+		fflush(stdout);
+
 		switch (pid = fork())
 		{
 			case -1:
@@ -6656,6 +6670,8 @@ int main(int ac, char **av)
 				++errors, printf("Test534: failed to run test: pipe() failed (%s)\n", strerror(errno));
 			else
 			{
+				fflush(stdout);
+
 				switch (pid = fork())
 				{
 					case -1:
@@ -6752,6 +6768,8 @@ int main(int ac, char **av)
 		++errors, printf("Test552: net_udp_server(NULL, 30000) failed: %s\n", strerror(errno));
 	else
 	{
+		fflush(stdout);
+
 		switch (pid = fork())
 		{
 			case -1:
@@ -6931,6 +6949,8 @@ int main(int ac, char **av)
 		++errors, printf("Test600: net_udp_server(NULL, 30000) failed: %s\n", strerror(errno));
 	else
 	{
+		fflush(stdout);
+
 		switch (pid = fork())
 		{
 			case -1:
@@ -7130,6 +7150,8 @@ int main(int ac, char **av)
 			++errors, printf("Test648: net_server(NULL, 50505) failed: %s\n", strerror(errno));
 		else
 		{
+			fflush(stdout);
+
 			switch (pid = fork())
 			{
 				case -1:
@@ -7242,6 +7264,8 @@ int main(int ac, char **av)
 		if (setsockopt(server, SOL_SOCKET, SO_PASSCRED, &on, sizeof(on)) == -1)
 			++errors, printf("Test674: setsocketopt(SO_PASSCRED) for %s failed: %s\n", unixsock, strerror(errno));
 
+		fflush(stdout);
+
 		switch (pid = fork())
 		{
 			case -1:
@@ -7328,6 +7352,8 @@ int main(int ac, char **av)
 
 		if (setsockopt(server, SOL_SOCKET, SO_PASSCRED, &on, sizeof(on)) == -1)
 			++errors, printf("Test691: setsocketopt(SO_PASSCRED) for %s failed: %s\n", unixsock, strerror(errno));
+
+		fflush(stdout);
 
 		switch (pid = fork())
 		{

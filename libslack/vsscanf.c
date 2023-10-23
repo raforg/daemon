@@ -379,10 +379,11 @@ int main(int ac, char **av)
 	unsigned long lu1, lu2;
 	char str[512];
 	int rc1, rc2;
+	int no_show = 1;
 
 	if (ac == 2 && !strcmp(av[1], "help"))
 	{
-		printf("usage: %s [show]\n", *av);
+		printf("usage: %s [help|show]\n", *av);
 		return EXIT_SUCCESS;
 	}
 
@@ -404,12 +405,13 @@ int main(int ac, char **av)
 
 	if (ac >= 2 && !strcmp(av[1], "show"))
 	{
+		no_show = 0;
 		printf("in: %s\n", str);
 		printf("rc1=%d, rc2=%d\n", rc1, rc2);
-		printf("out1: si1<%hd> i1<%d> li1<%ld> f1<%e> d1<%le> ld1<%Le> p1<%p> b1<%s> c1<%s> s1<%s> sn1<%hd> in1<%d> ln1<%ld>\n",
+		printf("out1: si1<%hd> i1<%d> li1<%ld> f1<%e> d1<%le> ld1<%Le> p1<%p> b1<%s> c1<%.3s> s1<%s> sn1<%hd> in1<%d> ln1<%ld>\n",
 			si1, i1, li1, f1, d1, ld1, p1, b1, c1, s1, sn1, in1, ln1
 		);
-		printf("out2: si2<%hd> i2<%d> li2<%ld> f2<%e> d2<%le> ld2<%Le> p2<%p> b2<%s> c2<%s> s2<%s> sn2<%hd> in2<%d> ln2<%ld>\n",
+		printf("out2: si2<%hd> i2<%d> li2<%ld> f2<%e> d2<%le> ld2<%Le> p2<%p> b2<%s> c2<%.3s> s2<%s> sn2<%hd> in2<%d> ln2<%ld>\n",
 			si2, i2, li2, f2, d2, ld2, p2, b2, c2, s2, sn2, in2, ln2
 		);
 	}
@@ -530,6 +532,12 @@ int main(int ac, char **av)
 	else
 		printf("All tests passed\n");
 
+	if (no_show)
+	{
+		printf("\n");
+		printf("    Note: You can also show extra detail.\n");
+		printf("    Rerun the test with \"%s show\".\n", *av);
+	}
 	return (errors == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 

@@ -1884,7 +1884,7 @@ int main(int ac, char **av)
 
 	if (ac == 2 && !strcmp(av[1], "help"))
 	{
-		printf("usage: %s [verbose]\n", *av);
+		printf("usage: %s [help|verbose]\n", *av);
 		return EXIT_SUCCESS;
 	}
 
@@ -1907,6 +1907,8 @@ int main(int ac, char **av)
 	** problem will resurface. There's a pretense at a use which seems to
 	** make gcc behave itself for now (but it might get smarter one day
 	** and these tests might break again).
+	**
+	** It got smarter and started crashing again. Now we use -O0 for tests.
 	*/
 
 #define TEST_SNPRINTF1(format, val, vfmt) \

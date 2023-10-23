@@ -543,7 +543,7 @@ int main(int ac, char **av)
 
 	if (ac == 2 && !strcmp(av[1], "help"))
 	{
-		printf("usage: %s\n", *av);
+		printf("usage: %s [help]\n", *av);
 		return EXIT_SUCCESS;
 	}
 
@@ -569,6 +569,8 @@ int main(int ac, char **av)
 
 	if (errors == 0)
 	{
+		fflush(stdout);
+
 		switch (pid = fork())
 		{
 			case -1:

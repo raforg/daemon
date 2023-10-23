@@ -2316,6 +2316,10 @@ static void map_histogram(const char *name, Map *map)
 {
 	size_t i;
 	int *histogram;
+	size_t min = 0xffffffff;
+	size_t max = 0x00000000;
+	size_t num_empty = 0;
+	size_t sum = 0;
 
 	if (!map)
 	{
@@ -2336,17 +2340,29 @@ static void map_histogram(const char *name, Map *map)
 		size_t length = list_length(map->chain[i]);
 		if (length == -1)
 		{
-			printf("  length[%d] = -1\n", (int)i);
+			++num_empty;
 			continue;
 		}
+
 		++histogram[length];
+		if (length > max)
+			max = length;
+		if (length < min)
+			min = length;
+		sum += length;
 	}
 
+	printf("%d entries in %d buckets:\n", (int)map->items, (int)map->size);
+	printf("avg = %g\n", (double)sum / (double)map->size);
+	printf("min = %d\n", (int)min);
+	printf("max = %d\n", (int)max);
 	printf("\nhistogram %s =\n{\n", name);
 
 	for (i = 0; i < map->items; ++i)
 		if (histogram[i])
 			printf("    %d chain%s of length %d\n", histogram[i], (histogram[i] == 1) ? "" : "s", (int)i);
+
+	printf("    %d empty slots\n", num_empty);
 
 	printf("}\n");
 }
@@ -2356,15 +2372,14 @@ static void test_hash(void)
 	FILE *words = fopen("/usr/dict/words", "r");
 	char word[BUFSIZ];
 	Map *map;
-	size_t c;
-	size_t min = 0xffffffff;
-	size_t max = 0x00000000;
-	int sum = 0;
 
-	if (!words)
+	if (!(words = fopen("/usr/dict/words", "r")))
 	{
-		printf("Failed to open /usr/dict/words\n");
-		exit(EXIT_FAILURE);
+		if (!(words = fopen("/usr/share/dict/words", "r")))
+		{
+			printf("Failed to open /usr/dict/words or /usr/share/dict/words\n");
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	if (!(map = map_create(free)))
@@ -2384,35 +2399,8 @@ static void test_hash(void)
 
 	fclose(words);
 
-	printf("%d entries into %d buckets:\n\n", (int)map->items, (int)map->size);
-
-	for (c = 0; c < map->size; ++c)
-	{
-		size_t length;
-
-		if (!map->chain[c])
-			continue;
-
-		if ((length = list_length(map->chain[c])) == -1)
-		{
-			printf(" length[%d] == -1\n", (int)c);
-			continue;
-		}
-
-		if (length > max)
-			max = length;
-		if (length < min)
-			min = length;
-		sum += length;
-	}
-
-	printf("avg = %g\n", (double)sum / (double)map->size);
-	printf("min = %d\n", (int)min);
-	printf("max = %d\n", (int)max);
 	map_histogram("dict", map);
 	map_release(map);
-
-	exit(EXIT_SUCCESS);
 }
 
 static int sort_cmp(const char **a, const char **b)
@@ -2785,12 +2773,15 @@ int main(int ac, char **av)
 
 	if (ac == 2 && !strcmp(av[1], "help"))
 	{
-		printf("usage: %s [debug|hash]\n", *av);
+		printf("usage: %s [help|debug|hash]\n", *av);
 		return EXIT_SUCCESS;
 	}
 
 	if (ac == 2 && !strcmp(av[1], "hash"))
+	{
 		test_hash();
+		return EXIT_SUCCESS;
+	}
 
 	printf("Testing: %s\n", "map");
 
@@ -3192,6 +3183,10 @@ int main(int ac, char **av)
 		printf("%d/223 tests failed\n", errors);
 	else
 		printf("All tests passed\n");
+
+	printf("\n");
+	printf("    Note: You can also perform hash tests.\n");
+	printf("    Rerun the test with \"%s hash\".\n", *av);
 
 	return (errors == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }

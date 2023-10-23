@@ -1279,10 +1279,11 @@ int main(int ac, char **av)
 	Locker *locker;
 	pthread_mutex_t mutex[1];
 	pthread_rwlock_t rwlock[1];
+	int no_time = 1;
 
 	if (ac == 2 && !strcmp(av[1], "help"))
 	{
-		printf("usage: %s [debug]\n", *av);
+		printf("usage: %s [help|debug|time]\n", *av);
 		return EXIT_SUCCESS;
 	}
 
@@ -1389,6 +1390,7 @@ int main(int ac, char **av)
 		double nbl1, mbl1, rbl1, nbl1c, mbl1c, rbl1c;
 
 		printf("Timing: struct attribute accesses with differing MT safety\n");
+		no_time = 0;
 
 		list = list_make(NULL, "...", NULL);
 
@@ -1478,6 +1480,13 @@ int main(int ac, char **av)
 		printf("%d/20 tests failed\n", errors);
 	else
 		printf("All tests passed\n");
+
+	if (no_time)
+	{
+		printf("\n");
+		printf("    Note: You can also perform time tests.\n");
+		printf("    Rerun the test with \"%s time\".\n", *av);
+	}
 
 	return (errors == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }

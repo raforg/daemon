@@ -1676,7 +1676,7 @@ int main(int ac, char **av)
 
 	if (ac == 2 && !strcmp(av[1], "help"))
 	{
-		printf("usage: %s\n", *av);
+		printf("usage: %s [help]\n", *av);
 		return EXIT_SUCCESS;
 	}
 
@@ -1694,6 +1694,8 @@ int main(int ac, char **av)
 
 	unlink(core);
 	unlink(core2);
+
+	fflush(stdout);
 
 	switch (pid = fork())
 	{
@@ -1756,6 +1758,8 @@ int main(int ac, char **av)
 		not_root = 1;
 	else
 	{
+		fflush(stdout);
+
 		switch (pid = fork())
 		{
 			case -1:
@@ -2026,6 +2030,8 @@ int main(int ac, char **av)
 	}
 
 	/* Test daemon_init() and daemon_close() */
+
+	fflush(stdout);
 
 	switch (pid = fork())
 	{

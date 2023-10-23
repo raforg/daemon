@@ -2826,7 +2826,7 @@ int main(int ac, char **av)
 
 	if (ac == 2 && !strcmp(av[1], "help"))
 	{
-		printf("usage: %s\n", *av);
+		printf("usage: %s [help]\n", *av);
 		return EXIT_SUCCESS;
 	}
 
@@ -2888,6 +2888,8 @@ int main(int ac, char **av)
 
 		snprintf(out_name, 32, "prog.out.%d", i);
 		snprintf(err_name, 32, "prog.err.%d", i);
+
+		fflush(stdout);
 
 		switch (pid = fork())
 		{
