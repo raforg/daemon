@@ -77,10 +77,10 @@ I<libslack(msg)> - message module
 =head1 DESCRIPTION
 
 This module provides general messaging functions. Message channels can be
-created that send messages to a file descriptor, a file, I<syslog> or a
-client defined message handler or that multiplexes messages to any
-combination of the above. Messages sent to files are timestamped using (by
-default) the I<strftime(3)> format: C<"%Y%m%d %H:%M:%S">.
+created that send messages to a file descriptor, a file, I<syslog>, a
+client-defined message handler, or a message handler that multiplexes
+messages to any combination of the above. Messages sent to files are
+timestamped using (by default) the I<strftime(3)> format: C<"%Y%m%d %H:%M:%S">.
 
 It also provides functions for parsing I<syslog> targets, converting between
 I<syslog> facility names and codes, and converting between I<syslog>
@@ -103,6 +103,7 @@ priority names and codes.
 #include "config.h"
 #include "std.h"
 
+#include <string.h>
 #include <syslog.h>
 #include <fcntl.h>
 #include <time.h>
@@ -146,6 +147,8 @@ struct MsgFileData
 
 struct MsgSyslogData
 {
+	char *ident;  /* openlog(3) ident */
+	int option;   /* openlog(3) option */
 	int facility; /* syslog(3) priority */
 	int priority; /* syslog(3) priority */
 };
@@ -816,10 +819,9 @@ Msg *msg_create_file_with_locker(Locker *locker, const char *path)
 C<int msg_sysdata_init(MsgSyslogData *data, const char *ident, int option, int facility, int priority)>
 
 Initialises the internal data needed by a I<Msg> object that sends messages
-to I<syslog>. I<openlog(3)> is called with C<ident> and C<option>.
-C<facility> and C<priority> are stored to be used when sending messages. On
-success, returns C<0>. On error, returns C<-1> with C<errno> set
-appropriately.
+to I<syslog>. C<ident>, C<option>, C<facility> and C<priority> are stored to
+be used when sending I<syslog> messages. On success, returns C<0>. On error,
+returns C<-1> with C<errno> set appropriately.
 
 */
 
@@ -828,10 +830,13 @@ static int msg_sysdata_init(MsgSyslogData *data, const char *ident, int option, 
 	if (!data || facility == -1)
 		return set_errno(EINVAL);
 
+	data->ident = (ident) ? strdup(ident) : NULL;
+	if (ident && !data->ident)
+		return -1;
+
+	data->option = option;
 	data->facility = facility & LOG_FACMASK;
 	data->priority = priority & LOG_PRIMASK;
-
-	openlog(ident, option, 0);
 
 	return 0;
 }
@@ -868,7 +873,7 @@ static MsgSyslogData *msg_sysdata_create(const char *ident, int option, int faci
 C<void msg_sysdata_release(MsgSyslogData *data)>
 
 Releases (deallocates) the internal data needed by a I<Msg> object that
-sends messages to I<syslog>. Calls I<closelog(3)>.
+sends messages to I<syslog>.
 
 */
 
@@ -877,8 +882,10 @@ static void msg_sysdata_release(MsgSyslogData *data)
 	if (!data)
 		return;
 
+	if (data->ident)
+		mem_release(data->ident);
+
 	mem_release(data);
-	closelog();
 }
 
 /*
@@ -886,8 +893,8 @@ static void msg_sysdata_release(MsgSyslogData *data)
 C<void msg_out_syslog(void *data, const void *mesg, size_t mesglen)>
 
 Sends a message to I<syslog>. C<data> is a pointer to a C<MsgSyslogData>
-object that contains the facility and priority to use. C<mesg> is the
-message. C<mesglen> is its length.
+object that contains the ident, options, facility, and priority to use.
+C<mesg> is the message. C<mesglen> is its length.
 
 */
 
@@ -896,7 +903,12 @@ static void msg_out_syslog(void *data, const void *mesg, size_t mesglen)
 	MsgSyslogData *dst = data;
 
 	if (mesg && dst && dst->facility != -1)
-		syslog(dst->facility | dst->priority, "%*.*s", (int)mesglen, (int)mesglen, (char *)mesg);
+	{
+		/* Call openlog/closelog always in case fds are closed across exec, or multiple identifiers are used */
+		openlog(dst->ident, dst->option, dst->facility);
+		syslog(dst->priority, "%*.*s", (int)mesglen, (int)mesglen, (char *)mesg);
+		closelog();
+	}
 }
 
 /*
