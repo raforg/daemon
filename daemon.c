@@ -239,7 +239,7 @@ command line arguments to the argument of the C<--command> option.
 
 If the C<--output>, C<--stdout> and/or C<--stderr> options were supplied,
 the client's standard output and/or standard error are captured by
-I<daemon>, and are sent to the respective I<syslog> destinations.
+I<daemon>, and are sent to the respective destinations.
 
 =item *
 
@@ -3928,13 +3928,17 @@ static void run(void)
 						for (p = buf; (q = strchr(p, '\n')); p = q + 1)
 						{
 							debug((2, "stdout syslog(%s, %*.*s)", g.client_out, (int)(q - p), (int)(q - p), p))
+							openlog(prog_name(), 0, 0);
 							syslog(g.client_outlog, "%*.*s", (int)(q - p), (int)(q - p), p);
+							closelog();
 						}
 
 						if (*p && (*p != '\n' || p[1] != '\0'))
 						{
 							debug((2, "stdout syslog(%s, %s)", g.client_out, p))
+							openlog(prog_name(), 0, 0);
 							syslog(g.client_outlog, "%s", p);
+							closelog();
 						}
 					}
 				}
@@ -3989,13 +3993,17 @@ static void run(void)
 						for (p = buf; (q = strchr(p, '\n')); p = q + 1)
 						{
 							debug((2, "stderr syslog(%s, %*.*s)", g.client_err, (int)(q - p), (int)(q - p), p))
+							openlog(prog_name(), 0, 0);
 							syslog(g.client_errlog, "%*.*s", (int)(q - p), (int)(q - p), p);
+							closelog();
 						}
 
 						if (*p && (*p != '\n' || p[1] != '\0'))
 						{
 							debug((2, "stderr syslog(%s, %s)", g.client_err, p))
+							openlog(prog_name(), 0, 0);
 							syslog(g.client_errlog, "%s", p);
+							closelog();
 						}
 					}
 				}
@@ -4050,13 +4058,17 @@ static void run(void)
 						for (p = buf; (q = strchr(p, '\n')); p = q + 1)
 						{
 							debug((2, "stdout syslog(%s, %*.*s)", g.client_out, (int)(q - p), (int)(q - p), p))
+							openlog(prog_name(), 0, 0);
 							syslog(g.client_outlog, "%*.*s", (int)(q - p), (int)(q - p), p);
+							closelog();
 						}
 
 						if (*p && (*p != '\n' || p[1] != '\0'))
 						{
 							debug((2, "stdout syslog(%s, %s)", g.client_out, p))
+							openlog(prog_name(), 0, 0);
 							syslog(g.client_outlog, "%s", p);
+							closelog();
 						}
 					}
 				}
@@ -5237,7 +5249,7 @@ static void init(int ac, char **av)
 			errorsys("failed to push pid-prefixing message filter to the debug message destination");
 	}
 
-	/* Set client's stdout and stderr destinations (syslog or file) */
+	/* Set client's stdout and stderr destinations (file) */
 
 	flags = O_CREAT | O_WRONLY | O_APPEND;
 	mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;

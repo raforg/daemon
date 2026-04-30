@@ -24,6 +24,7 @@ The client prints the numbers from 0 to 4, sleeping for a second before
 printing each one. daemon will respawn the client but since it only runs for
 5 seconds, the burst/wait respawn cycle is triggered. So the client should
 run twice, then wait 10 seconds, then run twice more before giving up.
+The log identifier should be "test1" (not "daemon").
 
 test2
 -----
